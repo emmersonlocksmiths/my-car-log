@@ -1,9 +1,9 @@
 // Caches the app's own files so it opens instantly and works with no signal.
 // Firebase keeps your data offline itself; this only covers the app shell.
 // Bump VERSION whenever you change any file so phones pick up the update.
-const VERSION = 'carlog-v6';
+const VERSION = 'carlog-v8';
 const SHELL = [
-  './', 'index.html', 'styles.css', 'app.js', 'calc.js', 'import.js', 'firebase-config.js',
+  './', 'index.html',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
   'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
 ];
