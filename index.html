@@ -403,6 +403,31 @@ html.brand-top .vtabs-empty { color: #ffffff; }
 }
 .qpick:active { transform: scale(.95); }
 .qpick.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* Coming up: service, tyres, rego, insurance */
+.rems h2 { margin-bottom: .2rem; }
+.rem { display: grid; grid-template-columns: 38px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.rems h2 + .rem { border-top: 0; }
+.rem-ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff; }
+.rem-ic svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rem-service { background: var(--service); }
+.rem-rotation, .rem-tyres { background: var(--tyre); }
+.rem-rego { background: var(--accent); color: var(--accent-ink); }
+.rem-insurance { background: var(--expense); }
+.rem-body { min-width: 0; display: grid; gap: 3px; }
+.rem-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rem-title { font: 600 1rem var(--font-display); letter-spacing: -.01em; }
+.rem-main { font-size: .95rem; }
+.rem-main strong { font-family: var(--font-display); font-weight: 600; }
+.rem-sub { font-size: .82rem; color: var(--muted); }
+.rem-foot { font-size: .76rem; color: var(--muted); }
+.rem-foot .link { font-size: .76rem; padding: 0; font-weight: 600; }
+.rem-note { margin: .6rem 0 0; font-size: .76rem; color: var(--muted); }
+.st { flex: none; font-size: .7rem; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; padding: .2rem .55rem; border-radius: 999px; }
+.st-ok { color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); }
+.st-soon { color: var(--service); background: color-mix(in srgb, var(--service) 16%, transparent); }
+.st-due { color: var(--danger); background: color-mix(in srgb, var(--danger) 15%, transparent); }
+.st-none { color: var(--muted); background: var(--surface-2); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -658,21 +683,111 @@ function yearBreakdown(entries, now = /* @__PURE__ */ new Date()) {
     return { year: y, current: end === todayIso, ...periodStats(entries, `${y}-01-01`, end) };
   });
 }
-function serviceStatus(entries) {
-  const svc = entries.filter((e) => e.type === "service" && num(e.odo) && /service/i.test(e.category || "") && !/tyre/i.test(e.category || "")).sort((a, b) => +b.odo - +a.odo);
-  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0);
-  if (!svc.length) return null;
-  const last = svc[0];
-  const gaps = svc.slice(0, -1).map((s, i) => +s.odo - +svc[i + 1].odo).filter((g) => g > 1e3);
-  const interval = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length / 500) * 500 : null;
-  return { last, since: latestOdo - +last.odo, interval, dueIn: interval ? interval - (latestOdo - +last.odo) : null };
+var TYRE_CATEGORIES = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
+function tyreCount(e) {
+  if (+e.tyreCount > 0) return +e.tyreCount;
+  const n = String(e.notes || "").toLowerCase();
+  const m = n.match(/(\d)\s*(new\s*)?(front|rear|back)?\s*tyres?/) || n.match(/(\d)\s*new/);
+  if (m) return +m[1];
+  if (/\bfour\b|full set|set of/.test(n)) return 4;
+  if (/\b(one|a) new tyre|new tyre\b/.test(n)) return 1;
+  return null;
+}
+function tyreJob(e) {
+  if (e.type !== "service" || !TYRE_CATEGORIES.includes(e.category)) return null;
+  if (e.category !== "Tyres") return { "Tyre rotation": "rotation", "Wheel alignment": "alignment", "Puncture repair": "puncture" }[e.category];
+  const n = String(e.notes || "").toLowerCase();
+  if (/rotat/.test(n)) return "rotation";
+  if (/\bnew\b|\d+\s*(new\s*)?tyres?/.test(n)) return "new";
+  if (/align|balanc/.test(n)) return "alignment";
+  if (/punct/.test(n)) return "puncture";
+  return "new";
+}
+var addMonths = (dateStr, m) => {
+  const d = /* @__PURE__ */ new Date(dateStr + "T00:00:00");
+  return iso(new Date(d.getFullYear(), d.getMonth() + m, d.getDate()));
+};
+var daysUntil = (dateStr, now) => Math.round((/* @__PURE__ */ new Date(dateStr + "T00:00:00") - /* @__PURE__ */ new Date(iso(now) + "T00:00:00")) / 864e5);
+var byDateDesc = (a, b) => String(b.date).localeCompare(String(a.date)) || (+b.odo || 0) - (+a.odo || 0);
+var roundTo = (v, step) => Math.round(v / step) * step;
+function learnedGap(list, min, max) {
+  const odos = list.map((e) => num(e.odo)).filter((o) => o !== null).sort((a, b) => b - a);
+  const gaps = odos.slice(0, -1).map((o, i) => o - odos[i + 1]).filter((g) => g >= min && g <= max);
+  return gaps.length ? roundTo(gaps.reduce((a, b) => a + b, 0) / gaps.length, 500) : null;
+}
+function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
+  const today2 = iso(now);
+  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0) || null;
+  const recent = periodStats(entries, iso(addDays(now, -90)), today2);
+  const first = entries.map((e) => e.date).sort()[0];
+  const all = first ? periodStats(entries, first, today2) : null;
+  const kmPerDay = recent.km && recent.km > 0 ? recent.km / recent.days : all?.km ? all.km / all.days : null;
+  const dateForKm = (kmLeft) => kmPerDay && kmLeft != null ? iso(addDays(now, Math.round(kmLeft / kmPerDay))) : null;
+  const kmItem = (last, intervalKm, months, source) => {
+    const kmSince = last && num(last.odo) !== null && latestOdo ? latestOdo - +last.odo : null;
+    const kmLeft = kmSince !== null && intervalKm ? intervalKm - kmSince : null;
+    const byKm = kmLeft !== null ? dateForKm(kmLeft) : null;
+    const byTime = last && months ? addMonths(last.date, months) : null;
+    const due = [byKm, byTime].filter(Boolean).sort()[0] || null;
+    const days = due ? daysUntil(due, now) : null;
+    const status = kmLeft === null && days === null ? "unknown" : kmLeft !== null && kmLeft < 0 || days !== null && days < 0 ? "due" : kmLeft !== null && kmLeft <= 1e3 || days !== null && days <= 30 ? "soon" : "ok";
+    return { last, kmSince, daysSince: last ? -daysUntil(last.date, now) : null, intervalKm, months, kmLeft, due, days, byTime: due === byTime && byTime !== byKm, status, source };
+  };
+  const services = entries.filter((e) => e.type === "service" && !tyreJob(e) && /service/i.test(e.category || "")).sort(byDateDesc);
+  const learnedSvc = learnedGap(services, 3e3, 4e4);
+  const service = kmItem(
+    services[0],
+    +vehicle.serviceKm || learnedSvc || 1e4,
+    +vehicle.serviceMonths || 12,
+    vehicle.serviceKm ? "set" : learnedSvc ? "learned" : "default"
+  );
+  const tyres = entries.filter((e) => tyreJob(e)).sort(byDateDesc);
+  const newTyres = tyres.filter((e) => tyreJob(e) === "new");
+  const rotations = tyres.filter((e) => tyreJob(e) === "rotation");
+  const fullSet = newTyres.find((e) => tyreCount(e) >= 4);
+  const rotBase = [rotations[0], fullSet].filter(Boolean).sort(byDateDesc)[0];
+  const learnedRot = learnedGap(rotations, 3e3, 25e3);
+  const rotation = kmItem(
+    rotBase,
+    +vehicle.rotationKm || learnedRot || 1e4,
+    null,
+    vehicle.rotationKm ? "set" : learnedRot ? "learned" : "default"
+  );
+  rotation.lastRotation = rotations[0] || null;
+  const lastNew = newTyres[0] || null;
+  const tyreAge = lastNew ? {
+    last: lastNew,
+    daysSince: -daysUntil(lastNew.date, now),
+    kmSince: num(lastNew.odo) !== null && latestOdo ? latestOdo - +lastNew.odo : null
+  } : null;
+  const renewal = (category, months) => {
+    const last = entries.filter((e) => e.type === "expense" && e.category === category).sort(byDateDesc)[0] || null;
+    if (!last) return { last: null, status: "unknown", months };
+    const due = addMonths(last.date, months);
+    const days = daysUntil(due, now);
+    const status = days < -60 ? "stale" : days < 0 ? "due" : days <= 30 ? "soon" : "ok";
+    return { last, due, days, months, status };
+  };
+  return {
+    kmPerDay,
+    latestOdo,
+    service,
+    rotation,
+    tyreAge,
+    rego: renewal("Registration", +vehicle.regoMonths || 12),
+    insurance: renewal("Insurance", +vehicle.insuranceMonths || 12)
+  };
 }
 
 // ../carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
-  [/tyre|tire|wheel (align|rot|bal)|wheel$|steering align/i, "service", "Tyres"],
+  [/rotat/i, "service", "Tyre rotation"],
+  [/\bnew\b.*\b(tyre|tire)|\d+\s*(new\s*)?(front|rear)?\s*(tyre|tire)s?/i, "service", "Tyres"],
+  [/wheel align|alignment|balanc/i, "service", "Wheel alignment"],
+  [/punct/i, "service", "Puncture repair"],
+  [/tyre|tire|wheel$/i, "service", "Tyres"],
   [/(brake|break) ?(globe|light|bulb)/i, "service", "Repairs"],
   [/brake|breaks/i, "service", "Brakes"],
   [/oil change/i, "service", "Oil change"],
@@ -796,9 +911,11 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "20";
+var APP_VERSION = "21";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
+var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
+var JOB_CATEGORY = { new: "Tyres", rotation: "Tyre rotation", alignment: "Wheel alignment", puncture: "Puncture repair" };
 var TYRE_LABEL = { Tyres: "New tyres", "Tyre rotation": "Rotation", "Wheel alignment": "Alignment & balance", "Puncture repair": "Puncture repair" };
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -1095,7 +1212,7 @@ function entryRow(e) {
     if (e.litres > 0 && e.cost > 0) sub.push(`${n2.format(e.cost / e.litres * 100)} c/L`);
     if (e.fullTank === false) sub.push("partial");
   } else if (kindOf(e) === "tyres") {
-    title = TYRE_LABEL[e.category] || e.category;
+    title = TYRE_JOB_LABEL[tyreJob(e)] || TYRE_LABEL[e.category] || e.category;
     if (e.tyreCount) title += ` \xD7${e.tyreCount}`;
   } else title = e.category || title;
   sub.unshift(fmtDate(e.date));
@@ -1119,6 +1236,92 @@ function delta(cur, prev, lowerIsBetter = true) {
 var fmtC = (dollars) => dollars == null || !isFinite(dollars) ? "\u2013" : `${n1.format(dollars * 100)}c`;
 var fmtKm = (km) => km == null ? "\u2013" : n0.format(km);
 var fmtL100 = (v) => v == null ? "\u2013" : n1.format(v);
+function ago(days) {
+  if (days == null) return "";
+  if (days < 45) return `${days} day${days === 1 ? "" : "s"}`;
+  const months = Math.round(days / 30.44);
+  if (months < 12) return `${months} months`;
+  const y = Math.floor(months / 12), m = months % 12;
+  return `${y} year${y === 1 ? "" : "s"}${m ? ` ${m} month${m === 1 ? "" : "s"}` : ""}`;
+}
+var STATUS = { ok: ["ok", "On track"], soon: ["soon", "Soon"], due: ["due", "Due"], stale: ["none", "Not logged"], unknown: ["none", "Not set"] };
+var statusChip = (st, overdue) => {
+  const [c, l] = STATUS[st] || STATUS.unknown;
+  return `<span class="st st-${c}">${overdue ? "Overdue" : l}</span>`;
+};
+var RICONS = {
+  service: ICONS.service,
+  rotation: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7M4 12a8 8 0 0 1 13.7-5.7"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>',
+  tyres: ICONS.tyres,
+  rego: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h2M11 12h2M15 12h2"/></svg>',
+  insurance: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
+};
+function remindersHTML(v, list) {
+  if (!list.length) return "";
+  const r = reminders(list, v);
+  const row = (key, title, chip, main, sub, foot = "") => `<div class="rem">
+      <span class="rem-ic rem-${key}">${RICONS[key]}</span>
+      <div class="rem-body"><div class="rem-top"><span class="rem-title">${title}</span>${chip}</div>
+        <div class="rem-main">${main}</div>${sub ? `<div class="rem-sub">${sub}</div>` : ""}${foot ? `<div class="rem-foot">${foot}</div>` : ""}</div>
+    </div>`;
+  const when = (it) => it.due ? `${it.days >= 0 ? "around" : "was due"} <strong>${fmtDate(it.due)}</strong>${it.days >= 0 ? ` \xB7 ${it.days === 0 ? "today" : `in ${ago(it.days)}`}` : ""}` : "";
+  const src = (it, what) => ({ set: `Your setting: every ${n0.format(it.intervalKm)} km`, learned: `Every ~${n0.format(it.intervalKm)} km, from your history`, default: `Every ${n0.format(it.intervalKm)} km (typical)` })[it.source] + (it.months ? ` or ${it.months} months` : "") + ` \xB7 <button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">Change</button>`;
+  const rows = [];
+  const s = r.service;
+  if (s.last) {
+    rows.push(row(
+      "service",
+      "Next service",
+      statusChip(s.status, s.status === "due"),
+      s.kmLeft == null ? when(s) : s.kmLeft >= 0 ? `In <strong class="num">${n0.format(s.kmLeft)} km</strong> \xB7 ${when(s)}` : `Overdue by <strong class="num">${n0.format(-s.kmLeft)} km</strong>`,
+      `Last service ${fmtDate(s.last.date)}${s.last.place ? " \xB7 " + esc(s.last.place) : ""} \xB7 <span class="num">${n0.format(s.kmSince)}</span> km ago`,
+      src(s)
+    ));
+  } else rows.push(row("service", "Next service", statusChip("unknown"), "No service logged yet", "Add one with + \u2192 Service to start tracking."));
+  const t = r.rotation;
+  if (t.last) {
+    const base = t.lastRotation && t.last === t.lastRotation ? `Last rotated ${fmtDate(t.last.date)}` : `New tyres fitted ${fmtDate(t.last.date)}`;
+    rows.push(row(
+      "rotation",
+      "Tyre rotation",
+      statusChip(t.status, t.status === "due"),
+      t.kmLeft >= 0 ? `In <strong class="num">${n0.format(t.kmLeft)} km</strong> \xB7 ${when(t)}` : `Overdue by <strong class="num">${n0.format(-t.kmLeft)} km</strong>`,
+      `${base} \xB7 <span class="num">${n0.format(t.kmSince)}</span> km ago`,
+      src(t)
+    ));
+  } else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
+  const a = r.tyreAge;
+  if (a) {
+    const cnt = tyreCount(a.last);
+    rows.push(row(
+      "tyres",
+      "Tyres",
+      "",
+      `<strong>${ago(a.daysSince)}</strong> old${a.kmSince != null ? ` \xB7 <strong class="num">${n0.format(a.kmSince)} km</strong>` : ""}`,
+      `${cnt ? `${cnt} new tyre${cnt === 1 ? "" : "s"}` : "New tyres"} \xB7 ${fmtDate(a.last.date)}${a.last.place ? " \xB7 " + esc(a.last.place) : ""}`
+    ));
+  }
+  for (const [key, title, cat, it] of [["rego", "Rego", "Registration", r.rego], ["insurance", "Insurance", "Insurance", r.insurance]]) {
+    if (!it.last) {
+      rows.push(row(key, title, statusChip("unknown"), `Log a payment to get a reminder`, `Add it with + \u2192 Expense \u2192 ${cat}.`));
+      continue;
+    }
+    if (it.status === "stale") {
+      rows.push(row(key, title, statusChip("stale"), `Last logged ${fmtDate(it.last.date)}`, `Log your latest ${title.toLowerCase()} payment so the next due date is right.`));
+      continue;
+    }
+    rows.push(row(
+      key,
+      title,
+      statusChip(it.status, it.days < 0),
+      it.days >= 0 ? `Due <strong>${fmtDate(it.due)}</strong> \xB7 in ${ago(it.days)}` : `Was due <strong>${fmtDate(it.due)}</strong>`,
+      `Last paid ${fmtDate(it.last.date)} \xB7 ${money.format(+it.last.cost || 0)} \xB7 renews every ${it.months} months`,
+      `<button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">Change</button>`
+    ));
+  }
+  return `<section class="card rems"><h2>Coming up</h2>${rows.join("")}
+    ${r.kmPerDay ? `<p class="rem-note">Dates are estimates from your recent driving, about ${n0.format(r.kmPerDay * 7)} km a week.</p>` : ""}</section>`;
+}
 function homeHTML() {
   const list = vehicleEntries();
   const v = currentVehicle();
@@ -1127,7 +1330,6 @@ function homeHTML() {
   const a = periodStats(list, p.start, p.end);
   const b = p.prevStart ? periodStats(list, p.prevStart, p.prevEnd) : null;
   const t = a.totals, tot = a.total || 1;
-  const svc = serviceStatus(list);
   const year = (/* @__PURE__ */ new Date()).getFullYear();
   const quarters = quarterBreakdown(list, year);
   const years = yearBreakdown(list);
@@ -1138,15 +1340,7 @@ function homeHTML() {
         <td class="num">${money0.format(st.total)}</td><td class="num">${fmtKm(st.km)}</td>
         <td class="num">${fmtL100(st.l100)}</td><td class="num">${st.fills ? fmtC(st.costPerKm) : "\u2013"}</td></tr>`;
   const head = "<thead><tr><th></th><th>Spend</th><th>Km</th><th>L/100</th><th>c/km</th></tr></thead>";
-  let svcHTML = "";
-  if (svc) {
-    const due = svc.dueIn == null ? "" : svc.dueIn >= 0 ? `<p class="svc-due">Next service due in about <strong class="num">${n0.format(svc.dueIn)} km</strong></p>` : `<p class="svc-due over">Service overdue by about <strong class="num">${n0.format(-svc.dueIn)} km</strong></p>`;
-    svcHTML = `<section class="card svc"><h2>Servicing</h2>
-      <p class="svc-big"><span class="num">${n0.format(svc.since)}</span> km since last service</p>
-      <p class="muted small">${fmtDate(svc.last.date)}${svc.last.place ? " \xB7 " + esc(svc.last.place) : ""} \xB7 ${money.format(+svc.last.cost || 0)}</p>
-      ${due}${svc.interval ? `<p class="muted small">Based on your usual gap of about ${n0.format(svc.interval)} km between services.</p>` : ""}
-    </section>`;
-  }
+  const comingUp = remindersHTML(v, list);
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
     <div class="chips period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
@@ -1173,7 +1367,7 @@ function homeHTML() {
       ${tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek))}
       ${tile(String(a.fills), "Fill-ups", "", a.avgFill ? `avg ${money0.format(a.avgFill)}` : "")}
     </section>
-    ${svcHTML}
+    ${comingUp}
     <section class="card"><h2>${year} by quarter</h2>
       <div class="tbl-wrap"><table class="tbl">${head}<tbody>${quarters.map((q) => row(`Q${q.q}`, q)).join("")}</tbody></table></div>
     </section>
@@ -1406,6 +1600,7 @@ function sheetHead(title) {
 function vehicleForm(v) {
   const isEdit = !!v;
   v = v || {};
+  const rem = reminders(isEdit ? state.entries.filter((e) => e.vehicleId === v.id) : [], v);
   openSheet(
     `
     ${sheetHead(isEdit ? "Edit vehicle" : "Add vehicle")}
@@ -1420,6 +1615,16 @@ function vehicleForm(v) {
       <label>Fuel<select name="fuel">${["Unleaded 91", "Unleaded 95", "Unleaded 98", "E10", "Diesel", "LPG", "Electric", "Hybrid"].map((f) => `<option ${v.fuel === f ? "selected" : ""}>${f}</option>`).join("")}</select></label>
     </div>
     <label>Tank size (L, optional)<input name="tank" inputmode="decimal" value="${esc(v.tank)}"></label>
+    <div class="field-label" style="margin:.3rem 0 -.3rem">Reminders <span class="muted" style="font-weight:500">(leave blank to use your history)</span></div>
+    <div class="grid2">
+      <label>Service every (km)<input name="serviceKm" inputmode="numeric" placeholder="${esc(rem.service.intervalKm)}" value="${esc(v.serviceKm)}"></label>
+      <label>or every (months)<input name="serviceMonths" inputmode="numeric" placeholder="12" value="${esc(v.serviceMonths)}"></label>
+    </div>
+    <label>Tyre rotation every (km)<input name="rotationKm" inputmode="numeric" placeholder="${esc(rem.rotation.intervalKm)}" value="${esc(v.rotationKm)}"></label>
+    <div class="grid2">
+      <label>Rego renews every<select name="regoMonths">${[12, 6, 3].map((m) => `<option value="${m}" ${(+v.regoMonths || 12) === m ? "selected" : ""}>${m} months</option>`).join("")}</select></label>
+      <label>Insurance renews every<select name="insuranceMonths">${[12, 6, 1].map((m) => `<option value="${m}" ${(+v.insuranceMonths || 12) === m ? "selected" : ""}>${m === 1 ? "month" : m + " months"}</option>`).join("")}</select></label>
+    </div>
     <button class="btn primary" value="save">Save</button>
     ${isEdit ? '<button class="btn danger" value="delete" formnovalidate>Delete vehicle</button>' : ""}`,
     async (action) => {
@@ -1438,7 +1643,12 @@ function vehicleForm(v) {
         model: f.model.value.trim(),
         rego: f.rego.value.trim().toUpperCase(),
         fuel: f.fuel.value,
-        tank: numOrNull(f.tank.value)
+        tank: numOrNull(f.tank.value),
+        serviceKm: numOrNull(f.serviceKm.value),
+        serviceMonths: numOrNull(f.serviceMonths.value),
+        rotationKm: numOrNull(f.rotationKm.value),
+        regoMonths: +f.regoMonths.value,
+        insuranceMonths: +f.insuranceMonths.value
       }, v.id).catch((err) => toast("Sync problem: " + err.message));
       if (!isEdit) render();
       toast(isEdit ? "Vehicle updated" : "Vehicle added");
@@ -1474,7 +1684,7 @@ function entryForm(entry) {
   const fields = () => {
     const sameKind = isEdit && kindOf(entry) === kind;
     const cats = kind === "service" ? SERVICE_CATS : kind === "tyres" ? TYRE_CATS : EXPENSE_CATS;
-    const catVal = sameKind ? e.category : cats[0];
+    const catVal = sameKind ? kind === "tyres" ? JOB_CATEGORY[tyreJob(entry)] || e.category : e.category : cats[0];
     let i = 0;
     const item = (html) => `<div class="fi" style="--i:${i++}">${html}</div>`;
     const head = item(`<div class="grid2">
