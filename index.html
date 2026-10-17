@@ -34,6 +34,7 @@
   --fuel: #0b98b8;
   --service: #c97f0b;
   --expense: #7b5ce0;
+  --tyre: #5d6b7c;
   --grid: #e6eaee;
   --tabbar: #ffffff;
   --glow: rgba(11, 152, 184, .25);
@@ -60,6 +61,7 @@
   --fuel: #0ea5c6;
   --service: #c67f0b;
   --expense: #8c6fe6;
+  --tyre: #7d8ea3;
   --grid: #23282f;
   --tabbar: #15181c;
   --glow: rgba(22, 194, 226, .28);
@@ -81,6 +83,7 @@
   --fuel: #0ea5c6;
   --service: #c67f0b;
   --expense: #8c6fe6;
+  --tyre: #7d8ea3;
   --grid: #23282f;
   --tabbar: #15181c;
   --glow: rgba(22, 194, 226, .28);
@@ -191,6 +194,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
 .badge.fuel { background: var(--fuel); }
 .badge.service { background: var(--service); }
 .badge.expense { background: var(--expense); }
+.badge.tyres { background: var(--tyre); }
 .entry .t { font-weight: 650; }
 .entry .s { font-size: .82rem; color: var(--muted); }
 .entry .amt { font-weight: 700; text-align: right; }
@@ -325,6 +329,69 @@ html.brand-top .topbar select option { color: initial; }
 html.brand-top .vtab { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .28); color: #ffffff; }
 html.brand-top .vtab.on { background: #ffffff; color: #062b5d; border-color: #ffffff; }
 html.brand-top .vtabs-empty { color: #ffffff; }
+
+/* ---------- Add / edit entry ---------- */
+:root { --ease: cubic-bezier(.2, .8, .2, 1); }
+.sheet[open] { animation: sheet-in .42s var(--ease); }
+.sheet[open]::backdrop { animation: fade-in .3s ease; }
+@keyframes sheet-in { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.kinds {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px;
+  transition: grid-template-columns .5s var(--ease), gap .5s var(--ease);
+}
+.kinds.picked { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.kind {
+  appearance: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--text);
+  border-radius: 18px; padding: 16px 14px 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  text-align: left; font: inherit; cursor: pointer; min-width: 0;
+  transition: padding .5s var(--ease), border-color .3s ease, background-color .3s ease, opacity .3s ease, transform .18s ease, gap .5s var(--ease);
+}
+.kind:active { transform: scale(.96); }
+.kind:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.kind .ic {
+  width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: var(--k);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--k) 35%, transparent);
+  transition: width .5s var(--ease), height .5s var(--ease), border-radius .5s var(--ease), box-shadow .3s ease;
+}
+.kind .ic svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: width .5s var(--ease), height .5s var(--ease); }
+.kind .nm { font: 600 1.08rem var(--font-display); letter-spacing: -.01em; transition: font-size .5s var(--ease); }
+.kind .ds { font-size: .8rem; line-height: 1.3; color: var(--muted); max-height: 3.2em; overflow: hidden; transition: max-height .4s var(--ease), opacity .25s ease; }
+.kinds.picked .kind { padding: 10px 4px; align-items: center; gap: 6px; text-align: center; }
+.kinds.picked .kind .ic { width: 34px; height: 34px; border-radius: 10px; box-shadow: none; }
+.kinds.picked .kind .ic svg { width: 18px; height: 18px; }
+.kinds.picked .kind .nm { font-size: .82rem; }
+.kinds.picked .kind .ds { max-height: 0; opacity: 0; }
+.kinds.picked .kind:not(.on) { opacity: .55; }
+.kind.on { border-color: var(--k); background: color-mix(in srgb, var(--k) 14%, var(--surface)); }
+.kinds.picked .kind.on .ic { box-shadow: 0 4px 12px color-mix(in srgb, var(--k) 40%, transparent); }
+
+.fields-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .55s var(--ease); }
+.fields-wrap.open { grid-template-rows: 1fr; }
+.fields-inner { min-height: 0; overflow: hidden; display: grid; gap: .9rem; padding: 2px; margin: -2px; }
+.fields-wrap.open .fi { animation: rise .5s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms + 120ms); }
+.fields-wrap.no-anim .fi { animation: none; }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fi { display: grid; gap: .9rem; }
+.fi .hint { margin-top: -.5rem; }
+
+.field-label { font-size: .85rem; color: var(--text-2); font-weight: 600; margin-bottom: -.4rem; }
+.pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.pill { display: block; cursor: pointer; }
+.pill input { position: absolute; opacity: 0; pointer-events: none; }
+.pill span {
+  display: inline-block; padding: .55rem .9rem; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface);
+  color: var(--text); font-weight: 600; font-size: .9rem; transition: background-color .25s ease, border-color .25s ease, color .25s ease;
+}
+.pill input:checked + span { background: var(--tyre); border-color: var(--tyre); color: #fff; }
+.pill input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet[open], .sheet[open]::backdrop, .fields-wrap.open .fi { animation: none; }
+  .kinds, .kind, .kind .ic, .kind .ic svg, .kind .nm, .kind .ds, .fields-wrap { transition: none; }
+}
+#receipt-thumb:empty { display: none; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -375,7 +442,7 @@ html.brand-top .vtabs-empty { color: #ffffff; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -385,7 +452,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -590,7 +657,7 @@ function serviceStatus(entries) {
   return { last, since: latestOdo - +last.odo, interval, dueIn: interval ? interval - (latestOdo - +last.odo) : null };
 }
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -686,7 +753,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -718,15 +785,25 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "18";
-var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
+var APP_VERSION = "19";
+var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
+var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
+var TYRE_LABEL = { Tyres: "New tyres", "Tyre rotation": "Rotation", "Wheel alignment": "Alignment & balance", "Puncture repair": "Puncture repair" };
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
 var ICONS = {
   fuel: '<svg viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M4 10h11M15 8h2a2 2 0 0 1 2 2v7a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg>',
   service: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>',
-  expense: '<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 11h16M8 15h3"/></svg>'
+  expense: '<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 11h16M8 15h3"/></svg>',
+  tyres: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>'
 };
+var KINDS = [
+  { k: "fuel", label: "Fuel", desc: "Fill-up at the servo" },
+  { k: "service", label: "Service", desc: "Servicing and repairs" },
+  { k: "tyres", label: "Tyres", desc: "New tyres, rotation, alignment" },
+  { k: "expense", label: "Expense", desc: "Rego, insurance, tolls and more" }
+];
+var kindOf = (e) => e.type === "service" && TYRE_CATS.includes(e.category) ? "tyres" : e.type;
 var state = {
   user: null,
   garage: null,
@@ -1006,12 +1083,15 @@ function entryRow(e) {
     title = e.litres ? `${n2.format(e.litres)} L` : "Fuel";
     if (e.litres > 0 && e.cost > 0) sub.push(`${n2.format(e.cost / e.litres * 100)} c/L`);
     if (e.fullTank === false) sub.push("partial");
+  } else if (kindOf(e) === "tyres") {
+    title = TYRE_LABEL[e.category] || e.category;
+    if (e.tyreCount) title += ` \xD7${e.tyreCount}`;
   } else title = e.category || title;
   sub.unshift(fmtDate(e.date));
   if (e.odo) sub.push(`${n0.format(e.odo)} km`);
   if (e.place) sub.push(esc(e.place));
   return `<button class="entry" data-act="edit-entry" data-id="${e.id}">
-    <span class="badge ${e.type}">${ICONS[e.type]}</span>
+    <span class="badge ${kindOf(e)}">${ICONS[kindOf(e)]}</span>
     <span><span class="t">${esc(title)}${e.hasReceipt ? " \u{1F4CE}" : ""}</span><br><span class="s">${sub.join(" \xB7 ")}</span></span>
     <span class="amt num">${e.cost != null ? money.format(e.cost) : ""}</span>
   </button>`;
@@ -1180,7 +1260,7 @@ function drawCharts() {
   }));
   const cats = byCategory(list).filter((c) => c.total > 0);
   $("#cat-box").style.height = Math.max(120, cats.length * 34 + 30) + "px";
-  const catColor = (name) => name === "Fuel" ? C.fuel : SERVICE_CATS.includes(name) ? C.service : C.expense;
+  const catColor = (name) => name === "Fuel" ? C.fuel : SERVICE_CATS.includes(name) || TYRE_CATS.includes(name) ? C.service : C.expense;
   state.charts.push(new Chart($("#c-cat"), {
     type: "bar",
     data: { labels: cats.map((c) => c.category), datasets: [{ data: cats.map((c) => +c.total.toFixed(2)), backgroundColor: cats.map((c) => catColor(c.category)), borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
@@ -1356,62 +1436,83 @@ function vehicleForm(v) {
 }
 function entryForm(entry) {
   const isEdit = !!entry;
-  const e = entry || { type: store.get("carlog.lastType") || "fuel", date: today(), fullTank: true };
-  let type = e.type;
+  const e = entry ? { ...entry } : { date: today(), fullTank: true };
+  let kind = isEdit ? kindOf(entry) : null;
   let receipt;
   const all = vehicleEntries();
   const fields = () => {
-    const cats = type === "service" ? SERVICE_CATS : EXPENSE_CATS;
-    const catVal = e.type === type ? e.category : cats[0];
-    return `
-      <div class="grid2">
+    const sameKind = isEdit && kindOf(entry) === kind;
+    const cats = kind === "service" ? SERVICE_CATS : kind === "tyres" ? TYRE_CATS : EXPENSE_CATS;
+    const catVal = sameKind ? e.category : cats[0];
+    let i = 0;
+    const item = (html) => `<div class="fi" style="--i:${i++}">${html}</div>`;
+    const head = item(`<div class="grid2">
         <label>Date<input type="date" name="date" required value="${esc(e.date)}"></label>
-        <label>Odometer (km)<input name="odo" inputmode="numeric" ${type === "fuel" ? "required" : ""} value="${esc(e.odo)}"></label>
-      </div>
-      <p class="hint" id="odo-hint"></p>
-      ${type === "fuel" ? `
-        <div class="grid3">
+        <label>Odometer (km)<input name="odo" inputmode="numeric" ${kind === "fuel" ? "required" : ""} value="${esc(e.odo)}"></label>
+      </div><p class="hint" id="odo-hint"></p>`);
+    let body;
+    if (kind === "fuel") {
+      body = item(`<div class="grid3">
           <label>Litres<input name="litres" inputmode="decimal" required value="${esc(e.litres)}"></label>
           <label>c/L<input name="cpl" inputmode="decimal" value="${e.litres > 0 && e.cost > 0 ? (e.cost / e.litres * 100).toFixed(1) : ""}"></label>
           <label>Total $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>
-        <p class="hint">Fill in any two and the third is worked out.</p>
-        <label class="check"><input type="checkbox" name="fullTank" ${e.fullTank !== false ? "checked" : ""}>Filled the tank to full</label>
-        <label class="check"><input type="checkbox" name="missed" ${e.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>
-        <label>Servo<input name="place" value="${esc(e.place)}" placeholder="optional"></label>` : `
-        <div class="grid2">
+        </div><p class="hint">Fill in any two and the third is worked out.</p>`) + item(`<label class="check"><input type="checkbox" name="fullTank" ${e.fullTank !== false ? "checked" : ""}>Filled the tank to full</label>
+          <label class="check"><input type="checkbox" name="missed" ${e.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>`) + item(`<label>Servo<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
+    } else if (kind === "tyres") {
+      body = item(`<div class="field-label">Job</div><div class="pills">${cats.map((c) => `<label class="pill"><input type="radio" name="category" value="${esc(c)}" ${catVal === c ? "checked" : ""}><span>${esc(TYRE_LABEL[c])}</span></label>`).join("")}</div>`) + item(`<div class="grid2">
+          <label>How many tyres<select name="tyreCount"><option value="">\u2013</option>${[1, 2, 3, 4, 5].map((n) => `<option ${+e.tyreCount === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
+          <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
+        </div>`) + item(`<label>Tyre shop<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
+    } else {
+      body = item(`<div class="grid2">
           <label>Category<select name="category">${cats.map((c) => `<option ${catVal === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
           <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>
-        <label>${type === "service" ? "Workshop" : "Where"}<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`}
-      <label>Notes<textarea name="notes">${esc(e.notes)}</textarea></label>
-      <div class="receipt" id="receipt-row">
-        <span id="receipt-thumb"></span>
-        <label class="btn small" style="display:inline-block">\u{1F4F7} ${e.hasReceipt ? "Replace" : "Add"} receipt<input type="file" name="receipt" accept="image/*" hidden></label>
-        ${e.hasReceipt ? '<button type="button" class="link" id="receipt-view">View</button><button type="button" class="link" id="receipt-remove" style="color:var(--danger)">Remove</button>' : ""}
-      </div>
-      <button class="btn primary" value="save">Save</button>
-      ${isEdit ? '<button class="btn danger" value="delete" formnovalidate>Delete entry</button>' : ""}`;
-  };
-  const seg = () => isEdit ? "" : `<div class="seg">${["fuel", "service", "expense"].map((t) => `<button type="button" data-type="${t}" class="${t === type ? "on" : ""}">${TYPE_LABEL[t]}</button>`).join("")}</div>`;
-  const draw = () => {
-    const f = sheetForm;
-    if (f.date) {
-      e.date = f.date.value;
-      e.odo = f.odo.value;
-      e.cost = f.cost?.value;
-      e.notes = f.notes?.value;
-      e.place = f.place?.value;
+        </div>`) + item(`<label>${kind === "service" ? "Workshop" : "Where"}<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
     }
-    sheetForm.innerHTML = `${sheetHead(isEdit ? "Edit " + TYPE_LABEL[type].toLowerCase() : "New entry")}${seg()}${fields()}`;
+    return head + body + item(`<label>Notes<textarea name="notes">${esc(e.notes)}</textarea></label>`) + item(`<div class="receipt" id="receipt-row">
+          <span id="receipt-thumb"></span>
+          <label class="btn small" style="display:inline-block">\u{1F4F7} ${e.hasReceipt ? "Replace" : "Add"} receipt<input type="file" name="receipt" accept="image/*" hidden></label>
+          ${e.hasReceipt ? '<button type="button" class="link" id="receipt-view">View</button><button type="button" class="link" id="receipt-remove" style="color:var(--danger)">Remove</button>' : ""}
+        </div>`) + item(`<button class="btn primary wide" value="save">Save</button>
+          ${isEdit ? '<button class="btn danger wide" value="delete" formnovalidate style="margin-top:.6rem">Delete entry</button>' : ""}`);
+  };
+  const kindsHTML = () => `<div class="kinds ${kind ? "picked" : ""}" role="radiogroup" aria-label="Entry type">${KINDS.map((o) => `<button type="button" class="kind ${o.k === kind ? "on" : ""}" data-kind="${o.k}" role="radio" aria-checked="${o.k === kind}" style="--k:var(--${o.k === "tyres" ? "tyre" : o.k})">
+      <span class="ic">${ICONS[o.k]}</span><span class="nm">${o.label}</span><span class="ds">${o.desc}</span>
+    </button>`).join("")}</div>`;
+  const keep = () => {
+    const f = sheetForm;
+    if (!f.date) return;
+    e.date = f.date.value;
+    e.odo = f.odo.value;
+    e.cost = f.cost?.value;
+    e.notes = f.notes?.value;
+    e.place = f.place?.value;
+    if (f.litres) e.litres = f.litres.value;
+  };
+  const pick = (k) => {
+    if (k === kind) return;
+    keep();
+    const first = !kind;
+    kind = k;
+    const wrap = $(".fields-wrap", sheetForm);
+    $(".kinds", sheetForm).classList.add("picked");
+    sheetForm.querySelectorAll(".kind").forEach((b) => {
+      b.classList.toggle("on", b.dataset.kind === k);
+      b.setAttribute("aria-checked", b.dataset.kind === k);
+    });
+    $(".sheet-head h2", sheetForm).textContent = isEdit ? "Edit entry" : { fuel: "New fill-up", service: "New service", tyres: "New tyre job", expense: "New expense" }[k];
+    $(".fields-inner", sheetForm).innerHTML = fields();
     wire();
+    if (first) requestAnimationFrame(() => wrap.classList.add("open"));
+  };
+  const draw = () => {
+    sheetForm.innerHTML = `${sheetHead(isEdit ? "Edit entry" : "What are you adding?")}${kindsHTML()}
+      <div class="fields-wrap ${kind ? "open no-anim" : ""}"><div class="fields-inner">${kind ? fields() : ""}</div></div>`;
+    sheetForm.querySelectorAll(".kind").forEach((b) => b.addEventListener("click", () => pick(b.dataset.kind)));
+    if (kind) wire();
   };
   const wire = () => {
     const f = sheetForm;
-    sheetForm.querySelectorAll(".seg button").forEach((b) => b.addEventListener("click", () => {
-      type = b.dataset.type;
-      draw();
-    }));
     const odoCheck = () => {
       const hint = $("#odo-hint");
       const prev = maxOdoBefore(all, f.date.value, e.id);
@@ -1427,7 +1528,7 @@ function entryForm(entry) {
     f.odo.addEventListener("input", odoCheck);
     f.date.addEventListener("change", odoCheck);
     odoCheck();
-    if (type === "fuel") {
+    if (kind === "fuel") {
       const order = [];
       const recalc = (changed) => {
         const i = order.indexOf(changed);
@@ -1467,7 +1568,9 @@ function entryForm(entry) {
       toast("Entry deleted");
       return;
     }
+    if (!kind) return false;
     const f = sheetForm;
+    const type = kind === "tyres" ? "service" : kind;
     const data = {
       vehicleId: e.vehicleId || state.vehicleId,
       type,
@@ -1477,11 +1580,11 @@ function entryForm(entry) {
       place: f.place.value.trim(),
       notes: f.notes.value.trim()
     };
-    if (type === "fuel") Object.assign(data, { litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
+    if (kind === "fuel") Object.assign(data, { litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
     else data.category = f.category.value;
+    if (kind === "tyres") data.tyreCount = numOrNull(f.tyreCount.value);
     sheet.close();
-    store.set("carlog.lastType", type);
-    saveEntry(data, e.id, receipt).catch((err) => toast("Sync problem: " + err.message));
+    saveEntry(data, entry?.id, receipt).catch((err) => toast("Sync problem: " + err.message));
     toast(isEdit ? "Entry updated" : "Saved");
   });
   draw();
