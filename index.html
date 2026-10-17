@@ -366,8 +366,8 @@ html.brand-top .vtabs-empty { color: #ffffff; }
     <button id="fab" class="fab" aria-label="Add entry">+</button>
     <nav class="tabs" aria-label="Sections">
       <button data-view="home" class="active"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/></svg>Dashboard</button>
-      <button data-view="log"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>Log</button>
       <button data-view="charts"><svg viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="5" width="4" height="15" rx="1.5"/><rect x="16" y="9" width="4" height="11" rx="1.5"/></svg>Charts</button>
+      <button data-view="log"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>Log</button>
       <button data-view="garage"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M7 21v-9h10v9"/><path d="M7 15h10M7 18h10"/></svg>Garage</button>
     </nav>
   </div>
@@ -718,7 +718,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "17";
+var APP_VERSION = "18";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
