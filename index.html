@@ -811,6 +811,10 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
   box-shadow: 0 6px 20px rgba(0, 0, 0, .28); background: color-mix(in srgb, var(--surface) 82%, transparent); }
 .chips.period.sticky-period { background: color-mix(in srgb, var(--surface) 95%, transparent); }
 @media (min-width: 1024px) { .chips.period.sticky-period { justify-self: start; } }
+/* Keep the main card the same height between periods so nothing below it jumps */
+.hero-top { min-height: 118px; }
+.hero-delta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero .legend { min-height: 3.1em; align-content: start; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1366,7 +1370,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "37";
+var APP_VERSION = "38";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1750,6 +1754,17 @@ function render() {
     placeIndicators();
     return;
   }
+  if (state.view === "home" && prev.view === "home" && mode === "same" && state.vehicles.length && !state.loadError && main.children.length) {
+    const before2 = snapNums(main);
+    renderChrome();
+    const tmp = document.createElement("div");
+    tmp.innerHTML = homeHTML();
+    patchChildren(main, tmp);
+    state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
+    morphNums(main, before2);
+    placeIndicators();
+    return;
+  }
   const before = mode === "same" || mode === "vehicle" ? snapNums(main) : null;
   state.animCharts = mode !== "same";
   renderInner();
@@ -1776,6 +1791,34 @@ function render() {
   });
   setTimeout(set, 0);
 })();
+function patchChildren(oldP, newP, depth = 0) {
+  const isChips = (el) => el.classList && el.classList.contains("chips");
+  if (isChips(oldP)) {
+    const ob = oldP.querySelectorAll(":scope > button"), nb = newP.querySelectorAll(":scope > button");
+    if (ob.length === nb.length) {
+      ob.forEach((b, i) => {
+        b.className = nb[i].className;
+        b.setAttribute("aria-selected", nb[i].getAttribute("aria-selected"));
+      });
+      return;
+    }
+  }
+  const oc = [...oldP.children].filter((c) => !c.classList.contains("ind")), nc = [...newP.children];
+  if (oc.length !== nc.length) {
+    oldP.replaceChildren(...nc);
+    return;
+  }
+  oc.forEach((o, i) => {
+    const n = nc[i];
+    if (isChips(o) && isChips(n)) {
+      patchChildren(o, n, depth + 1);
+      return;
+    }
+    if (o.outerHTML === n.outerHTML) return;
+    if (depth < 3 && o.tagName === n.tagName && o.className === n.className && n.children.length && (o.children.length || isChips(o))) patchChildren(o, n, depth + 1);
+    else o.replaceWith(n);
+  });
+}
 function renderChrome() {
   $("#vehicle-tabs").innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
   $("#vehicle-tabs .vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
@@ -2086,7 +2129,7 @@ function homeHTML() {
         <div class="hero-text">
           <span class="muted small">${esc(v.name)} \xB7 ${esc(p.label)}</span>
           <span class="big num" data-m="hero">${money0.format(a.total)}</span>
-          <span class="hero-delta">${b ? `${delta(a.total, b.total)} ${vs} <span class="muted small num">(${money0.format(b.total)})</span>` : `<span class="muted small">since ${fmtDate(first)}</span>`}</span>
+          <span class="hero-delta">${b ? `${delta(a.total, b.total)} <span class="muted small num">${money0.format(b.total)} before</span>` : `<span class="muted small">since ${fmtDate(first)}</span>`}</span>
         </div>
         ${a.total ? pieSVG([t.fuel, t.service, t.rego, t.expense].map((x) => x / a.total)) : ""}
       </div>
