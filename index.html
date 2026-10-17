@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CarLog</title>
+  <meta name="theme-color" content="#14181f" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="CarLog">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <!-- Signed-out screen -->
+  <section id="auth" class="auth" hidden>
+    <div class="auth-card">
+      <img src="icons/icon-192.png" alt="" class="auth-logo">
+      <h1>CarLog</h1>
+      <p class="muted">Fuel, servicing and running costs for your vehicles. No ads, no nagging.</p>
+      <button id="google-btn" class="btn primary wide">Continue with Google</button>
+      <div class="or"><span>or</span></div>
+      <form id="email-form" class="stack">
+        <label>Email<input type="email" name="email" autocomplete="email" required></label>
+        <label>Password<input type="password" name="password" autocomplete="current-password" minlength="6" required></label>
+        <div class="row">
+          <button class="btn primary grow" name="mode" value="signin">Sign in</button>
+          <button class="btn grow" name="mode" value="signup">Create account</button>
+        </div>
+        <button type="button" id="reset-btn" class="link">Forgot password?</button>
+      </form>
+      <p id="auth-msg" class="msg" role="status"></p>
+    </div>
+  </section>
+
+  <!-- Signed-in app -->
+  <div id="app" hidden>
+    <header class="topbar">
+      <select id="vehicle-select" aria-label="Vehicle"></select>
+      <span id="sync-dot" class="sync" title="Synced"></span>
+    </header>
+    <main id="main"></main>
+    <button id="fab" class="fab" aria-label="Add entry">+</button>
+    <nav class="tabs" aria-label="Sections">
+      <button data-view="home" class="active"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</button>
+      <button data-view="log"><svg viewBox="0 0 24 24"><path d="M5 5h14M5 12h14M5 19h14"/></svg>Log</button>
+      <button data-view="charts"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Charts</button>
+      <button data-view="garage"><svg viewBox="0 0 24 24"><path d="M5 16l1.5-5h11L19 16M4 16h16v3H4zM7 19v2M17 19v2"/></svg>Garage</button>
+    </nav>
+  </div>
+
+  <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
