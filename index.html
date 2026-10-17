@@ -283,6 +283,34 @@ html.brand-top .topbar select option { color: initial; }
   /* On wider screens the content column is narrower than the screen: round the banner instead */
   .hero-banner { margin: 0; border-radius: var(--radius); overflow: hidden; }
 }
+
+/* Dashboard: period switch, trend arrows, breakdown tables */
+.chips.period { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; overflow: visible; }
+.chips.period .chip { padding: .45rem .2rem; font-size: .82rem; text-align: center; background: var(--surface); }
+.chips.period .chip.on { background: var(--accent); }
+.hero-banner + .chips.period { margin-top: -34px; position: relative; z-index: 1; }
+.hero-delta { display: flex; align-items: baseline; gap: .4rem; flex-wrap: wrap; }
+.delta { font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.delta.good { color: var(--ok); }
+.delta.bad { color: var(--danger); }
+.delta.flat { color: var(--muted); }
+.stats { grid-template-columns: 1fr 1fr; }
+.stat .d { display: flex; gap: .4rem; align-items: baseline; flex-wrap: wrap; min-height: 1.1rem; margin-top: 2px; font-size: .78rem; }
+.svc h2 { margin-bottom: .4rem; }
+.svc p { margin: 0 0 .25rem; }
+.svc-big { font-family: var(--font-display); font-size: 1.15rem; font-weight: 600; }
+.svc-due { color: var(--accent); font-weight: 600; margin-top: .5rem !important; }
+.svc-due.over { color: var(--danger); }
+.tbl-wrap { overflow-x: auto; margin: 0 -4px; }
+.tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.tbl th, .tbl td { padding: .55rem .4rem; text-align: right; white-space: nowrap; }
+.tbl thead th { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.tbl tbody th { text-align: left; font-family: var(--font-display); font-weight: 600; }
+.tbl tbody tr + tr th, .tbl tbody tr + tr td { border-top: 1px solid var(--line); }
+.tbl tr.now th, .tbl tr.now td { color: var(--accent); }
+.tbl tr.future td, .tbl tr.future th { color: var(--muted); }
+.tbl td:first-of-type { text-align: right; }
+.so-far { font-family: var(--font-body); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -333,7 +361,7 @@ html.brand-top .topbar select option { color: initial; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -343,7 +371,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -382,44 +410,6 @@ function averageEconomy(points) {
   const d = points.reduce((s, p) => s + p.distance, 0);
   const l = points.reduce((s, p) => s + p.litres, 0);
   return d > 0 ? l / d * 100 : null;
-}
-function summary(entries) {
-  const totals = { fuel: 0, service: 0, expense: 0 };
-  let litres = 0, minOdo = null, maxOdo = null;
-  for (const e of entries) {
-    const c = num(e.cost) || 0;
-    if (totals[e.type] !== void 0) totals[e.type] += c;
-    if (e.type === "fuel") litres += num(e.litres) || 0;
-    const o = num(e.odo);
-    if (o !== null) {
-      minOdo = minOdo === null ? o : Math.min(minOdo, o);
-      maxOdo = maxOdo === null ? o : Math.max(maxOdo, o);
-    }
-  }
-  const total = totals.fuel + totals.service + totals.expense;
-  const fills = entries.filter((e) => e.type === "fuel" && num(e.odo) !== null).sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.odo - b.odo);
-  let runStart = minOdo, runCost = total, runFuel = totals.fuel;
-  if (fills.length) {
-    const first = fills[0];
-    runStart = +first.odo;
-    const since = entries.filter((e) => String(e.date) >= String(first.date));
-    runCost = since.reduce((s, e) => s + (num(e.cost) || 0), 0);
-    runFuel = since.filter((e) => e.type === "fuel").reduce((s, e) => s + (num(e.cost) || 0), 0);
-  }
-  const distance = runStart !== null && maxOdo > runStart ? maxOdo - runStart : null;
-  const points = fuelEconomy(entries);
-  return {
-    totals,
-    total,
-    litres,
-    distance,
-    lastOdo: maxOdo,
-    costPerKm: distance ? runCost / distance : null,
-    fuelCostPerKm: distance ? runFuel / distance : null,
-    avgL100: averageEconomy(points),
-    lastL100: points.length ? points[points.length - 1].l100 : null,
-    economyPoints: points
-  };
 }
 var ym = (d) => String(d).slice(0, 7);
 function monthly(entries, months = 12, now = /* @__PURE__ */ new Date()) {
@@ -476,8 +466,117 @@ function toCSV(vehicleName, entries) {
   ]);
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 }
+var iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+var addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+var daysBetween = (a, b) => Math.round((/* @__PURE__ */ new Date(b + "T00:00:00") - /* @__PURE__ */ new Date(a + "T00:00:00")) / 864e5) + 1;
+function periodRange(kind, now = /* @__PURE__ */ new Date(), firstDate = null) {
+  const today2 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = iso(today2);
+  const monthName = (d) => d.toLocaleDateString("en-AU", { month: "long" });
+  if (kind === "month") {
+    const s2 = new Date(today2.getFullYear(), today2.getMonth(), 1);
+    const ps2 = new Date(today2.getFullYear(), today2.getMonth() - 1, 1);
+    const pLen = new Date(today2.getFullYear(), today2.getMonth(), 0).getDate();
+    const pe2 = new Date(ps2.getFullYear(), ps2.getMonth(), Math.min(today2.getDate(), pLen));
+    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `${monthName(today2)} so far`, prevLabel: `same days of ${monthName(ps2)}` };
+  }
+  if (kind === "quarter") {
+    const q = Math.floor(today2.getMonth() / 3);
+    const s2 = new Date(today2.getFullYear(), q * 3, 1);
+    const ps2 = new Date(today2.getFullYear(), q * 3 - 3, 1);
+    const pe2 = addDays(ps2, Math.round((today2 - s2) / 864e5));
+    const pq = Math.floor(ps2.getMonth() / 3) + 1;
+    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `Q${q + 1} ${today2.getFullYear()} so far`, prevLabel: `same point in Q${pq} ${ps2.getFullYear()}` };
+  }
+  if (kind === "year") {
+    const s2 = new Date(today2.getFullYear(), 0, 1);
+    const ps2 = new Date(today2.getFullYear() - 1, 0, 1);
+    const pe2 = new Date(today2.getFullYear() - 1, today2.getMonth(), today2.getDate());
+    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `${today2.getFullYear()} so far`, prevLabel: `same point in ${today2.getFullYear() - 1}` };
+  }
+  if (kind === "all") {
+    return { start: firstDate || "1900-01-01", end, prevStart: null, prevEnd: null, label: "All time", prevLabel: null };
+  }
+  const s = addDays(today2, -90), pe = addDays(s, -1), ps = addDays(pe, -90);
+  return { start: iso(s), end, prevStart: iso(ps), prevEnd: iso(pe), label: "Last 3 months", prevLabel: "the 3 months before" };
+}
+function periodStats(entries, start, end) {
+  const inRange = (e) => String(e.date) >= start && String(e.date) <= end;
+  const list = entries.filter(inRange);
+  const totals = { fuel: 0, service: 0, expense: 0 };
+  let litres = 0, litreCost = 0, fills = 0;
+  for (const e of list) {
+    const c = num(e.cost) || 0;
+    if (totals[e.type] !== void 0) totals[e.type] += c;
+    if (e.type === "fuel") {
+      fills++;
+      if (num(e.litres) > 0 && c > 0) {
+        litres += +e.litres;
+        litreCost += c;
+      }
+    }
+  }
+  const total = totals.fuel + totals.service + totals.expense;
+  let maxIn = null, maxBefore = null, minIn = null;
+  for (const e of entries) {
+    const o = num(e.odo);
+    if (o === null) continue;
+    if (inRange(e)) {
+      maxIn = maxIn === null ? o : Math.max(maxIn, o);
+      minIn = minIn === null ? o : Math.min(minIn, o);
+    } else if (String(e.date) < start) maxBefore = maxBefore === null ? o : Math.max(maxBefore, o);
+  }
+  const firstFill = entries.filter((e) => e.type === "fuel" && num(e.odo) !== null).sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+  let base = maxBefore ?? minIn;
+  if (!firstFill || String(firstFill.date) > end) base = null;
+  else if (String(firstFill.date) >= start) base = +firstFill.odo;
+  const km = maxIn !== null && base !== null && maxIn > base ? maxIn - base : null;
+  const econ = fuelEconomy(entries).filter((p) => String(p.date) >= start && String(p.date) <= end);
+  const days = daysBetween(start, end);
+  return {
+    count: list.length,
+    totals,
+    total,
+    fills,
+    km,
+    days,
+    l100: averageEconomy(econ),
+    tanks: econ.length,
+    ppl: litres > 0 ? litreCost / litres : null,
+    costPerKm: km ? total / km : null,
+    fuelPerWeek: days >= 7 ? totals.fuel / (days / 7) : null,
+    avgFill: fills ? totals.fuel / fills : null
+  };
+}
+function quarterBreakdown(entries, year, now = /* @__PURE__ */ new Date()) {
+  const todayIso = iso(now);
+  return [0, 1, 2, 3].map((q) => {
+    const start = iso(new Date(year, q * 3, 1));
+    const endFull = iso(new Date(year, q * 3 + 3, 0));
+    if (start > todayIso) return { q: q + 1, start, end: endFull, future: true };
+    const end = endFull < todayIso ? endFull : todayIso;
+    return { q: q + 1, start, end, current: end === todayIso, ...periodStats(entries, start, end) };
+  });
+}
+function yearBreakdown(entries, now = /* @__PURE__ */ new Date()) {
+  const years = [...new Set(entries.map((e) => String(e.date).slice(0, 4)))].filter((y) => /^\d{4}$/.test(y)).sort().reverse();
+  const todayIso = iso(now);
+  return years.map((y) => {
+    const end = `${y}-12-31` < todayIso ? `${y}-12-31` : todayIso;
+    return { year: y, current: end === todayIso, ...periodStats(entries, `${y}-01-01`, end) };
+  });
+}
+function serviceStatus(entries) {
+  const svc = entries.filter((e) => e.type === "service" && num(e.odo) && /service/i.test(e.category || "") && !/tyre/i.test(e.category || "")).sort((a, b) => +b.odo - +a.odo);
+  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0);
+  if (!svc.length) return null;
+  const last = svc[0];
+  const gaps = svc.slice(0, -1).map((s, i) => +s.odo - +svc[i + 1].odo).filter((g) => g > 1e3);
+  const interval = gaps.length ? Math.round(gaps.reduce((a, b) => a + b, 0) / gaps.length / 500) * 500 : null;
+  return { last, since: latestOdo - +last.odo, interval, dueIn: interval ? interval - (latestOdo - +last.odo) : null };
+}
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -573,7 +672,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -605,7 +704,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "15";
+var APP_VERSION = "16";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -625,6 +724,7 @@ var state = {
   vehicleId: null,
   view: "home",
   logFilter: "all",
+  period: null,
   unsub: [],
   charts: []
 };
@@ -835,6 +935,7 @@ function applyTheme(choice) {
   });
 }
 applyTheme(store.get("carlog.theme") || "auto");
+state.period = store.get("carlog.period") || "3m";
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   applyTheme(store.get("carlog.theme") || "auto");
   if (state.view === "charts") render();
@@ -902,21 +1003,54 @@ function entryRow(e) {
     <span class="amt num">${e.cost != null ? money.format(e.cost) : ""}</span>
   </button>`;
 }
+var PERIODS = [["month", "Month"], ["3m", "3 months"], ["quarter", "Quarter"], ["year", "Year"], ["all", "All time"]];
+function delta(cur, prev, lowerIsBetter = true) {
+  if (cur == null || prev == null || !isFinite(cur) || !isFinite(prev) || prev === 0) return "";
+  const pct = (cur - prev) / Math.abs(prev) * 100;
+  if (Math.abs(pct) < 1) return '<span class="delta flat">\u25CF steady</span>';
+  const up = pct > 0;
+  const cls = lowerIsBetter === null ? "flat" : up === lowerIsBetter ? "bad" : "good";
+  return `<span class="delta ${cls}">${up ? "\u25B2" : "\u25BC"} ${n0.format(Math.abs(pct))}%</span>`;
+}
+var fmtC = (dollars) => dollars == null || !isFinite(dollars) ? "\u2013" : `${n1.format(dollars * 100)}c`;
+var fmtKm = (km) => km == null ? "\u2013" : n0.format(km);
+var fmtL100 = (v) => v == null ? "\u2013" : n1.format(v);
 function homeHTML() {
   const list = vehicleEntries();
-  const s = summary(list);
   const v = currentVehicle();
+  const first = list.map((e) => e.date).sort()[0];
+  const p = periodRange(state.period, /* @__PURE__ */ new Date(), first);
+  const a = periodStats(list, p.start, p.end);
+  const b = p.prevStart ? periodStats(list, p.prevStart, p.prevEnd) : null;
+  const t = a.totals, tot = a.total || 1;
+  const svc = serviceStatus(list);
   const year = (/* @__PURE__ */ new Date()).getFullYear();
-  const ytd = list.filter((e) => String(e.date).startsWith(String(year))).reduce((a, e) => a + (+e.cost || 0), 0);
-  const t = s.totals, tot = s.total || 1;
-  const recent = sortDesc(list).slice(0, 6);
+  const quarters = quarterBreakdown(list, year);
+  const years = yearBreakdown(list);
+  const tile = (value, label, d, sub) => `<div class="stat"><div class="v num">${value}</div><div class="k">${label}</div>
+      <div class="d">${d || ""}${sub ? `<span class="muted">${sub}</span>` : ""}</div></div>`;
+  const vs = b ? `<span class="muted small">vs ${esc(p.prevLabel)}</span>` : "";
+  const row = (label, st, extra = "") => st.future ? `<tr class="future"><th>${label}</th><td colspan="4">\u2013</td></tr>` : `<tr class="${st.current ? "now" : ""}"><th>${label}${st.current ? ' <span class="so-far">so far</span>' : ""}${extra}</th>
+        <td class="num">${money0.format(st.total)}</td><td class="num">${fmtKm(st.km)}</td>
+        <td class="num">${fmtL100(st.l100)}</td><td class="num">${st.fills ? fmtC(st.costPerKm) : "\u2013"}</td></tr>`;
+  const head = "<thead><tr><th></th><th>Spend</th><th>Km</th><th>L/100</th><th>c/km</th></tr></thead>";
+  let svcHTML = "";
+  if (svc) {
+    const due = svc.dueIn == null ? "" : svc.dueIn >= 0 ? `<p class="svc-due">Next service due in about <strong class="num">${n0.format(svc.dueIn)} km</strong></p>` : `<p class="svc-due over">Service overdue by about <strong class="num">${n0.format(-svc.dueIn)} km</strong></p>`;
+    svcHTML = `<section class="card svc"><h2>Servicing</h2>
+      <p class="svc-big"><span class="num">${n0.format(svc.since)}</span> km since last service</p>
+      <p class="muted small">${fmtDate(svc.last.date)}${svc.last.place ? " \xB7 " + esc(svc.last.place) : ""} \xB7 ${money.format(+svc.last.cost || 0)}</p>
+      ${due}${svc.interval ? `<p class="muted small">Based on your usual gap of about ${n0.format(svc.interval)} km between services.</p>` : ""}
+    </section>`;
+  }
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
+    <div class="chips period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
     <section class="card hero">
-      <span class="muted small">${esc(v.name)}${v.rego ? " \xB7 " + esc(v.rego) : ""}</span>
-      <span class="big num">${money0.format(ytd)}</span>
-      <span class="muted small">spent in ${year} \xB7 ${money0.format(s.total)} all time</span>
-      ${s.total ? `<div class="split" aria-hidden="true">
+      <span class="muted small">${esc(v.name)} \xB7 ${esc(p.label)}</span>
+      <span class="big num">${money0.format(a.total)}</span>
+      <span class="hero-delta">${b ? `${delta(a.total, b.total)} ${vs} <span class="muted small num">(${money0.format(b.total)})</span>` : `<span class="muted small">since ${fmtDate(first)}</span>`}</span>
+      ${a.total ? `<div class="split" aria-hidden="true">
         <span style="flex:${t.fuel / tot};background:var(--fuel)"></span>
         <span style="flex:${t.service / tot};background:var(--service)"></span>
         <span style="flex:${t.expense / tot};background:var(--expense)"></span>
@@ -925,20 +1059,22 @@ function homeHTML() {
         <span><i style="background:var(--fuel)"></i>Fuel ${money0.format(t.fuel)}</span>
         <span><i style="background:var(--service)"></i>Service ${money0.format(t.service)}</span>
         <span><i style="background:var(--expense)"></i>Other ${money0.format(t.expense)}</span>
-      </div>` : ""}
+      </div>` : '<p class="muted small" style="margin:.5rem 0 0">Nothing spent in this period.</p>'}
     </section>
     <section class="stats">
-      <div class="stat"><div class="v num">${s.avgL100 != null ? n1.format(s.avgL100) : "\u2013"}</div><div class="k">Avg L/100km</div></div>
-      <div class="stat"><div class="v num">${s.lastL100 != null ? n1.format(s.lastL100) : "\u2013"}</div><div class="k">Last tank L/100km</div></div>
-      <div class="stat"><div class="v num">${s.costPerKm != null ? n0.format(s.costPerKm * 100) + "c" : "\u2013"}</div><div class="k">Running cost per km</div></div>
-      <div class="stat"><div class="v num">${s.lastOdo != null ? n0.format(s.lastOdo) : "\u2013"}</div><div class="k">Odometer (km)</div></div>
+      ${tile(fmtL100(a.l100), "Fuel economy L/100km", b && delta(a.l100, b.l100), a.tanks ? `${a.tanks} tank${a.tanks === 1 ? "" : "s"}` : "")}
+      ${tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm))}
+      ${tile(fmtKm(a.km), "Km driven", b && delta(a.km, b.km, null))}
+      ${tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl))}
+      ${tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek))}
+      ${tile(String(a.fills), "Fill-ups", "", a.avgFill ? `avg ${money0.format(a.avgFill)}` : "")}
     </section>
-    <section class="card">
-      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:.25rem">
-        <h2 style="margin:0">Recent</h2>
-        ${list.length > 6 ? '<button class="link" data-act="go-log">See all</button>' : ""}
-      </div>
-      ${recent.length ? `<div class="list">${recent.map(entryRow).join("")}</div>` : '<p class="empty">Nothing logged yet. Tap + to add your first fill-up.</p>'}
+    ${svcHTML}
+    <section class="card"><h2>${year} by quarter</h2>
+      <div class="tbl-wrap"><table class="tbl">${head}<tbody>${quarters.map((q) => row(`Q${q.q}`, q)).join("")}</tbody></table></div>
+    </section>
+    <section class="card"><h2>Year by year</h2>
+      <div class="tbl-wrap"><table class="tbl">${head}<tbody>${years.map((y) => row(y.year, y)).join("")}</tbody></table></div>
     </section>`;
 }
 function logHTML() {
@@ -1467,6 +1603,10 @@ $("#main").addEventListener("click", async (ev) => {
   else if (act === "edit-entry") entryForm(state.entries.find((x) => x.id === el.dataset.id));
   else if (act === "go-log") {
     state.view = "log";
+    render();
+  } else if (act === "period") {
+    state.period = el.dataset.p;
+    store.set("carlog.period", state.period);
     render();
   } else if (act === "filter") {
     state.logFilter = el.dataset.f;
