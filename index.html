@@ -756,6 +756,24 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
 .pay-btn { background: var(--rego); color: #fff; border: 0; font-weight: 600; }
 .paid-ok { font-weight: 700; color: var(--ok, #1f9d55); font-size: .8rem; }
 .paid-next { margin: 0; font-size: .95rem; }
+
+/* Tyres: outer ring = tyre life, inner ring = rotation */
+.tc svg { width: 52px; height: 52px; }
+.tc circle.outer { stroke-width: 5.5; }
+.tc circle.inner { stroke-width: 4.5; }
+.rot-head { display: grid; gap: 1px; margin: 2px 0 8px; }
+.rot-k { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.rot-v { font: 700 1.6rem/1.1 var(--font-display); letter-spacing: -.01em; }
+.rot-s { font-size: .82rem; color: var(--text-2); }
+.ring-key { display: flex; justify-content: center; gap: 16px; font-size: .74rem; color: var(--muted); margin-top: 8px; }
+.ring-key span { display: inline-flex; align-items: center; gap: 6px; }
+.ring-key i { width: 13px; height: 13px; border-radius: 50%; border: 3px solid var(--muted); }
+.ring-key .k-inner { width: 8px; height: 8px; border-width: 2.5px; }
+.tc .tr-total { font-size: .72rem; color: var(--muted); white-space: nowrap; }
+.tc circle.outer { stroke-width: 7; }
+.tc circle.inner { stroke-width: 3; }
+.ring-key .k-outer { border-width: 4px; }
+.ring-key .k-inner { border-width: 1.5px; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1325,7 +1343,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "34";
+var APP_VERSION = "35";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1866,36 +1884,48 @@ function remindersHTML(v, list) {
     ));
   } else rows.push(row("service", "Next service", statusChip("unknown"), "No service logged yet", "Add one with + \u2192 Service to start tracking."));
   const t = r.rotation;
-  if (t.last) {
-    const base = t.lastRotation && t.last === t.lastRotation ? `Last rotated ${fmtDate(t.last.date)}` : `New tyres fitted ${fmtDate(t.last.date)}`;
-    rows.push(row(
+  const ts = r.tyres;
+  if (!ts.any) {
+    if (t.last) rows.push(row(
       "rotation",
       "Tyre rotation",
       statusChip(t.status, t.status === "due"),
       t.kmLeft >= 0 ? `In <strong class="num">${n0.format(t.kmLeft)} km</strong> \xB7 ${when(t)}` : `Overdue by <strong class="num">${n0.format(-t.kmLeft)} km</strong>`,
-      `${base} \xB7 <span class="num">${n0.format(t.kmSince)}</span> km ago`,
+      `Last rotated ${fmtDate(t.last.date)} \xB7 <span class="num">${n0.format(t.kmSince)}</span> km ago`,
       src(t)
     ));
-  } else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
-  const ts = r.tyres;
-  if (ts.any) {
+    else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
+  } else {
     const { info, worst } = tyreWear(v, r);
-    const RC = 2 * Math.PI * 13;
+    const rotF = t.last && t.kmSince != null && t.intervalKm ? t.kmSince / t.intervalKm : null;
+    const rotColor = rotF != null ? wearColor(rotF) : null;
+    const sinceRot = t.last && t.kmSince != null ? t.kmSince : null;
+    const RO = 2 * Math.PI * 21, RI = 2 * Math.PI * 13.5;
+    const arc = (r0, C, f, color, cls) => `<circle cx="26" cy="26" r="${r0}" class="tr-track ${cls}"/>` + (f != null ? `<circle cx="26" cy="26" r="${r0}" class="tr-fill ${cls}" style="stroke:${color}" stroke-dasharray="${(C * Math.min(1, Math.max(0.03, f))).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 26 26)"/>` : "");
     const ringCell = (p, side) => {
       const x = info[p];
-      const ring = x ? `<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" class="tr-track"/>
-        <circle cx="17" cy="17" r="13" class="tr-fill" style="stroke:${x.color}" stroke-dasharray="${(RC * Math.min(1, Math.max(0.03, x.f))).toFixed(1)} ${RC.toFixed(1)}" transform="rotate(-90 17 17)"/></svg>` : `<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" class="tr-track" stroke-dasharray="3 4"/></svg>`;
       const tip = x ? `${x.left > 0 ? `${n0.format(roundKm(x.left))} km left` : "Due for replacement"} \xB7 fitted ${fmtDate(x.t.fittedDate)}${x.t.rotations ? ` \xB7 rotated ${x.t.rotations}\xD7` : ""}` : "Not recorded";
-      return `<div class="tc tc-${side}" title="${tip}">${ring}<div class="tc-t"><span class="sr-only">${POS_LABEL[p]}</span><span class="tr-v num">${x ? n0.format(x.done) + " km" : "\u2013"}</span></div></div>`;
+      return `<div class="tc tc-${side}" title="${tip}"><svg viewBox="0 0 52 52" aria-hidden="true">${(() => {
+        const f = rotF != null && x ? Math.min(sinceRot, x.done) / t.intervalKm : rotF;
+        return arc(21, RO, f, f != null ? wearColor(f) : null, "outer");
+      })()}${arc(13.5, RI, x ? x.f : null, x?.color, "inner")}</svg>
+        <div class="tc-t"><span class="sr-only">${POS_LABEL[p]}</span>${x && sinceRot != null ? `<span class="tr-v num">${n0.format(Math.min(sinceRot, x.done))} km</span><span class="tr-total num">${n0.format(x.done)} km total</span>` : `<span class="tr-v num">${x ? n0.format(x.done) + " km" : "\u2013"}</span>`}</div></div>`;
     };
     const wheel = (p, x, y) => `<rect x="${x}" y="${y}" width="11" height="22" rx="3.5" class="${info[p] ? "" : "tw-none"}" style="fill:${info[p] ? info[p].color : "none"}"/>`;
     const car = `<svg class="tw-car" viewBox="0 0 64 116" aria-hidden="true">
       ${wheel("FL", 2, 20)}${wheel("FR", 51, 20)}${wheel("RL", 2, 76)}${wheel("RR", 51, 76)}
       <path class="tw-body" d="M14 20c0-10 8-16 18-16s18 6 18 16v76c0 10-8 16-18 16s-18-6-18-16z"/>
       <path class="tw-glass" d="M19 37c4-4 22-4 26 0l-3 13H22zM22 80h20l3 10c-4 4-22 4-26 0z"/></svg>`;
+    const rot = t.last ? `<div class="rot-head"><span class="rot-k">Next rotation</span>
+          <span class="rot-v num" style="color:${t.kmLeft < 0 ? "var(--danger)" : "inherit"}">${t.kmLeft >= 0 ? `${n0.format(t.kmLeft)} km` : `${n0.format(-t.kmLeft)} km over`}</span>
+          <span class="rot-s">${t.kmLeft >= 0 && t.due ? `around ${fmtDate(t.due)} \xB7 ` : ""}<span class="num">${n0.format(t.kmSince)}</span> km since last</span></div>` : `<div class="rot-head"><span class="rot-k">Next rotation</span><span class="rot-s">No rotation logged yet</span></div>`;
+    const order = { ok: 0, unknown: 0, soon: 1, due: 2 };
+    const st = order[t.status] > order[worst] ? t.status : worst;
     rows.push(`<div class="rem rem-tyremap"><span class="rem-ic rem-tyres">${RICONS.tyres}</span><div class="rem-body">
-        <div class="rem-top"><span class="rem-title">Tyres</span>${statusChip(worst, worst === "due")}</div>
+        <div class="rem-top"><span class="rem-title">Tyres</span>${statusChip(st, st === "due")}</div>
+        ${rot}
         <div class="tyrecar">${ringCell("FL", "left")}${car}${ringCell("FR", "right")}${ringCell("RL", "left")}${ringCell("RR", "right")}</div>
+        <div class="ring-key"><span><i class="k-outer"></i>Outer: rotation</span><span><i class="k-inner"></i>Inner: tyre life</span></div>
       </div></div>`);
   }
   const w = r.wipers;
