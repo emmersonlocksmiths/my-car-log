@@ -208,9 +208,9 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
       <img src="icons/icon-192.png" alt="" class="auth-logo">
       <h1>My Car Log</h1>
       <p class="muted">Fuel, servicing and running costs for your vehicles. No ads, no nagging.</p>
-      <form id="email-form" class="stack">
-        <label>Email<input type="email" name="email" autocomplete="email" required></label>
-        <label>Password<input type="password" name="password" autocomplete="current-password" minlength="6" required></label>
+      <form id="email-form" class="stack" action="#" method="post">
+        <label>Email<input type="email" id="email" name="email" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label>Password<input type="password" id="password" name="password" autocomplete="current-password" minlength="6" required></label>
         <button class="btn primary wide" name="mode" value="signin">Sign in</button>
         <button type="button" id="reset-btn" class="link">Forgot password?</button>
       </form>
@@ -248,7 +248,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -258,7 +258,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -392,7 +392,7 @@ function toCSV(vehicleName, entries) {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -488,7 +488,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -970,8 +970,8 @@ function memberForm() {
     `
     ${sheetHead("Add person")}
     <label>Name<input name="pname" required placeholder="e.g. Sam" autocomplete="off"></label>
-    <label>Email<input name="pemail" type="email" required autocomplete="off"></label>
-    <label>Password<input name="ppass" required minlength="6" autocomplete="new-password" placeholder="At least 6 characters"></label>
+    <label>Email<input name="pemail" type="email" required autocomplete="off" autocapitalize="none" spellcheck="false"></label>
+    <label>Password<input name="ppass" type="text" required minlength="6" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="At least 6 characters"></label>
     <p class="hint">Give them this email and password. They can change the password later with \u201CForgot password?\u201D on the sign-in screen.</p>
     <p class="msg" id="member-msg"></p>
     <button class="btn primary" value="save">Create login</button>`,
