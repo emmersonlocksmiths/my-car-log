@@ -392,6 +392,17 @@ html.brand-top .vtabs-empty { color: #ffffff; }
   .kinds, .kind, .kind .ic, .kind .ic svg, .kind .nm, .kind .ds, .fields-wrap { transition: none; }
 }
 #receipt-thumb:empty { display: none; }
+
+/* Quick-pick buttons for places used before */
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -.35rem; }
+.qpick {
+  appearance: none; border: 1.5px solid var(--line); background: var(--surface); color: var(--text-2);
+  border-radius: 999px; padding: .4rem .75rem; font: 600 .82rem var(--font-body); cursor: pointer;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: background-color .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;
+}
+.qpick:active { transform: scale(.95); }
+.qpick.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -442,7 +453,7 @@ html.brand-top .vtabs-empty { color: #ffffff; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// firebase-config.js
+// ../carlog-src/firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -452,7 +463,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// calc.js
+// ../carlog-src/calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -657,7 +668,7 @@ function serviceStatus(entries) {
   return { last, since: latestOdo - +last.odo, interval, dueIn: interval ? interval - (latestOdo - +last.odo) : null };
 }
 
-// import.js
+// ../carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -753,7 +764,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// app.js
+// ../carlog-src/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -785,7 +796,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "19";
+var APP_VERSION = "20";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_LABEL = { Tyres: "New tyres", "Tyre rotation": "Rotation", "Wheel alignment": "Alignment & balance", "Puncture repair": "Puncture repair" };
@@ -1434,6 +1445,26 @@ function vehicleForm(v) {
     }
   );
 }
+function placeSuggestions(kind, limit = 8) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const e of state.entries) {
+    const name = String(e.place || "").trim();
+    if (!name || kindOf(e) !== kind) continue;
+    const key = name.toLowerCase().replace(/\s+/g, " ");
+    const g = byKey.get(key) || { count: 0, last: "", names: /* @__PURE__ */ new Map() };
+    g.count++;
+    if (String(e.date) > g.last) g.last = String(e.date);
+    g.names.set(name, (g.names.get(name) || 0) + 1);
+    byKey.set(key, g);
+  }
+  return [...byKey.values()].sort((a, b) => b.count - a.count || b.last.localeCompare(a.last)).slice(0, limit).map((g) => [...g.names.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+}
+function placeField(kind, label, value) {
+  const picks = placeSuggestions(kind);
+  const cur = String(value || "").trim().toLowerCase();
+  return `<label>${label}<input name="place" value="${esc(value)}" placeholder="${picks.length ? "Type a new one or tap below" : "optional"}" autocomplete="off"></label>
+    ${picks.length ? `<div class="quick" aria-label="Recent ${label.toLowerCase()}s">${picks.map((p) => `<button type="button" class="qpick ${p.toLowerCase() === cur ? "on" : ""}" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>` : ""}`;
+}
 function entryForm(entry) {
   const isEdit = !!entry;
   const e = entry ? { ...entry } : { date: today(), fullTank: true };
@@ -1457,17 +1488,17 @@ function entryForm(entry) {
           <label>c/L<input name="cpl" inputmode="decimal" value="${e.litres > 0 && e.cost > 0 ? (e.cost / e.litres * 100).toFixed(1) : ""}"></label>
           <label>Total $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
         </div><p class="hint">Fill in any two and the third is worked out.</p>`) + item(`<label class="check"><input type="checkbox" name="fullTank" ${e.fullTank !== false ? "checked" : ""}>Filled the tank to full</label>
-          <label class="check"><input type="checkbox" name="missed" ${e.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>`) + item(`<label>Servo<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
+          <label class="check"><input type="checkbox" name="missed" ${e.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>`) + item(placeField("fuel", "Service station", e.place));
     } else if (kind === "tyres") {
       body = item(`<div class="field-label">Job</div><div class="pills">${cats.map((c) => `<label class="pill"><input type="radio" name="category" value="${esc(c)}" ${catVal === c ? "checked" : ""}><span>${esc(TYRE_LABEL[c])}</span></label>`).join("")}</div>`) + item(`<div class="grid2">
           <label>How many tyres<select name="tyreCount"><option value="">\u2013</option>${[1, 2, 3, 4, 5].map((n) => `<option ${+e.tyreCount === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
           <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>`) + item(`<label>Tyre shop<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
+        </div>`) + item(placeField("tyres", "Tyre shop", e.place));
     } else {
       body = item(`<div class="grid2">
           <label>Category<select name="category">${cats.map((c) => `<option ${catVal === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
           <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>`) + item(`<label>${kind === "service" ? "Workshop" : "Where"}<input name="place" value="${esc(e.place)}" placeholder="optional"></label>`);
+        </div>`) + item(placeField(kind, kind === "service" ? "Workshop" : "Where", e.place));
     }
     return head + body + item(`<label>Notes<textarea name="notes">${esc(e.notes)}</textarea></label>`) + item(`<div class="receipt" id="receipt-row">
           <span id="receipt-thumb"></span>
@@ -1528,6 +1559,12 @@ function entryForm(entry) {
     f.odo.addEventListener("input", odoCheck);
     f.date.addEventListener("change", odoCheck);
     odoCheck();
+    const marks = () => sheetForm.querySelectorAll(".qpick").forEach((b) => b.classList.toggle("on", b.dataset.v.toLowerCase() === f.place.value.trim().toLowerCase()));
+    sheetForm.querySelectorAll(".qpick").forEach((b) => b.addEventListener("click", () => {
+      f.place.value = f.place.value.trim().toLowerCase() === b.dataset.v.toLowerCase() ? "" : b.dataset.v;
+      marks();
+    }));
+    f.place.addEventListener("input", marks);
     if (kind === "fuel") {
       const order = [];
       const recalc = (changed) => {
