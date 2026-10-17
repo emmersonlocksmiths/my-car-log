@@ -267,10 +267,8 @@ input:focus, select:focus, textarea:focus { outline-color: var(--accent); }
 
 /* Home: the banner runs edge to edge, joins the top bar, and fades into the page */
 @media (max-width: 1023px) {
-html.brand-top .topbar {
-  background: linear-gradient(90deg, #062b5d 0%, #034487 50%, #013672 100%);
-  border-bottom-color: transparent;
-}
+html.brand-top .topbar { background: transparent; border-bottom-color: transparent; }
+html.brand-top .topbar::before { opacity: 1; }
 html.brand-top .topbar select { color: #ffffff; }
 html.brand-top .topbar select option { color: initial; }
 }
@@ -571,6 +569,83 @@ button, a, label, input, select, textarea { touch-action: manipulation; }
 .place-row .pn { min-width: 0; overflow-wrap: anywhere; }
 .place-actions { margin-top: .8rem; }
 .pills.accent .pill input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* ---------- Motion ---------- */
+:root { --spring: cubic-bezier(.3, 1.2, .4, 1); }
+
+/* Content fades up when you change screens, and softly when you change vehicle or filter */
+main.anim-view > * { animation: view-in .5s var(--ease) both; animation-delay: calc(var(--n, 0) * 45ms); }
+main.anim-soft > * { animation: soft-in .38s ease both; animation-delay: calc(var(--n, 0) * 22ms); }
+@keyframes view-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes soft-in { from { opacity: 0; transform: translateY(5px) scale(.996); } to { opacity: 1; transform: none; } }
+
+/* Spending bar segments glide to their new sizes */
+.split span { transition: flex-grow .65s var(--ease); }
+.legend b { font-weight: inherit; }
+
+/* Top bar fades between plain and the blue banner colour */
+.topbar { isolation: isolate; transition: background-color .4s ease, border-color .4s ease; }
+.topbar::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; opacity: 0; pointer-events: none;
+  background: linear-gradient(90deg, #062b5d 0%, #034487 50%, #013672 100%); transition: opacity .45s ease;
+}
+@media (min-width: 1024px) { html.brand-top .topbar::before { opacity: 0; } }
+
+/* Sliding selection pill */
+.has-ind { isolation: isolate; }
+.vtabs.has-ind, .chips.has-ind, .seg.has-ind { position: relative; }
+.has-ind > .ind {
+  position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: 999px; background: var(--accent);
+  transition: transform .5s var(--spring), width .5s var(--spring), height .5s var(--spring), background-color .4s ease;
+}
+.has-ind > :not(.ind) { position: relative; z-index: 1; }
+.has-ind > .on, .has-ind > .active { background: transparent !important; border-color: transparent !important; box-shadow: none !important; }
+
+/* Vehicle buttons and filters sit in one rounded track */
+.vtabs, .chips { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; gap: 2px; }
+.vtabs { flex: 0 1 auto; margin-right: auto; }
+.vtab, .chip { background: transparent; border-color: transparent; transition: color .3s ease, filter .2s ease; }
+.vtab.on, .chip.on { color: var(--accent-ink); }
+.chips.period { background: color-mix(in srgb, var(--surface) 86%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); gap: 2px; }
+.chips.period .chip { background: transparent; }
+@media (max-width: 1023px) {
+  html.brand-top .vtabs { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .24); }
+  html.brand-top .vtabs > .ind { background: #ffffff; }
+  html.brand-top .vtab { background: transparent; border-color: transparent; color: #ffffff; }
+  html.brand-top .vtab.on { color: #062b5d; }
+}
+
+/* Switches (Appearance, Places) */
+.seg > .ind { border-radius: 8px; background: var(--surface); box-shadow: 0 1px 4px rgba(0, 0, 0, .22); }
+.seg.theme > .ind { background: var(--accent); }
+.seg button { transition: color .3s ease; }
+
+/* Tab bar: a short bar slides above the active tab; on desktop a soft highlight */
+.tabs > .ind { border-radius: 0 0 3px 3px; }
+.tabs button { transition: color .3s ease; }
+.tabs button svg { transition: transform .35s var(--spring); }
+.tabs button.active svg { transform: translateY(-1px) scale(1.08); }
+@media (min-width: 1024px) {
+  .tabs > .ind { border-radius: 12px; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .tabs button.active svg { transform: none; }
+}
+
+/* Panels slide away when closed */
+.sheet.closing { animation: sheet-out .26s cubic-bezier(.4, 0, 1, 1) forwards; }
+.sheet.closing::backdrop { animation: fade-out .26s ease forwards; }
+@keyframes sheet-out { to { transform: translateY(36px); opacity: 0; } }
+@keyframes fade-out { to { opacity: 0; } }
+
+/* Buttons give a little under the finger */
+.btn, .chip, .vtab, .qpick, .tp, .entry { transition: transform .15s ease, filter .2s ease, background-color .25s ease, border-color .25s ease, color .3s ease; }
+.btn:active, .chip:active, .vtab:active, .entry:active { transform: scale(.97); }
+.fab { transition: transform .2s var(--spring), box-shadow .3s ease; }
+.fab:active { transform: scale(.92); }
+
+@media (prefers-reduced-motion: reduce) {
+  main.anim-view > *, main.anim-soft > *, .sheet.closing, .sheet.closing::backdrop { animation: none; }
+  .has-ind > .ind, .split span, .topbar::before, .tabs button svg { transition: none; }
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -622,7 +697,7 @@ button, a, label, input, select, textarea { touch-action: manipulation; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// firebase-config.js
+// carlog-src/firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -632,7 +707,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// calc.js
+// carlog-src/calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -980,7 +1055,7 @@ function tyreState(entries, now = /* @__PURE__ */ new Date()) {
   return { at, unplaced, any: jobs.some((e) => tyreJobsOf(e).includes("new")) };
 }
 
-// import.js
+// carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -1080,7 +1155,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// app.js
+// carlog-src/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -1112,7 +1187,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "27";
+var APP_VERSION = "28";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1356,7 +1431,107 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   applyTheme(store.get("carlog.theme") || "auto");
   if (state.view === "charts") render();
 });
+var calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function tweenText(el, from, to, ms = 650) {
+  const re = /-?\d[\d,]*\.?\d*/;
+  const mf = from.match(re), mt = to.match(re);
+  if (!mf || !mt || from === to || calm()) return;
+  const a = parseFloat(mf[0].replace(/,/g, "")), b = parseFloat(mt[0].replace(/,/g, ""));
+  if (!isFinite(a) || !isFinite(b) || a === b) return;
+  const dec = (mt[0].split(".")[1] || "").length;
+  const pre = to.slice(0, mt.index), post = to.slice(mt.index + mt[0].length);
+  const fmt = new Intl.NumberFormat("en-AU", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  const t0 = performance.now();
+  const step = (t) => {
+    const k = Math.min(1, (t - t0) / ms), ease = 1 - Math.pow(1 - k, 3);
+    el.textContent = pre + fmt.format(a + (b - a) * ease) + post;
+    if (k < 1 && el.isConnected) requestAnimationFrame(step);
+    else el.textContent = to;
+  };
+  el.textContent = pre + fmt.format(a) + post;
+  requestAnimationFrame(step);
+}
+var snapNums = (root) => new Map([...root.querySelectorAll("[data-m]")].map((el) => [el.dataset.m, el.dataset.m.startsWith("s-") ? el.style.flexGrow : el.textContent]));
+function morphNums(root, before) {
+  if (!before || calm()) return;
+  root.querySelectorAll("[data-m]").forEach((el) => {
+    if (!before.has(el.dataset.m)) return;
+    const old = before.get(el.dataset.m);
+    if (el.dataset.m.startsWith("s-")) {
+      const now = el.style.flexGrow;
+      el.style.transition = "none";
+      el.style.flexGrow = old;
+      void el.offsetWidth;
+      el.style.transition = "";
+      el.style.flexGrow = now;
+    } else tweenText(el, old, el.textContent);
+  });
+}
+function animateIn(root, mode) {
+  if (calm()) return;
+  root.classList.remove("anim-view", "anim-soft");
+  void root.offsetWidth;
+  [...root.children].forEach((c, i) => c.style.setProperty("--n", Math.min(i, 8)));
+  root.classList.add(mode === "view" || mode === "enter" ? "anim-view" : "anim-soft");
+}
+var IND = [["#vehicle-tabs", ".vtab.on"], [".chips", ".chip.on"], [".seg", "button.on"], [".tabs", "button.active"]];
+var indMem = /* @__PURE__ */ new Map();
+function placeIndicators() {
+  for (const [sel, act] of IND) {
+    document.querySelectorAll(sel).forEach((box, i) => {
+      if (box.closest(".sheet")) return;
+      const key = sel + (box.dataset.indKey || i);
+      const on = box.querySelector(act);
+      let ind = box.querySelector(":scope > .ind");
+      if (!on || !on.offsetWidth) {
+        ind?.remove();
+        return;
+      }
+      box.classList.add("has-ind");
+      if (!ind) {
+        ind = document.createElement("span");
+        ind.className = "ind";
+        box.prepend(ind);
+      }
+      const bar = box.classList.contains("tabs") && matchMedia("(max-width: 1023px)").matches;
+      const r = bar ? { x: on.offsetLeft + on.offsetWidth / 2 - 14, y: 0, w: 28, h: 3 } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight };
+      const old = indMem.get(key);
+      const put = (q) => {
+        ind.style.transform = `translate(${q.x}px, ${q.y}px)`;
+        ind.style.width = q.w + "px";
+        ind.style.height = q.h + "px";
+      };
+      if (old && !calm() && (old.x !== r.x || old.y !== r.y || old.w !== r.w || old.h !== r.h)) {
+        ind.style.transition = "none";
+        put(old);
+        void ind.offsetWidth;
+        ind.style.transition = "";
+      }
+      put(r);
+      indMem.set(key, r);
+    });
+  }
+}
+addEventListener("resize", () => {
+  indMem.clear();
+  placeIndicators();
+});
 function render() {
+  const main = $("#main");
+  const prev = state.lastRender || {};
+  const mode = !prev.view ? "enter" : prev.view !== state.view ? "view" : prev.vehicleId !== state.vehicleId ? "vehicle" : prev.logFilter !== state.logFilter || prev.placeTab !== state.placeTab ? "soft" : "same";
+  const before = mode === "same" || mode === "vehicle" ? snapNums(main) : null;
+  state.animCharts = mode !== "same";
+  renderInner();
+  state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
+  if (mode === "same") morphNums(main, before);
+  else {
+    animateIn(main, mode);
+    morphNums(main, before);
+  }
+  placeIndicators();
+}
+function renderInner() {
   $("#vehicle-tabs").innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
   $("#vehicle-tabs .vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   $("#fab").hidden = !state.vehicles.length || state.view === "garage";
@@ -1556,7 +1731,7 @@ function homeHTML() {
   const year = (/* @__PURE__ */ new Date()).getFullYear();
   const quarters = quarterBreakdown(list, year);
   const years = yearBreakdown(list);
-  const tile = (value, label, d, sub) => `<div class="stat"><div class="v num">${value}</div><div class="k">${label}</div>
+  const tile = (value, label, d, sub) => `<div class="stat"><div class="v num" data-m="t-${label}">${value}</div><div class="k">${label}</div>
       <div class="d">${d || ""}${sub ? `<span class="muted">${sub}</span>` : ""}</div></div>`;
   const vs = b ? `<span class="muted small">vs ${esc(p.prevLabel)}</span>` : "";
   const row = (label, st, extra = "") => st.future ? `<tr class="future"><th>${label}</th><td colspan="4">\u2013</td></tr>` : `<tr class="${st.current ? "now" : ""}"><th>${label}${st.current ? ' <span class="so-far">so far</span>' : ""}${extra}</th>
@@ -1566,21 +1741,21 @@ function homeHTML() {
   const comingUp = remindersHTML(v, list);
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
-    <div class="chips period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
+    <div class="chips period" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
     <div class="dash-grid"><div class="dash-main">
     <section class="card hero">
       <span class="muted small">${esc(v.name)} \xB7 ${esc(p.label)}</span>
-      <span class="big num">${money0.format(a.total)}</span>
+      <span class="big num" data-m="hero">${money0.format(a.total)}</span>
       <span class="hero-delta">${b ? `${delta(a.total, b.total)} ${vs} <span class="muted small num">(${money0.format(b.total)})</span>` : `<span class="muted small">since ${fmtDate(first)}</span>`}</span>
       ${a.total ? `<div class="split" aria-hidden="true">
-        <span style="flex:${t.fuel / tot};background:var(--fuel)"></span>
-        <span style="flex:${t.service / tot};background:var(--service)"></span>
-        <span style="flex:${t.expense / tot};background:var(--expense)"></span>
+        <span data-m="s-fuel" style="flex:${t.fuel / tot} 1 0%;background:var(--fuel)"></span>
+        <span data-m="s-service" style="flex:${t.service / tot} 1 0%;background:var(--service)"></span>
+        <span data-m="s-expense" style="flex:${t.expense / tot} 1 0%;background:var(--expense)"></span>
       </div>
       <div class="legend">
-        <span><i style="background:var(--fuel)"></i>Fuel ${money0.format(t.fuel)}</span>
-        <span><i style="background:var(--service)"></i>Service ${money0.format(t.service)}</span>
-        <span><i style="background:var(--expense)"></i>Other ${money0.format(t.expense)}</span>
+        <span><i style="background:var(--fuel)"></i>Fuel <b data-m="l-fuel">${money0.format(t.fuel)}</b></span>
+        <span><i style="background:var(--service)"></i>Service <b data-m="l-service">${money0.format(t.service)}</b></span>
+        <span><i style="background:var(--expense)"></i>Other <b data-m="l-expense">${money0.format(t.expense)}</b></span>
       </div>` : '<p class="muted small" style="margin:.5rem 0 0">Nothing spent in this period.</p>'}
     </section>
     <section class="stats">
@@ -1620,7 +1795,7 @@ function logHTML() {
       html += visitRow(visitPartsOf(e));
     } else html += entryRow(e);
   }
-  return `<div class="chips">${chips}</div>
+  return `<div class="chips" data-ind-key="log">${chips}</div>
     <section class="card" style="padding-top:4px">${list.length ? `<div class="list">${html}</div>` : '<p class="empty">No entries.</p>'}</section>`;
 }
 function chartsHTML() {
@@ -1656,7 +1831,7 @@ function drawCharts() {
   const base = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
+    animation: state.animCharts && !calm() ? { duration: 750, easing: "easeOutQuart" } : false,
     interaction: { mode: "index", intersect: false },
     plugins: { legend: { display: false } },
     scales: {
@@ -1742,7 +1917,7 @@ function garageHTML() {
     ${state.isAdmin ? peopleHTML() : ""}
     ${placesHTML()}
     <section class="card stack"><h2 style="margin:0">Appearance</h2>
-      <div class="seg theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="seg theme" data-ind-key="theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <p class="muted small" style="margin:0">Auto follows your phone's light or dark setting.</p>
     </section>
     <section class="card stack"><h2 style="margin:0">Account</h2>
@@ -1758,7 +1933,7 @@ function placesHTML() {
   const sel = state.placeSel || /* @__PURE__ */ new Set();
   return `<section class="card places"><h2>Places</h2>
     <p class="muted small" style="margin:0 0 .6rem">Tick the ones that are the same place, then merge them so they show as one button.</p>
-    <div class="seg places-tabs">${PLACE_GROUPS.map(([k, l]) => `<button type="button" data-act="place-tab" data-g="${k}" class="${g === k ? "on" : ""}">${l}</button>`).join("")}</div>
+    <div class="seg places-tabs" data-ind-key="places">${PLACE_GROUPS.map(([k, l]) => `<button type="button" data-act="place-tab" data-g="${k}" class="${g === k ? "on" : ""}">${l}</button>`).join("")}</div>
     <div class="place-list">${list.length ? list.map((p) => `<label class="place-row">
         <input type="checkbox" data-act="place-pick" data-key="${esc(p.key)}" ${sel.has(p.key) ? "checked" : ""}>
         <span class="pn">${esc(p.name)}</span><span class="pc muted small">${p.count} \xB7 ${fmtDate(p.last)}</span></label>`).join("") : '<p class="muted small" style="margin:.6rem 0 0">None yet.</p>'}</div>
@@ -1837,12 +2012,12 @@ function openSheet(html, onSubmit) {
 }
 sheetForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  if (ev.submitter?.value === "cancel") return sheet.close();
+  if (ev.submitter?.value === "cancel") return closeSheet();
   const btn = ev.submitter;
   if (btn) btn.disabled = true;
   try {
     const result = await sheetSubmit?.(ev.submitter?.value);
-    if (result !== false) sheet.close();
+    if (result !== false) closeSheet();
   } catch (e) {
     console.error(e);
     toast("Could not save: " + (e.message || e));
@@ -1851,7 +2026,7 @@ sheetForm.addEventListener("submit", async (ev) => {
   }
 });
 sheet.addEventListener("click", (ev) => {
-  if (ev.target === sheet) sheet.close();
+  if (ev.target === sheet) closeSheet();
 });
 sheet.addEventListener("close", () => {
   if (state.view === "garage") render();
@@ -1869,6 +2044,24 @@ function armed(btn, label) {
     }
   }, 4e3);
   return false;
+}
+function closeSheet() {
+  if (!sheet.open || sheet.classList.contains("closing")) return;
+  if (calm()) {
+    sheet.close();
+    return;
+  }
+  sheet.classList.add("closing");
+  const done = () => {
+    sheet.removeEventListener("animationend", onEnd);
+    sheet.classList.remove("closing");
+    sheet.close();
+  };
+  const onEnd = (ev) => {
+    if (ev.target === sheet) done();
+  };
+  sheet.addEventListener("animationend", onEnd);
+  setTimeout(() => sheet.classList.contains("closing") && done(), 400);
 }
 function sheetHead(title) {
   return `<div class="sheet-head"><h2>${title}</h2><button class="link" value="cancel" formnovalidate>Cancel</button></div>`;
@@ -2286,7 +2479,7 @@ function entryForm(entry) {
       removeIds.splice(removeIds.indexOf(receiptOwner.id), 1);
       owner = 0;
     }
-    sheet.close();
+    closeSheet();
     saveVisit(parts, removeIds, receipt, owner).catch((err) => toast("Sync problem: " + err.message));
     toast(isEdit ? "Entry updated" : "Saved");
   });
