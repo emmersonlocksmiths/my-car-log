@@ -266,12 +266,14 @@ input:focus, select:focus, textarea:focus { outline-color: var(--accent); }
 .seg.theme button.on { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 
 /* Home: the banner runs edge to edge, joins the top bar, and fades into the page */
+@media (max-width: 1023px) {
 html.brand-top .topbar {
   background: linear-gradient(90deg, #062b5d 0%, #034487 50%, #013672 100%);
   border-bottom-color: transparent;
 }
 html.brand-top .topbar select { color: #ffffff; }
 html.brand-top .topbar select option { color: initial; }
+}
 .hero-banner {
   position: relative;
   margin: -16px -16px 0;
@@ -326,9 +328,11 @@ html.brand-top .topbar select option { color: initial; }
 }
 .vtab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .vtabs-empty { font: 600 1.05rem var(--font-display); }
+@media (max-width: 1023px) {
 html.brand-top .vtab { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .28); color: #ffffff; }
 html.brand-top .vtab.on { background: #ffffff; color: #062b5d; border-color: #ffffff; }
 html.brand-top .vtabs-empty { color: #ffffff; }
+}
 
 /* ---------- Add / edit entry ---------- */
 :root { --ease: cubic-bezier(.2, .8, .2, 1); }
@@ -428,6 +432,78 @@ html.brand-top .vtabs-empty { color: #ffffff; }
 .st-soon { color: var(--service); background: color-mix(in srgb, var(--service) 16%, transparent); }
 .st-due { color: var(--danger); background: color-mix(in srgb, var(--danger) 15%, transparent); }
 .st-none { color: var(--muted); background: var(--surface-2); }
+
+/* ---------- Layout groups (single column on phones) ---------- */
+.dash-grid, .dash-main, .dash-side, .dash-tables, .charts-grid, .garage-grid { display: grid; gap: 16px; align-content: start; min-width: 0; }
+.nav-brand { display: none; }
+
+/* ---------- Desktop and large tablets ---------- */
+@media (min-width: 1024px) {
+  :root { --nav-w: 232px; }
+  body { font-size: 15px; }
+
+  /* Bottom tabs become a sidebar */
+  .tabs {
+    top: 0; bottom: 0; left: 0; right: auto; width: var(--nav-w);
+    display: flex; flex-direction: column; gap: 4px; padding: 20px 14px;
+    border-top: 0; border-right: 1px solid var(--line);
+  }
+  .tabs button {
+    height: 46px; display: flex; align-items: center; justify-content: flex-start; gap: 12px;
+    padding: 0 14px; border-radius: 12px; font-size: .95rem; color: var(--text-2);
+  }
+  .tabs button.active { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .nav-brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 22px; font: 700 1.1rem var(--font-display); letter-spacing: -.01em; }
+  .nav-brand img { width: 34px; height: 34px; border-radius: 9px; }
+
+  /* Top bar and content sit to the right of the sidebar */
+  .topbar { margin-left: var(--nav-w); padding: 14px 32px; }
+  main { margin-left: var(--nav-w); max-width: none; padding: 24px 32px 120px; gap: 20px; }
+  main > * { width: 100%; max-width: 1180px; margin-left: auto; margin-right: auto; }
+  /* Same round + button, parked under the logo in the sidebar */
+  .fab { top: 86px; left: 22px; right: auto; bottom: auto; z-index: 8; }
+  .nav-brand { margin-bottom: 78px; }
+  .toast { bottom: 40px; left: calc(50% + var(--nav-w) / 2); }
+
+  /* Dashboard */
+  .hero-banner { margin: 0 auto; border-radius: 18px; overflow: hidden; }
+  .hero-banner img { aspect-ratio: auto; height: 260px; object-position: center 45%; }
+  .hero-banner::after { height: 45%; }
+  .hero-banner + .chips.period { margin-top: -54px; padding: 0 16px; }
+  .chips.period { grid-template-columns: repeat(5, max-content); justify-content: start; }
+  .chips.period .chip { padding: .5rem 1.1rem; }
+  .dash-grid { grid-template-columns: minmax(0, 1.55fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+  .dash-main .stats { grid-template-columns: repeat(3, 1fr); }
+  .dash-side { position: sticky; top: 92px; }
+  .dash-tables { grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+  .hero .big { font-size: 2.8rem; }
+
+  /* Charts */
+  .charts-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+  .chart-box { height: 290px; }
+
+  /* Log */
+  .chips:not(.period), main > .card:has(.list) { max-width: 860px; }
+
+  /* Garage */
+  .garage-grid { grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+  /* Forms open as a centred panel */
+  .sheet { max-width: 600px; margin: auto; border-radius: 20px; }
+}
+
+@media (min-width: 1440px) {
+  .dash-main .stats { grid-template-columns: repeat(3, 1fr); }
+  .charts-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Mouse users get hover feedback */
+@media (hover: hover) {
+  .entry:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+  .entry { border-radius: 10px; padding-left: 6px; padding-right: 6px; }
+  .btn:hover, .chip:hover, .vtab:hover, .kind:hover, .qpick:hover { filter: brightness(1.08); }
+  .tabs button:hover { color: var(--text); }
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -468,6 +544,7 @@ html.brand-top .vtabs-empty { color: #ffffff; }
     <main id="main"></main>
     <button id="fab" class="fab" aria-label="Add entry">+</button>
     <nav class="tabs" aria-label="Sections">
+      <div class="nav-brand"><img src="icons/icon-192.png" alt=""><span>My Car Log</span></div>
       <button data-view="home" class="active"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/></svg>Dashboard</button>
       <button data-view="charts"><svg viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="5" width="4" height="15" rx="1.5"/><rect x="16" y="9" width="4" height="11" rx="1.5"/></svg>Charts</button>
       <button data-view="log"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>Log</button>
@@ -478,7 +555,7 @@ html.brand-top .vtabs-empty { color: #ffffff; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -488,7 +565,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -779,7 +856,7 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
   };
 }
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -879,7 +956,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -911,7 +988,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "21";
+var APP_VERSION = "22";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1344,6 +1421,7 @@ function homeHTML() {
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
     <div class="chips period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
+    <div class="dash-grid"><div class="dash-main">
     <section class="card hero">
       <span class="muted small">${esc(v.name)} \xB7 ${esc(p.label)}</span>
       <span class="big num">${money0.format(a.total)}</span>
@@ -1367,13 +1445,15 @@ function homeHTML() {
       ${tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek))}
       ${tile(String(a.fills), "Fill-ups", "", a.avgFill ? `avg ${money0.format(a.avgFill)}` : "")}
     </section>
-    ${comingUp}
+    </div><div class="dash-side">${comingUp}</div></div>
+    <div class="dash-tables">
     <section class="card"><h2>${year} by quarter</h2>
       <div class="tbl-wrap"><table class="tbl">${head}<tbody>${quarters.map((q) => row(`Q${q.q}`, q)).join("")}</tbody></table></div>
     </section>
     <section class="card"><h2>Year by year</h2>
       <div class="tbl-wrap"><table class="tbl">${head}<tbody>${years.map((y) => row(y.year, y)).join("")}</tbody></table></div>
-    </section>`;
+    </section>
+    </div>`;
 }
 function logHTML() {
   const f = state.logFilter;
@@ -1396,7 +1476,7 @@ function chartsHTML() {
   const list = vehicleEntries();
   if (!list.length) return '<p class="card empty">Log a few entries and your charts will appear here.</p>';
   const econ = fuelEconomy(list);
-  return `
+  return `<div class="charts-grid">
     <section class="card"><h2>Fuel economy (L/100km)</h2>
       ${econ.length > 1 ? '<div class="chart-box"><canvas id="c-econ"></canvas></div>' : `<p class="muted small">${econ.length ? `First result: ${n1.format(econ[0].l100)} L/100km. ` : ""}The trend line appears after a few more full-tank fill-ups logged with litres.</p>`}
     </section>
@@ -1408,7 +1488,7 @@ function chartsHTML() {
     </section>
     <section class="card"><h2>Fuel price paid (c/L)</h2>
       <div class="chart-box"><canvas id="c-ppl"></canvas></div>
-    </section>`;
+    </section></div>`;
 }
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -1493,7 +1573,7 @@ function garageHTML() {
       <span class="muted small">${[[v.year, v.make, v.model].filter(Boolean).join(" "), v.rego, `${count} entries`].filter(Boolean).map(esc).join(" \xB7 ")}</span></div>
       <button class="btn small" data-act="edit-vehicle" data-id="${v.id}">Edit</button></div>`;
   }).join("");
-  return `
+  return `<div class="garage-grid">
     <section class="card"><h2>Vehicles</h2>
       ${vs || '<p class="muted">No vehicles yet.</p>'}
       <button class="btn primary wide" style="margin-top:12px" data-act="add-vehicle">Add vehicle</button>
@@ -1517,6 +1597,7 @@ function garageHTML() {
       <p class="muted small" style="margin:0">Signed in as ${esc(state.user.email || "you")}${state.isAdmin ? " \xB7 owner" : ""}</p>
       <button class="btn" data-act="sign-out">Sign out</button>
     </section>
+    </div>
     <p class="muted small" style="text-align:center;margin:0">My Car Log \xB7 version ${APP_VERSION}</p>`;
 }
 function peopleHTML() {
