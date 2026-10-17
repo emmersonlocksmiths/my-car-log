@@ -311,6 +311,20 @@ html.brand-top .topbar select option { color: initial; }
 .tbl tr.future td, .tbl tr.future th { color: var(--muted); }
 .tbl td:first-of-type { text-align: right; }
 .so-far { font-family: var(--font-body); font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Vehicle buttons across the top bar: one tap to switch */
+.vtabs { display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; padding: 2px 0; }
+.vtabs::-webkit-scrollbar { display: none; }
+.vtab {
+  flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--text-2);
+  border-radius: 999px; padding: .45rem .95rem; font: 600 .92rem var(--font-display); letter-spacing: -.01em;
+  white-space: nowrap; cursor: pointer;
+}
+.vtab.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.vtabs-empty { font: 600 1.05rem var(--font-display); }
+html.brand-top .vtab { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .28); color: #ffffff; }
+html.brand-top .vtab.on { background: #ffffff; color: #062b5d; border-color: #ffffff; }
+html.brand-top .vtabs-empty { color: #ffffff; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -345,7 +359,7 @@ html.brand-top .topbar select option { color: initial; }
   <!-- Signed-in app -->
   <div id="app" hidden>
     <header class="topbar">
-      <select id="vehicle-select" aria-label="Vehicle"></select>
+      <div id="vehicle-tabs" class="vtabs" role="tablist" aria-label="Vehicle"></div>
       <span id="sync-dot" class="sync" title="Synced"></span>
     </header>
     <main id="main"></main>
@@ -361,7 +375,7 @@ html.brand-top .topbar select option { color: initial; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// firebase-config.js
+// ../carlog-src/firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -371,7 +385,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// calc.js
+// ../carlog-src/calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -576,7 +590,7 @@ function serviceStatus(entries) {
   return { last, since: latestOdo - +last.odo, interval, dueIn: interval ? interval - (latestOdo - +last.odo) : null };
 }
 
-// import.js
+// ../carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -672,7 +686,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// app.js
+// ../carlog-src/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -704,7 +718,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "16";
+var APP_VERSION = "17";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -941,9 +955,8 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (state.view === "charts") render();
 });
 function render() {
-  const sel = $("#vehicle-select");
-  sel.innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<option value="${v.id}" ${v.id === state.vehicleId ? "selected" : ""}>${esc(v.name)}</option>`).join("") : "<option>No vehicles yet</option>";
-  sel.disabled = !state.vehicles.length;
+  $("#vehicle-tabs").innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
+  $("#vehicle-tabs .vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   $("#fab").hidden = !state.vehicles.length || state.view === "garage";
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
   document.documentElement.classList.toggle("brand-top", state.view === "home" && !!state.vehicles.length && !state.loadError);
@@ -1570,8 +1583,10 @@ $("#main").addEventListener("change", (ev) => {
   });
   ev.target.value = "";
 });
-$("#vehicle-select").addEventListener("change", (ev) => {
-  state.vehicleId = ev.target.value;
+$("#vehicle-tabs").addEventListener("click", (ev) => {
+  const b = ev.target.closest(".vtab");
+  if (!b || b.dataset.id === state.vehicleId) return;
+  state.vehicleId = b.dataset.id;
   store.set("carlog.vehicle", state.vehicleId);
   render();
 });
