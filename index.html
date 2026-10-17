@@ -250,7 +250,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -260,7 +260,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -394,7 +394,7 @@ function toCSV(vehicleName, entries) {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -490,7 +490,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -522,6 +522,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
+var APP_VERSION = "10";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -650,6 +651,11 @@ $("#noaccess-signout").addEventListener("click", () => signOut(auth));
 function startData() {
   state.vehicleId = store.get("carlog.vehicle");
   let gotVehicles = false, gotEntries = false;
+  state.loadError = null;
+  const onErr = (err) => {
+    state.loadError = err.code || err.message;
+    render();
+  };
   state.unsub.push(onSnapshot(userCol("vehicles"), { includeMetadataChanges: true }, (snap) => {
     state.vehicles = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
     if (!state.vehicles.some((v) => v.id === state.vehicleId)) state.vehicleId = state.vehicles[0]?.id || null;
@@ -657,12 +663,12 @@ function startData() {
     $("#sync-dot").title = snap.metadata.hasPendingWrites ? "Saved on phone, waiting to sync" : "Synced";
     gotVehicles = true;
     if (gotEntries) render();
-  }));
+  }, onErr));
   state.unsub.push(onSnapshot(userCol("entries"), (snap) => {
     state.entries = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     gotEntries = true;
     if (gotVehicles) render();
-  }));
+  }, onErr));
   if (state.isAdmin) {
     state.unsub.push(onSnapshot(collection(db, "members"), (snap) => {
       state.members = snap.docs.map((d) => ({ id: d.id, ...d.data() })).filter((m) => m.garage === state.garage).sort((a, b) => String(a.name).localeCompare(String(b.name)));
@@ -745,6 +751,10 @@ function render() {
   state.charts.forEach((c) => c.destroy());
   state.charts = [];
   const main = $("#main");
+  if (state.loadError && state.view !== "garage") {
+    main.innerHTML = loadErrorHTML();
+    return;
+  }
   if (!state.vehicles.length && state.view !== "garage") {
     main.innerHTML = welcomeHTML();
     return;
@@ -756,7 +766,22 @@ function render() {
     drawCharts();
   } else main.innerHTML = garageHTML();
 }
+function loadErrorHTML() {
+  const denied = state.loadError === "permission-denied";
+  return `<div class="card empty">
+    <h2>Couldn't load the vehicles</h2>
+    <p>${denied ? "This login isn\u2019t allowed to see the shared vehicles yet. Nathan may need to update the Firebase rules or re-add this person." : "Check your internet connection and try again."}</p>
+    <p class="muted small">Signed in as ${esc(state.user?.email)} \xB7 error: ${esc(state.loadError)} \xB7 v${APP_VERSION}</p>
+  </div>`;
+}
 function welcomeHTML() {
+  if (!state.isAdmin) {
+    return `<div class="card empty">
+      <h2>No vehicles yet</h2>
+      <p>Nathan hasn't added any vehicles to the shared log yet.</p>
+      <p class="muted small">Signed in as ${esc(state.user?.email)} \xB7 v${APP_VERSION}</p>
+    </div>`;
+  }
   return `<div class="card empty">
     <h2>Add your first vehicle</h2>
     <p>Start with the van, then add any other cars you want to track.</p>
@@ -956,7 +981,7 @@ function garageHTML() {
       <p class="muted small" style="margin:0">Signed in as ${esc(state.user.email || "you")}${state.isAdmin ? " \xB7 owner" : ""}</p>
       <button class="btn" data-act="sign-out">Sign out</button>
     </section>
-    <p class="muted small" style="text-align:center;margin:0">My Car Log</p>`;
+    <p class="muted small" style="text-align:center;margin:0">My Car Log \xB7 version ${APP_VERSION}</p>`;
 }
 function peopleHTML() {
   const rows = state.members.map((m) => `<div class="vehicle"><div><strong>${esc(m.name || m.email)}</strong><br>
