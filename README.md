@@ -21,14 +21,14 @@ Fuel economy uses the full-to-full method, so tick "Filled the tank to full" whe
 
 1. **Firebase project.** Go to console.firebase.google.com and add a project (e.g. `carlog`). Analytics isn't needed.
 2. **Web app.** Project settings → General → Your apps → Web (`</>`). Register it, then copy the `firebaseConfig` values into `firebase-config.js`.
-3. **Sign-in.** Build → Authentication → Get started. Enable **Email/Password** and **Google**.
+3. **Sign-in.** Build → Authentication → Get started. Enable **Email/Password**.
 4. **Database.** Build → Firestore Database → Create database (location `australia-southeast1`, production mode). On the **Rules** tab, paste in the contents of `firestore.rules` and publish.
 5. **GitHub.** Create a repo (e.g. `carlog`), upload all these files, then Settings → Pages → deploy from the `main` branch, root folder.
 6. **Authorise the domain.** Authentication → Settings → Authorized domains → add `<your-github-username>.github.io`.
 7. **Install on your phone.** Open the GitHub Pages link. iPhone: Share → Add to Home Screen. Android: menu → Install app.
 8. **Import your history.** Garage → Import from My Car → pick `my_car_history.csv`.
 
-On an iPhone home-screen app, email/password sign-in is the most reliable. Google sign-in from inside the installed app can be blocked by Safari's privacy rules.
+Sign in with your email and a password. The first time, tap **Create account**.
 
 ## Updating
 

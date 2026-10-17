@@ -3,8 +3,7 @@ import * as calc from './calc.js';
 import { parseMyCar } from './import.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
-  getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
-  signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
+  getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, signOut,
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
@@ -80,21 +79,8 @@ const niceAuthError = (e) => ({
   'auth/user-not-found': 'No account with that email yet. Tap “Create account”.',
   'auth/email-already-in-use': 'That email already has an account. Sign in instead.',
   'auth/weak-password': 'Password needs at least 6 characters.',
-  'auth/popup-closed-by-user': '',
   'auth/network-request-failed': 'No internet connection.',
 }[e.code] ?? e.message);
-
-$('#google-btn').addEventListener('click', async () => {
-  authMsg('');
-  const provider = new GoogleAuthProvider();
-  try {
-    await signInWithPopup(auth, provider);
-  } catch (e) {
-    if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment'].includes(e.code)) {
-      try { await signInWithRedirect(auth, provider); } catch (e2) { authMsg(niceAuthError(e2)); }
-    } else authMsg(niceAuthError(e));
-  }
-});
 
 $('#email-form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
