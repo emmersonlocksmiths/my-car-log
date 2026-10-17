@@ -646,6 +646,79 @@ main.anim-soft > * { animation: soft-in .38s ease both; animation-delay: calc(va
   main.anim-view > *, main.anim-soft > *, .sheet.closing, .sheet.closing::backdrop { animation: none; }
   .has-ind > .ind, .split span, .topbar::before, .tabs button svg { transition: none; }
 }
+
+/* Rego / insurance countdown */
+.countdown strong { font-size: 1.35rem; line-height: 1; margin-right: .15rem; }
+
+/* Tyre wear: km done vs expected life */
+.tm-bar { display: block; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; margin: 5px 0 2px; }
+.tm-bar i { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .65s var(--ease); }
+.tm-left { font-size: .76rem; font-weight: 600; color: var(--text-2); }
+.tm-soon { border-color: var(--service); } .tm-soon .tm-bar i { background: var(--service); }
+.tm-due { border-color: var(--danger); } .tm-due .tm-bar i { background: var(--danger); } .tm-due .tm-left { color: var(--danger); }
+.tyremap { grid-template-columns: 1fr 44px 1fr; gap: 8px; }
+.tyremap .tm-car svg { width: 40px; }
+.tm-age { font-size: .92rem; letter-spacing: -.01em; }
+.tm-sub { line-height: 1.3; }
+
+/* Tyre rings */
+.tyrerings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 2px; }
+.tr { display: flex; gap: 9px; align-items: center; min-width: 0; }
+.tr svg { flex: none; width: 38px; height: 38px; }
+.tr circle { fill: none; stroke-width: 5; }
+.tr-track { stroke: color-mix(in srgb, var(--muted) 24%, transparent); }
+.tr-fill { stroke: var(--accent); stroke-linecap: round; transition: stroke-dasharray .7s var(--ease); }
+.tr-soon .tr-fill { stroke: var(--service); } .tr-soon .tr-v { color: var(--service); }
+.tr-due .tr-fill { stroke: var(--danger); } .tr-due .tr-v { color: var(--danger); }
+.tr-k { font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tr-v { font: 600 .9rem var(--font-display); }
+
+/* Tyre wear: car picture with coloured wheels */
+.tyrewear { display: grid; grid-template-columns: minmax(0,1fr) 70px minmax(0,1fr); grid-template-rows: auto auto; column-gap: 10px; row-gap: 22px; align-items: center; margin: 4px 0 2px; }
+.tw-car { grid-column: 2; grid-row: 1 / span 2; width: 70px; height: auto; }
+.tw-car rect { transition: fill .6s ease; }
+.tw-car .tw-none { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.tw-body { fill: var(--surface-2, var(--bg)); stroke: var(--muted); stroke-width: 2; }
+.tw-glass { fill: color-mix(in srgb, var(--muted) 22%, transparent); stroke: var(--muted); stroke-width: 1.5; stroke-linejoin: round; }
+.tw-l { display: grid; gap: 1px; min-width: 0; }
+.tw-left { text-align: right; justify-items: end; }
+.tw-k { font-size: .66rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.tw-v { font: 600 .92rem var(--font-display); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tw-v i { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.tw-left .tw-v { flex-direction: row-reverse; }
+.tw-s { font-size: .74rem; color: var(--muted); }
+.tw-scale { position: relative; height: 8px; border-radius: 999px; margin-top: 6px;
+  background: linear-gradient(90deg, rgb(34,177,76), rgb(110,192,58), rgb(176,204,44), rgb(240,196,28), rgb(244,150,34), rgb(236,104,42), rgb(220,56,56)); }
+.tw-scale b { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--surface); border: 2.5px solid var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: left .6s var(--ease); }
+.tw-ends { display: flex; justify-content: space-between; font-size: .68rem; color: var(--muted); margin-top: -2px; }
+.tw-guide summary { cursor: pointer; color: var(--accent); font-size: .78rem; font-weight: 600; list-style: none; width: max-content; }
+.tw-guide summary::-webkit-details-marker { display: none; }
+.tw-guide summary::after { content: "\00a0\25BE"; } .tw-guide[open] summary::after { content: "\00a0\25B4"; }
+.tw-guide ul { list-style: none; margin: 8px 0 6px; padding: 0; display: grid; gap: 5px; font-size: .82rem; }
+.tw-guide li { display: grid; grid-template-columns: 12px 1fr auto 74px; gap: 8px; align-items: center; }
+.tw-guide li i { width: 12px; height: 12px; border-radius: 4px; }
+.tw-guide .tw-when { text-align: right; color: var(--text-2); font-size: .76rem; }
+.rem-tyremap .rem-body { min-width: 0; overflow: hidden; padding-right: 2px; }
+
+/* Tyres: car with coloured wheels, km done in a ring by each corner */
+.tyrecar { display: grid; grid-template-columns: minmax(0,1fr) 58px minmax(0,1fr); grid-template-rows: auto auto; column-gap: 8px; row-gap: 26px; align-items: center; margin: 2px 0; }
+.tyrecar .tw-car { grid-column: 2; grid-row: 1 / span 2; width: 58px; height: auto; }
+.tc { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.tc-left { flex-direction: row-reverse; text-align: right; }
+.tc svg { flex: none; width: 34px; height: 34px; }
+.tc circle { fill: none; stroke-width: 5; }
+.tc-t { display: grid; min-width: 0; }
+.tc .tr-v { font-size: .88rem; white-space: nowrap; }
+.tc .tr-k { font-size: .62rem; }
+.tw-car rect { transition: fill .6s ease; }
+.tw-car .tw-none { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.vehicle-form .tw-guide, form .tw-guide { margin: -.2rem 0 .2rem; }
+.tyrecar { grid-template-columns: minmax(0,1fr) 64px minmax(0,1fr); row-gap: 14px; column-gap: 6px; }
+.tyrecar .tw-car { width: 64px; }
+.tc, .tc-left { flex-direction: column; gap: 4px; text-align: center; }
+.tc svg { width: 40px; height: 40px; }
+.tc .tr-v { font-size: .86rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -984,8 +1057,14 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     daysSince: -daysUntil(lastNew.date, now),
     kmSince: num(lastNew.odo) !== null && latestOdo ? latestOdo - +lastNew.odo : null
   } : null;
-  const renewal = (category, months) => {
+  const renewal = (category, months, setDue) => {
     const last = entries.filter((e) => e.type === "expense" && e.category === category).sort(byDateDesc)[0] || null;
+    if (setDue) {
+      let due2 = setDue;
+      if (last) while (last.date >= addMonths(due2, -3)) due2 = addMonths(due2, months);
+      const days2 = daysUntil(due2, now);
+      return { last, due: due2, days: days2, months, set: true, status: days2 < 0 ? "due" : days2 <= 30 ? "soon" : "ok" };
+    }
     if (!last) return { last: null, status: "unknown", months };
     const due = addMonths(last.date, months);
     const days = daysUntil(due, now);
@@ -999,8 +1078,8 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     rotation,
     tyreAge,
     tyres: tyreState(entries, now),
-    rego: renewal("Registration", +vehicle.regoMonths || 12),
-    insurance: renewal("Insurance", +vehicle.insuranceMonths || 12)
+    rego: renewal("Registration", +vehicle.regoMonths || 12, vehicle.regoDue || null),
+    insurance: renewal("Insurance", +vehicle.insuranceMonths || 12, vehicle.insuranceDue || null)
   };
 }
 var TYRE_POS = ["FL", "FR", "RL", "RR"];
@@ -1187,7 +1266,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "28";
+var APP_VERSION = "29";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1629,6 +1708,53 @@ function delta(cur, prev, lowerIsBetter = true) {
 var fmtC = (dollars) => dollars == null || !isFinite(dollars) ? "\u2013" : `${n1.format(dollars * 100)}c`;
 var fmtKm = (km) => km == null ? "\u2013" : n0.format(km);
 var fmtL100 = (v) => v == null ? "\u2013" : n1.format(v);
+var WEAR_BANDS = ["New", "Great", "Good", "Halfway", "Worn", "Getting low", "Replace"];
+var WEAR_STOPS = [[34, 177, 76], [110, 192, 58], [176, 204, 44], [240, 196, 28], [244, 150, 34], [236, 104, 42], [220, 56, 56]];
+function wearColor(f) {
+  const x = Math.min(1, Math.max(0, f)) * (WEAR_STOPS.length - 1);
+  const i = Math.min(WEAR_STOPS.length - 2, Math.floor(x)), t = x - i;
+  const c = WEAR_STOPS[i].map((v, k) => Math.round(v + (WEAR_STOPS[i + 1][k] - v) * t));
+  return `rgb(${c.join(",")})`;
+}
+function tyreWear(v, r) {
+  const life = +v.tyreLifeKm || 5e4;
+  const info = {};
+  for (const p of TYRE_POS) {
+    const t = r.tyres.at[p];
+    if (!t || t.unknown || t.kmSince == null) {
+      info[p] = null;
+      continue;
+    }
+    const f = Math.max(0, t.kmSince / life);
+    info[p] = { t, done: t.kmSince, left: life - t.kmSince, f, color: wearColor(f) };
+  }
+  const known = Object.values(info).filter(Boolean);
+  const maxF = known.length ? Math.max(...known.map((x) => x.f)) : 0;
+  const worst = maxF >= 1 ? "due" : maxF >= 1 - 1 / (WEAR_BANDS.length - 1) ? "soon" : "ok";
+  const lead = known.filter((x) => x.f < 1).sort((m, n) => n.f - m.f)[0] || null;
+  let leadName = "";
+  if (lead) {
+    const same = TYRE_POS.filter((p) => info[p] && info[p].done === lead.done);
+    leadName = same.length === 4 ? "all four tyres" : same.join(",") === "FL,FR" ? "the front tyres" : same.join(",") === "RL,RR" ? "the rear tyres" : same.map((p) => POS_LABEL[p].toLowerCase()).join(" and ");
+  }
+  return { life, info, worst, lead, leadName };
+}
+function tyreGuideHTML(v, r) {
+  const { life, lead, leadName } = tyreWear(v, r);
+  const steps = WEAR_BANDS.map((name, i) => {
+    const km = Math.round(life * i / (WEAR_BANDS.length - 1) / 500) * 500;
+    let when = "";
+    if (lead) {
+      if (km <= lead.done) when = '<span class="muted">passed</span>';
+      else if (r.kmPerDay) when = `~${fmtMonthD(new Date(Date.now() + (km - lead.done) / r.kmPerDay * 864e5))}`;
+    }
+    return `<li><i style="background:${wearColor(i / (WEAR_BANDS.length - 1))}"></i><span>${name}</span><span class="num">${n0.format(km)} km</span><span class="tw-when">${when}</span></li>`;
+  }).join("");
+  return `<details class="tw-guide"><summary>Tyre colour guide</summary><ul>${steps}</ul>
+    <p class="muted small" style="margin:0">Tyres change colour on the Dashboard as they wear.${lead && r.kmPerDay ? ` Dates are for ${leadName}, from your recent driving.` : ""}</p></details>`;
+}
+var fmtMonthD = (d) => d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
+var roundKm = (k) => k >= 1e3 ? Math.round(k / 100) * 100 : Math.round(k);
 function ago(days) {
   if (days == null) return "";
   if (days < 45) return `${days} day${days === 1 ? "" : "s"}`;
@@ -1685,36 +1811,48 @@ function remindersHTML(v, list) {
   } else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
   const ts = r.tyres;
   if (ts.any) {
-    const newest = Math.min(...TYRE_POS.map((p) => ts.at[p].daysSince ?? Infinity));
-    const cell = (p) => {
-      const t2 = ts.at[p];
-      if (t2.unknown) return `<div class="tm tm-${p} unknown"><span class="tm-pos">${POS_LABEL[p]}</span><span class="tm-age">Not recorded</span></div>`;
-      return `<div class="tm tm-${p} ${t2.daysSince === newest ? "newest" : ""}"><span class="tm-pos">${POS_LABEL[p]}</span>
-        <span class="tm-age">${ago(t2.daysSince)}</span><span class="tm-km num">${t2.kmSince != null ? n0.format(t2.kmSince) + " km" : "\u2013"}</span>
-        <span class="tm-sub">Fitted ${fmtDate(t2.fittedDate)}${t2.rotations ? ` \xB7 rotated ${t2.rotations}\xD7` : ""}</span></div>`;
+    const { info, worst } = tyreWear(v, r);
+    const RC = 2 * Math.PI * 13;
+    const ringCell = (p, side) => {
+      const x = info[p];
+      const ring = x ? `<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" class="tr-track"/>
+        <circle cx="17" cy="17" r="13" class="tr-fill" style="stroke:${x.color}" stroke-dasharray="${(RC * Math.min(1, Math.max(0.03, x.f))).toFixed(1)} ${RC.toFixed(1)}" transform="rotate(-90 17 17)"/></svg>` : `<svg viewBox="0 0 34 34" aria-hidden="true"><circle cx="17" cy="17" r="13" class="tr-track" stroke-dasharray="3 4"/></svg>`;
+      const tip = x ? `${x.left > 0 ? `${n0.format(roundKm(x.left))} km left` : "Due for replacement"} \xB7 fitted ${fmtDate(x.t.fittedDate)}${x.t.rotations ? ` \xB7 rotated ${x.t.rotations}\xD7` : ""}` : "Not recorded";
+      return `<div class="tc tc-${side}" title="${tip}">${ring}<div class="tc-t"><span class="sr-only">${POS_LABEL[p]}</span><span class="tr-v num">${x ? n0.format(x.done) + " km" : "\u2013"}</span></div></div>`;
     };
+    const wheel = (p, x, y) => `<rect x="${x}" y="${y}" width="11" height="22" rx="3.5" class="${info[p] ? "" : "tw-none"}" style="fill:${info[p] ? info[p].color : "none"}"/>`;
+    const car = `<svg class="tw-car" viewBox="0 0 64 116" aria-hidden="true">
+      ${wheel("FL", 2, 20)}${wheel("FR", 51, 20)}${wheel("RL", 2, 76)}${wheel("RR", 51, 76)}
+      <path class="tw-body" d="M14 20c0-10 8-16 18-16s18 6 18 16v76c0 10-8 16-18 16s-18-6-18-16z"/>
+      <path class="tw-glass" d="M19 37c4-4 22-4 26 0l-3 13H22zM22 80h20l3 10c-4 4-22 4-26 0z"/></svg>`;
     rows.push(`<div class="rem rem-tyremap"><span class="rem-ic rem-tyres">${RICONS.tyres}</span><div class="rem-body">
-        <div class="rem-top"><span class="rem-title">Tyres</span></div>
-        <div class="tyremap">${cell("FL")}${cell("FR")}<span class="tm-car">${CAR_TOP}</span>${cell("RL")}${cell("RR")}</div>
-        ${ts.unplaced ? `<div class="rem-foot">${ts.unplaced} older tyre${ts.unplaced === 1 ? "" : "s"} logged without a position, so a corner may be newer than shown. Open those tyre entries in the Log and tap where they went.</div>` : ""}
+        <div class="rem-top"><span class="rem-title">Tyres</span>${statusChip(worst, worst === "due")}</div>
+        <div class="tyrecar">${ringCell("FL", "left")}${car}${ringCell("FR", "right")}${ringCell("RL", "left")}${ringCell("RR", "right")}</div>
       </div></div>`);
   }
+  const setLink = (label) => `<button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">${label}</button>`;
   for (const [key, title, cat, it] of [["rego", "Rego", "Registration", r.rego], ["insurance", "Insurance", "Insurance", r.insurance]]) {
-    if (!it.last) {
-      rows.push(row(key, title, statusChip("unknown"), `Log a payment to get a reminder`, `Add it with + \u2192 Expense \u2192 ${cat}.`));
+    if (!it.due) {
+      rows.push(row(
+        key,
+        title,
+        statusChip(it.status),
+        it.status === "stale" ? `Last logged ${fmtDate(it.last.date)}` : "No due date yet",
+        `Set the date it's due and it'll count down here.`,
+        setLink("Set due date")
+      ));
       continue;
     }
-    if (it.status === "stale") {
-      rows.push(row(key, title, statusChip("stale"), `Last logged ${fmtDate(it.last.date)}`, `Log your latest ${title.toLowerCase()} payment so the next due date is right.`));
-      continue;
-    }
+    const d = it.days;
+    const left = d === 0 ? "<strong>Due today</strong>" : d > 0 ? `<span class="countdown"><strong class="num">${n0.format(d)}</strong> day${d === 1 ? "" : "s"} to go</span>${d >= 45 ? ` <span class="muted">\xB7 about ${ago(d)}</span>` : ""}` : `<strong>Overdue by ${n0.format(-d)} day${d === -1 ? "" : "s"}</strong>`;
+    const months = it.months === 1 ? "every month" : `every ${it.months} months`;
     rows.push(row(
       key,
       title,
-      statusChip(it.status, it.days < 0),
-      it.days >= 0 ? `Due <strong>${fmtDate(it.due)}</strong> \xB7 in ${ago(it.days)}` : `Was due <strong>${fmtDate(it.due)}</strong>`,
-      `Last paid ${fmtDate(it.last.date)} \xB7 ${money.format(+it.last.cost || 0)} \xB7 renews every ${it.months} months`,
-      `<button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">Change</button>`
+      statusChip(it.status, d < 0),
+      left,
+      `Due ${fmtDate(it.due)}${it.last ? ` \xB7 last paid ${fmtDate(it.last.date)}, ${money.format(+it.last.cost || 0)}` : ""}`,
+      `${it.set ? "Your date" : "From your last payment"}, renews ${months} \xB7 ${setLink(it.set ? "Change" : "Set exact date")}`
     ));
   }
   return `<section class="card rems"><h2>Coming up</h2>${rows.join("")}
@@ -2089,7 +2227,15 @@ function vehicleForm(v) {
       <label>Service every (km)<input name="serviceKm" inputmode="numeric" placeholder="${esc(rem.service.intervalKm)}" value="${esc(v.serviceKm)}"></label>
       <label>or every (months)<input name="serviceMonths" inputmode="numeric" placeholder="12" value="${esc(v.serviceMonths)}"></label>
     </div>
-    <label>Tyre rotation every (km)<input name="rotationKm" inputmode="numeric" placeholder="${esc(rem.rotation.intervalKm)}" value="${esc(v.rotationKm)}"></label>
+    <div class="grid2">
+      <label>Tyre rotation every (km)<input name="rotationKm" inputmode="numeric" placeholder="${esc(rem.rotation.intervalKm)}" value="${esc(v.rotationKm)}"></label>
+      <label>Tyres last about (km)<input name="tyreLifeKm" inputmode="numeric" placeholder="50000" value="${esc(v.tyreLifeKm)}"></label>
+    </div>
+    ${isEdit ? tyreGuideHTML(v, rem) : ""}
+    <div class="grid2">
+      <label>Rego due<input type="date" name="regoDue" value="${esc(v.regoDue || "")}"></label>
+      <label>Insurance due<input type="date" name="insuranceDue" value="${esc(v.insuranceDue || "")}"></label>
+    </div>
     <div class="grid2">
       <label>Rego renews every<select name="regoMonths">${[12, 6, 3].map((m) => `<option value="${m}" ${(+v.regoMonths || 12) === m ? "selected" : ""}>${m} months</option>`).join("")}</select></label>
       <label>Insurance renews every<select name="insuranceMonths">${[12, 6, 1].map((m) => `<option value="${m}" ${(+v.insuranceMonths || 12) === m ? "selected" : ""}>${m === 1 ? "month" : m + " months"}</option>`).join("")}</select></label>
@@ -2116,8 +2262,11 @@ function vehicleForm(v) {
         serviceKm: numOrNull(f.serviceKm.value),
         serviceMonths: numOrNull(f.serviceMonths.value),
         rotationKm: numOrNull(f.rotationKm.value),
+        tyreLifeKm: numOrNull(f.tyreLifeKm.value),
         regoMonths: +f.regoMonths.value,
-        insuranceMonths: +f.insuranceMonths.value
+        insuranceMonths: +f.insuranceMonths.value,
+        regoDue: f.regoDue.value || null,
+        insuranceDue: f.insuranceDue.value || null
       }, v.id).catch((err) => toast("Sync problem: " + err.message));
       if (!isEdit) render();
       toast(isEdit ? "Vehicle updated" : "Vehicle added");
