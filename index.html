@@ -750,6 +750,12 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
 .wear-bar { margin-left: 11px; margin-right: 11px; }
 
 .stats .stat.wide { grid-column: 1 / -1; }
+
+/* Rego / insurance paid */
+.pay-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 4px; }
+.pay-btn { background: var(--rego); color: #fff; border: 0; font-weight: 600; }
+.paid-ok { font-weight: 700; color: var(--ok, #1f9d55); font-size: .8rem; }
+.paid-next { margin: 0; font-size: .95rem; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1319,7 +1325,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "33";
+var APP_VERSION = "34";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1919,13 +1925,15 @@ function remindersHTML(v, list) {
     const d = it.days;
     const left = d === 0 ? "<strong>Due today</strong>" : d > 0 ? `<span class="countdown"><strong class="num">${n0.format(d)}</strong> day${d === 1 ? "" : "s"} to go</span>${d >= 45 ? ` <span class="muted">\xB7 about ${ago(d)}</span>` : ""}` : `<strong>Overdue by ${n0.format(-d)} day${d === -1 ? "" : "s"}</strong>`;
     const months = it.months === 1 ? "every month" : `every ${it.months} months`;
+    const recentPaid = it.last && it.last.date >= addMonths(today(), -it.months);
+    const payBtn = d <= 90 ? `<button type="button" class="btn small pay-btn" data-act="mark-paid" data-kind="${key}" data-id="${v.id}">Mark ${title.toLowerCase()} paid</button>` : recentPaid ? `<span class="paid-ok">\u2713 Paid</span>` : "";
     rows.push(row(
       key,
       title,
       statusChip(it.status, d < 0),
       left,
       `Due ${fmtDate(it.due)}${it.last ? ` \xB7 last paid ${fmtDate(it.last.date)}, ${money.format(+it.last.cost || 0)}` : ""}`,
-      `${it.set ? "Your date" : "From your last payment"}, renews ${months} \xB7 ${setLink(it.set ? "Change" : "Set exact date")}`
+      `<span class="pay-row">${payBtn}<span>Renews ${months} \xB7 ${setLink("Change")}</span></span>`
     ));
   }
   return `<section class="card rems"><h2>Coming up</h2>${rows.join("")}
@@ -2280,6 +2288,46 @@ function closeSheet() {
 }
 function sheetHead(title) {
   return `<div class="sheet-head"><h2>${title}</h2><button class="link" value="cancel" formnovalidate>Cancel</button></div>`;
+}
+function markPaidForm(v, kind) {
+  if (!v) return;
+  const list = state.entries.filter((e) => e.vehicleId === v.id);
+  const r = reminders(list, v);
+  const it = r[kind];
+  const title = kind === "rego" ? "Rego" : "Insurance";
+  const category = kind === "rego" ? "Registration" : "Insurance";
+  const months = it.months || 12;
+  const nextDue = addMonths(it.due, months);
+  openSheet(
+    `${sheetHead(`${title} paid`)}
+    <p class="muted" style="margin:0">${esc(v.name)} \xB7 was due ${fmtDate(it.due)}</p>
+    <div class="grid2">
+      <label>Amount $<input name="cost" inputmode="decimal" required value="${esc(it.last?.cost ?? "")}"></label>
+      <label>Date paid<input type="date" name="date" required value="${today()}"></label>
+    </div>
+    <p class="paid-next">Next due <strong>${fmtDate(nextDue)}</strong></p>
+    <button class="btn primary" value="save">Mark as paid</button>`,
+    async () => {
+      const f = sheetForm;
+      const b = writeBatch(db);
+      b.set(doc(userCol("entries")), {
+        vehicleId: v.id,
+        type: "expense",
+        category,
+        cost: numOrNull(f.cost.value),
+        date: f.date.value,
+        odo: null,
+        place: "",
+        notes: "",
+        visitId: null,
+        by: state.user.email || "",
+        createdAt: serverTimestamp()
+      });
+      b.update(userDoc("vehicles", v.id), { [kind === "rego" ? "regoDue" : "insuranceDue"]: nextDue });
+      b.commit().catch((err) => toast("Sync problem: " + err.message));
+      toast(`${title} paid \xB7 next due ${fmtDate(nextDue)}`);
+    }
+  );
 }
 function vehicleForm(v) {
   const isEdit = !!v;
@@ -2866,6 +2914,7 @@ $("#main").addEventListener("click", async (ev) => {
       toast(`${m?.name || "Login"} removed`);
     }
   } else if (act === "edit-vehicle") vehicleForm(state.vehicles.find((v) => v.id === el.dataset.id));
+  else if (act === "mark-paid") markPaidForm(state.vehicles.find((v) => v.id === el.dataset.id), el.dataset.kind);
   else if (act === "edit-entry") entryForm(state.entries.find((x) => x.id === el.dataset.id));
   else if (act === "go-log") {
     state.view = "log";
