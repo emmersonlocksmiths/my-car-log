@@ -60,12 +60,24 @@ export function summary(entries) {
     }
   }
   const total = totals.fuel + totals.service + totals.expense;
-  const distance = minOdo !== null && maxOdo > minOdo ? maxOdo - minOdo : null;
+  // Cost per km counts from the first logged fill-up, so years with no fuel
+  // records (just the odd tyre or service) don't make the car look cheaper to run.
+  const fills = entries.filter((e) => e.type === 'fuel' && num(e.odo) !== null)
+    .sort((a, b) => String(a.date).localeCompare(String(b.date)) || a.odo - b.odo);
+  let runStart = minOdo, runCost = total, runFuel = totals.fuel;
+  if (fills.length) {
+    const first = fills[0];
+    runStart = +first.odo;
+    const since = entries.filter((e) => String(e.date) >= String(first.date));
+    runCost = since.reduce((s, e) => s + (num(e.cost) || 0), 0);
+    runFuel = since.filter((e) => e.type === 'fuel').reduce((s, e) => s + (num(e.cost) || 0), 0);
+  }
+  const distance = runStart !== null && maxOdo > runStart ? maxOdo - runStart : null;
   const points = fuelEconomy(entries);
   return {
     totals, total, litres, distance, lastOdo: maxOdo,
-    costPerKm: distance ? total / distance : null,
-    fuelCostPerKm: distance ? totals.fuel / distance : null,
+    costPerKm: distance ? runCost / distance : null,
+    fuelCostPerKm: distance ? runFuel / distance : null,
     avgL100: averageEconomy(points),
     lastL100: points.length ? points[points.length - 1].l100 : null,
     economyPoints: points,

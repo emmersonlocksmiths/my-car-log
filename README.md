@@ -1,4 +1,4 @@
-# CarLog
+# My Car Log
 
 Personal fuel, servicing and running-cost tracker. A Progressive Web App on GitHub Pages with Firebase for login and sync. No ads, no review prompts.
 
@@ -15,7 +15,7 @@ Personal fuel, servicing and running-cost tracker. A Progressive Web App on GitH
 - Works with no signal: entries save on the phone and sync when you're back online.
 
 Fuel economy uses the full-to-full method, so tick "Filled the tank to full" when you brim it.
-`my_car_history.csv` (sent separately; keep it out of the GitHub repo, since Pages is public) holds the My Car history for both vehicles: My Work Van (from the PDF report and Excel export, with litres, servo, and two partial fills marked) and NOOPIE (from its costs report, which has amounts and notes but no odometer or litres). Two van fill-ups that followed an unlogged fill (12 Mar 2024 and 29 Jun 2026) are flagged so they don't drag the economy average down.
+`my_car_history.csv` (sent separately; keep it out of the GitHub repo, since Pages is public) holds the My Car history for both vehicles: My Work Van (from the PDF report and Excel export, with litres, servo, and two partial fills marked) and NOOPIE (from its Events report and Excel export, with litres, servo, four partial fills and one fill after a missed fill-up marked). Two van fill-ups that followed an unlogged fill (12 Mar 2024 and 29 Jun 2026) are flagged so they don't drag the economy average down.
 
 ## Setup (about 15 minutes)
 

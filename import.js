@@ -1,4 +1,4 @@
-// Converts rows from a My Car "Costs" export (xlsx/csv) into CarLog entries.
+// Converts rows from a My Car "Costs" export (xlsx/csv) into My Car Log entries.
 // Export columns: Date, Vehicle, Odometer, Event, Description, Sum, Notes, Driver
 
 // Notes decide the category first ([type, category]); order matters.

@@ -1,6 +1,6 @@
 {
-  "name": "CarLog",
-  "short_name": "CarLog",
+  "name": "My Car Log",
+  "short_name": "My Car Log",
   "description": "Fuel, servicing and running costs for your vehicles.",
   "start_url": "./",
   "scope": "./",

@@ -416,7 +416,8 @@ function garageHTML() {
     <section class="card stack"><h2 style="margin:0">Account</h2>
       <p class="muted small" style="margin:0">Signed in as ${esc(state.user.email || state.user.displayName || 'you')}</p>
       <button class="btn" data-act="sign-out">Sign out</button>
-    </section>`;
+    </section>
+    <p class="muted small" style="text-align:center;margin:0">My Car Log</p>`;
 }
 
 // ---------- Sheets (forms) ----------
