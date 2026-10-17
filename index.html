@@ -260,6 +260,29 @@ input:focus, select:focus, textarea:focus { outline-color: var(--accent); }
 /* Appearance switch in Garage */
 .seg.theme { grid-template-columns: repeat(3, 1fr); }
 .seg.theme button.on { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+
+/* Home: the banner runs edge to edge, joins the top bar, and fades into the page */
+html.brand-top .topbar {
+  background: linear-gradient(90deg, #062b5d 0%, #034487 50%, #013672 100%);
+  border-bottom-color: transparent;
+}
+html.brand-top .topbar select { color: #ffffff; }
+html.brand-top .topbar select option { color: initial; }
+.hero-banner {
+  position: relative;
+  margin: -16px -16px 0;
+}
+.hero-banner img { display: block; width: 100%; height: auto; aspect-ratio: 8 / 3; object-fit: cover; }
+.hero-banner::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: 38%;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+}
+.hero-banner + .hero { margin-top: -30px; position: relative; z-index: 1; }
+@media (min-width: 672px) {
+  /* On wider screens the content column is narrower than the screen: round the banner instead */
+  .hero-banner { margin: 0; border-radius: var(--radius); overflow: hidden; }
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -582,7 +605,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "13";
+var APP_VERSION = "14";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -822,6 +845,7 @@ function render() {
   sel.disabled = !state.vehicles.length;
   $("#fab").hidden = !state.vehicles.length || state.view === "garage";
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
+  document.documentElement.classList.toggle("brand-top", state.view === "home" && !!state.vehicles.length && !state.loadError);
   state.charts.forEach((c) => c.destroy());
   state.charts = [];
   const main = $("#main");
@@ -887,7 +911,7 @@ function homeHTML() {
   const t = s.totals, tot = s.total || 1;
   const recent = sortDesc(list).slice(0, 6);
   return `
-    <img src="icons/banner.jpg" alt="My Car Log" class="banner">
+    <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
     <section class="card hero">
       <span class="muted small">${esc(v.name)}${v.rego ? " \xB7 " + esc(v.rego) : ""}</span>
       <span class="big num">${money0.format(ytd)}</span>
