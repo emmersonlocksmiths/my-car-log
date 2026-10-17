@@ -22,27 +22,27 @@ Fuel economy uses the full-to-full method, so tick "Filled the tank to full" whe
 1. **Firebase project.** Go to console.firebase.google.com and add a project (e.g. `carlog`). Analytics isn't needed.
 2. **Web app.** Project settings → General → Your apps → Web (`</>`). Register it, then copy the `firebaseConfig` values into `firebase-config.js`.
 3. **Sign-in.** Build → Authentication → Get started. Enable **Email/Password**.
-4. **Database.** Build → Firestore Database → Create database (location `australia-southeast1`, production mode). On the **Rules** tab, paste in the contents of `firestore.rules` and publish.
+4. **Database.** Build → Firestore Database → Create database (location `australia-southeast1`, production mode). On the **Rules** tab, paste in the contents of `firestore.rules` and publish (paste it again whenever this file changes).
 5. **GitHub.** Create a repo (e.g. `carlog`), upload all these files, then Settings → Pages → deploy from the `main` branch, root folder.
 6. **Authorise the domain.** Authentication → Settings → Authorized domains → add `<your-github-username>.github.io`.
 7. **Install on your phone.** Open the GitHub Pages link. iPhone: Share → Add to Home Screen. Android: menu → Install app.
 8. **Import your history.** Garage → Import from My Car → pick `my_car_history.csv`.
 
-Sign in with your email and a password. The first time, tap **Create account**.
+## Logins
+
+Only Nathan's login (`nathan.emmerson@hotmail.com`, set in `app.js` and `firestore.rules`) can create logins. In the app: **Garage → People → Add person**. Everyone added shares Nathan's vehicles and can log fuel and costs. **Remove** takes their access away straight away; their login can also be deleted in Firebase → Authentication → Users.
+
+Anyone who signs up some other way gets a "No access yet" screen, and the security rules block them from all data.
 
 ## Updating
 
-After changing any file, bump `VERSION` in `sw.js` (e.g. `carlog-v2`) so phones fetch the new version.
+All the app's code and styling is in `index.html`, so an update is normally just that one file: replace it on GitHub and the phones pick it up next time they open the app with signal. `firestore.rules` only needs pasting into Firebase when it changes.
 
 ## Files
 
 | File | What it does |
 |---|---|
-| `index.html` | Page shell |
-| `styles.css` | Look and feel (light and dark mode) |
-| `app.js` | Screens, forms, Firebase reads and writes |
-| `calc.js` | Economy, totals, charts data, CSV export |
-| `import.js` | Reads the My Car export |
-| `firebase-config.js` | Your Firebase keys |
-| `firestore.rules` | Security rules: each user sees only their own data |
-| `sw.js`, `manifest.webmanifest`, `icons/` | Installable app and offline support |
+| `index.html` | The whole app: screens, styling, calculations, the My Car importer and the Firebase keys |
+| `firestore.rules` | Security rules to paste into Firebase → Firestore → Rules |
+| `sw.js` | Lets the app open with no signal |
+| `manifest.webmanifest`, `icons/` | App name and home-screen icon |
