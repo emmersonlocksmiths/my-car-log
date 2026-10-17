@@ -783,6 +783,34 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
 .hero .legend { margin-top: .7rem; }
 .legend em { font-style: normal; color: var(--muted); font-size: .78rem; }
 .hero .split { display: none; }
+
+/* Charts: stat cards */
+.cstats { display: grid; gap: 16px; grid-column: 1 / -1; min-width: 0; }
+@media (min-width: 760px) { .cstats { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
+.cs-card h2 { display: flex; align-items: center; gap: 10px; margin-bottom: .4rem; }
+.cs-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; color: #fff; flex: none; }
+.cs-ic svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cs-odo .cs-ic { background: var(--tyre); }
+.cs-cost .cs-ic { background: var(--service); }
+.cs-econ .cs-ic { background: var(--fuel); }
+.cs-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: .55rem 0; border-top: 1px solid var(--line); }
+.cs-row:first-of-type { border-top: 0; }
+.cs-k { color: var(--text-2); font-size: .9rem; }
+.cs-v { font: 600 .98rem var(--font-display); text-align: right; white-space: nowrap; }
+.cs-v small { display: block; font: 400 .74rem var(--font-body); color: var(--muted); }
+.cs-period { margin: -4px 0 0; grid-column: 1 / -1; }
+#app-charts-chips, .view-charts .chips.period { margin-bottom: 4px; }
+
+/* Charts: empty message sits over the chart area */
+.chart-box { position: relative; }
+.chart-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 16px; text-align: center; color: var(--muted); font-size: .88rem; background: color-mix(in srgb, var(--surface) 75%, transparent); border-radius: 10px; }
+#cat-box { transition: height .5s var(--ease); }
+
+/* Charts: period buttons follow you down the page */
+.chips.period.sticky-period { position: sticky; top: calc(var(--topbar-h, 60px) + 8px); z-index: 4; align-self: start;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .28); background: color-mix(in srgb, var(--surface) 82%, transparent); }
+.chips.period.sticky-period { background: color-mix(in srgb, var(--surface) 95%, transparent); }
+@media (min-width: 1024px) { .chips.period.sticky-period { justify-self: start; } }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -887,20 +915,6 @@ function averageEconomy(points) {
 var REGO_CATS = ["Registration", "Insurance"];
 var groupOf = (e) => e.type === "expense" && REGO_CATS.includes(e.category) ? "rego" : e.type;
 var isWiper = (e) => e.category === "Wiper blades" || /wiper/i.test(e.notes || "");
-var ym = (d) => String(d).slice(0, 7);
-function monthly(entries, months = 12, now = /* @__PURE__ */ new Date()) {
-  const keys = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
-  }
-  const rows = Object.fromEntries(keys.map((k) => [k, { month: k, fuel: 0, service: 0, rego: 0, expense: 0 }]));
-  for (const e of entries) {
-    const r = rows[ym(e.date)];
-    if (r && r[groupOf(e)] !== void 0) r[groupOf(e)] += num(e.cost) || 0;
-  }
-  return keys.map((k) => rows[k]);
-}
 function byCategory(entries) {
   const m = /* @__PURE__ */ new Map();
   for (const e of entries) {
@@ -1352,7 +1366,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "36";
+var APP_VERSION = "37";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1404,7 +1418,7 @@ var n1 = new Intl.NumberFormat("en-AU", { minimumFractionDigits: 1, maximumFract
 var n2 = new Intl.NumberFormat("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 var today = () => (/* @__PURE__ */ new Date()).toLocaleDateString("en-CA");
 var fmtDate = (d) => (/* @__PURE__ */ new Date(d + "T00:00:00")).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
-var fmtMonth = (ym2) => (/* @__PURE__ */ new Date(ym2 + "-01T00:00:00")).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+var fmtMonth = (ym) => (/* @__PURE__ */ new Date(ym + "-01T00:00:00")).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
 var numOrNull = (v) => v === "" || v === null || v === void 0 || isNaN(+v) ? null : +v;
 var userCol = (name) => collection(db, "users", state.garage, name);
 var userDoc = (name, id) => doc(db, "users", state.garage, name, id);
@@ -1720,6 +1734,22 @@ function render() {
   const main = $("#main");
   const prev = state.lastRender || {};
   const mode = !prev.view ? "enter" : prev.view !== state.view ? "view" : prev.vehicleId !== state.vehicleId ? "vehicle" : prev.logFilter !== state.logFilter || prev.placeTab !== state.placeTab ? "soft" : "same";
+  if (state.view === "charts" && prev.view === "charts" && mode !== "view" && window.Chart && state.charts.length && $("#c-month") && vehicleEntries().length && !state.loadError) {
+    renderChrome();
+    main.querySelectorAll(".chips.period .chip").forEach((b) => {
+      const on = b.dataset.p === state.period;
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-selected", on);
+    });
+    const weekly = state.period === "month" || state.period === "3m";
+    $("#h-month").textContent = `Spending by ${weekly ? "week" : "month"}`;
+    $("#h-km").textContent = `Km driven by ${weekly ? "week" : "month"}`;
+    state.animCharts = true;
+    drawCharts();
+    state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
+    placeIndicators();
+    return;
+  }
   const before = mode === "same" || mode === "vehicle" ? snapNums(main) : null;
   state.animCharts = mode !== "same";
   renderInner();
@@ -1733,12 +1763,28 @@ function render() {
   }
   placeIndicators();
 }
-function renderInner() {
+(() => {
+  const set = () => {
+    const t = document.querySelector(".topbar");
+    if (t) document.documentElement.style.setProperty("--topbar-h", t.offsetHeight + "px");
+  };
+  window.addEventListener("resize", set);
+  if (window.ResizeObserver) document.addEventListener("DOMContentLoaded", () => {
+    const t = document.querySelector(".topbar");
+    if (t) new ResizeObserver(set).observe(t);
+    set();
+  });
+  setTimeout(set, 0);
+})();
+function renderChrome() {
   $("#vehicle-tabs").innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
   $("#vehicle-tabs .vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   $("#fab").hidden = !state.vehicles.length || state.view === "garage";
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
   document.documentElement.classList.toggle("brand-top", state.view === "home" && !!state.vehicles.length && !state.loadError);
+}
+function renderInner() {
+  renderChrome();
   state.charts.forEach((c) => c.destroy());
   state.charts = [];
   const main = $("#main");
@@ -2089,34 +2135,60 @@ function logHTML() {
   return `<div class="chips" data-ind-key="log">${chips}</div>
     <section class="card" style="padding-top:4px">${list.length ? `<div class="list">${html}</div>` : '<p class="empty">No entries.</p>'}</section>`;
 }
-function chartsHTML() {
+function chartRange() {
   const list = vehicleEntries();
+  const first = list.map((e) => e.date).filter(Boolean).sort()[0];
+  const p = periodRange(state.period, /* @__PURE__ */ new Date(), first);
+  const inP = (d) => String(d) >= p.start && String(d) <= p.end;
+  return { list, p, inP, listP: list.filter((e) => inP(e.date)), econ: fuelEconomy(list).filter((x) => inP(x.date)) };
+}
+var periodChips = (cls = "") => `<div class="chips period ${cls}" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>`;
+function chartsHTML() {
+  const { list } = chartRange();
   if (!list.length) return '<p class="card empty">Log a few entries and your charts will appear here.</p>';
-  const econ = fuelEconomy(list);
-  return `<div class="charts-grid">
-    <section class="card"><h2>Fuel economy (L/100km)</h2>
-      ${econ.length > 1 ? '<div class="chart-box"><canvas id="c-econ"></canvas></div>' : `<p class="muted small">${econ.length ? `First result: ${n1.format(econ[0].l100)} L/100km. ` : ""}The trend line appears after a few more full-tank fill-ups logged with litres.</p>`}
-    </section>
-    <section class="card"><h2>Monthly spending, last 12 months</h2>
-      <div class="chart-box"><canvas id="c-month"></canvas></div>
-    </section>
-    <section class="card"><h2>Where the money goes</h2>
-      <div class="chart-box" id="cat-box"><canvas id="c-cat"></canvas></div>
-    </section>
-    <section class="card"><h2>Fuel price paid (c/L)</h2>
-      <div class="chart-box"><canvas id="c-ppl"></canvas></div>
-    </section></div>`;
+  const weekly = state.period === "month" || state.period === "3m";
+  const box = (id, extra = "") => `<div class="chart-box" ${extra}><canvas id="${id}"></canvas><p class="chart-empty" hidden></p></div>`;
+  return `${periodChips("sticky-period")}<div class="charts-grid">
+    <section class="card"><h2 id="h-month">Spending by ${weekly ? "week" : "month"}</h2>${box("c-month")}</section>
+    <section class="card"><h2>Where the money goes</h2>${box("c-cat", 'id="cat-box"')}</section>
+    <section class="card"><h2>Fuel economy (L/100km)</h2>${box("c-econ")}</section>
+    <section class="card"><h2>Fuel price paid (c/L)</h2>${box("c-ppl")}</section>
+    <section class="card"><h2 id="h-km">Km driven by ${weekly ? "week" : "month"}</h2>${box("c-km")}</section>
+    <section class="card"><h2>Odometer (km)</h2>${box("c-odo")}</section>
+  </div>`;
 }
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+function upsertChart(sel, cfg, emptyMsg) {
+  const el = $(sel);
+  if (!el) return;
+  const msg = el.parentElement.querySelector(".chart-empty");
+  if (msg) {
+    msg.hidden = !emptyMsg;
+    msg.textContent = emptyMsg || "";
+  }
+  const ex = state.charts.find((c) => c.canvas === el);
+  if (!ex) {
+    state.charts.push(new Chart(el, cfg));
+    return;
+  }
+  ex.data.labels = cfg.data.labels;
+  cfg.data.datasets.forEach((d, i) => {
+    if (ex.data.datasets[i]) Object.assign(ex.data.datasets[i], d);
+    else ex.data.datasets.push(d);
+  });
+  ex.data.datasets.length = cfg.data.datasets.length;
+  ex.options = cfg.options;
+  ex.update();
 }
 function drawCharts() {
   if (!window.Chart) {
     setTimeout(() => state.view === "charts" && render(), 300);
     return;
   }
-  const list = vehicleEntries();
-  const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), rego: cssVar("--rego"), expense: cssVar("--expense") };
+  const { list: all, listP: list, p: range, econ } = chartRange();
+  const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), rego: cssVar("--rego"), expense: cssVar("--expense"), tyre: cssVar("--tyre"), accent: cssVar("--accent") };
   Chart.defaults.color = C.text;
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
   const base = {
@@ -2132,25 +2204,34 @@ function drawCharts() {
   };
   const shortDate = (d) => (/* @__PURE__ */ new Date(d + "T00:00:00")).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
   const line = (color, n = 0) => ({ borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: n > 40 ? 0 : 3, pointHitRadius: 8, pointHoverRadius: 5, tension: 0.25 });
-  const econ = fuelEconomy(list);
-  if (econ.length > 1 && $("#c-econ")) {
-    state.charts.push(new Chart($("#c-econ"), {
-      type: "line",
-      data: { labels: econ.map((p) => shortDate(p.date)), datasets: [{ label: "L/100km", data: econ.map((p) => +p.l100.toFixed(2)), ...line(C.fuel, econ.length) }] },
-      options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: {
-        label: (ctx) => `${n1.format(ctx.parsed.y)} L/100km`,
-        afterLabel: (ctx) => `${n0.format(econ[ctx.dataIndex].distance)} km on ${n1.format(econ[ctx.dataIndex].litres)} L`
-      } } } }
-    }));
+  const weekly = state.period === "month" || state.period === "3m";
+  const buckets = [];
+  const sd = /* @__PURE__ */ new Date(range.start + "T00:00:00"), ed = /* @__PURE__ */ new Date(range.end + "T00:00:00");
+  const isoD = (d) => d.toLocaleDateString("en-CA");
+  if (weekly) {
+    const d = new Date(sd);
+    d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+    while (d <= ed) {
+      const e = new Date(d);
+      e.setDate(e.getDate() + 6);
+      buckets.push({ start: isoD(d), end: isoD(e), label: d.toLocaleDateString("en-AU", { day: "numeric", month: "short" }), fuel: 0, service: 0, rego: 0, expense: 0 });
+      d.setDate(d.getDate() + 7);
+    }
+  } else {
+    const d = new Date(sd.getFullYear(), sd.getMonth(), 1), long = (ed - sd) / 864e5 > 400;
+    while (d <= ed) {
+      buckets.push({ start: isoD(d), end: isoD(new Date(d.getFullYear(), d.getMonth() + 1, 0)), label: d.toLocaleDateString("en-AU", long ? { month: "short", year: "2-digit" } : { month: "short" }), fuel: 0, service: 0, rego: 0, expense: 0 });
+      d.setMonth(d.getMonth() + 1);
+    }
   }
-  const months = monthly(list, 12);
-  const bar = (label, key, color) => ({ label, data: months.map((m) => +m[key].toFixed(2)), backgroundColor: color, borderColor: C.surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 4, barPercentage: 0.75 });
-  state.charts.push(new Chart($("#c-month"), {
+  for (const e of list) {
+    const k = String(e.date), m = buckets.find((x) => k >= x.start && k <= x.end), g = groupOf(e);
+    if (m && m[g] !== void 0) m[g] += +e.cost || 0;
+  }
+  const bar = (label, key, color) => ({ label, data: buckets.map((m) => +m[key].toFixed(2)), backgroundColor: color, borderColor: C.surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 4, barPercentage: 0.75 });
+  upsertChart("#c-month", {
     type: "bar",
-    data: {
-      labels: months.map((m) => (/* @__PURE__ */ new Date(m.month + "-01T00:00:00")).toLocaleDateString("en-AU", { month: "short" })),
-      datasets: [bar("Fuel", "fuel", C.fuel), bar("Service", "service", C.service), bar("Rego & insurance", "rego", C.rego), bar("Other", "expense", C.expense)]
-    },
+    data: { labels: buckets.map((m) => m.label), datasets: [bar("Fuel", "fuel", C.fuel), bar("Service", "service", C.service), bar("Rego & insurance", "rego", C.rego), bar("Other", "expense", C.expense)] },
     options: {
       ...base,
       plugins: {
@@ -2159,11 +2240,11 @@ function drawCharts() {
       },
       scales: { x: { ...base.scales.x, stacked: true }, y: { ...base.scales.y, stacked: true, ticks: { callback: (v) => money0.format(v) } } }
     }
-  }));
+  }, list.some((e) => +e.cost > 0) ? "" : "Nothing spent in this period.");
   const cats = byCategory(list).filter((c) => c.total > 0);
-  $("#cat-box").style.height = Math.max(120, cats.length * 34 + 30) + "px";
+  $("#cat-box").style.height = Math.max(150, cats.length * 34 + 30) + "px";
   const catColor = (name) => name === "Fuel" ? C.fuel : REGO_CATS2.includes(name) ? C.rego : SERVICE_CATS.includes(name) || TYRE_CATS.includes(name) ? C.service : C.expense;
-  state.charts.push(new Chart($("#c-cat"), {
+  upsertChart("#c-cat", {
     type: "bar",
     data: { labels: cats.map((c) => c.category), datasets: [{ data: cats.map((c) => +c.total.toFixed(2)), backgroundColor: cats.map((c) => catColor(c.category)), borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
     options: {
@@ -2173,15 +2254,60 @@ function drawCharts() {
       plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => money.format(ctx.parsed.x) } } },
       scales: { x: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: (v) => money0.format(v) } }, y: { grid: { display: false }, border: { color: C.grid } } }
     }
-  }));
+  }, cats.length ? "" : "Nothing spent in this period.");
+  upsertChart("#c-econ", {
+    type: "line",
+    data: { labels: econ.map((p) => shortDate(p.date)), datasets: [{ label: "L/100km", data: econ.map((p) => +p.l100.toFixed(2)), ...line(C.fuel, econ.length) }] },
+    options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: {
+      label: (ctx) => `${n1.format(ctx.parsed.y)} L/100km`,
+      afterLabel: (ctx) => econ[ctx.dataIndex] ? `${n0.format(econ[ctx.dataIndex].distance)} km on ${n1.format(econ[ctx.dataIndex].litres)} L` : ""
+    } } } }
+  }, econ.length > 1 ? "" : econ.length ? `One tank in this period: ${n1.format(econ[0].l100)} L/100km.` : "No full-tank fill-ups in this period.");
   const ppl = pricePerLitre(list);
-  if (ppl.length) {
-    state.charts.push(new Chart($("#c-ppl"), {
-      type: "line",
-      data: { labels: ppl.map((p) => shortDate(p.date)), datasets: [{ label: "c/L", data: ppl.map((p) => +(p.ppl * 100).toFixed(1)), ...line(C.fuel, ppl.length) }] },
-      options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n1.format(ctx.parsed.y)} c/L` } } } }
-    }));
-  } else $("#c-ppl").parentElement.outerHTML = '<p class="muted small">No fuel entries with litres and cost yet.</p>';
+  upsertChart("#c-ppl", {
+    type: "line",
+    data: { labels: ppl.map((p) => shortDate(p.date)), datasets: [{ label: "c/L", data: ppl.map((p) => +(p.ppl * 100).toFixed(1)), ...line(C.fuel, ppl.length) }] },
+    options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n1.format(ctx.parsed.y)} c/L` } } } }
+  }, ppl.length ? "" : "No fill-ups with litres in this period.");
+  const odoList = all.filter((e) => +e.odo > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const firstFill = odoList.find((e) => e.type === "fuel");
+  const odoAt = (d) => {
+    let m = null;
+    for (const e of odoList) {
+      if (String(e.date) > d) break;
+      m = Math.max(m ?? 0, +e.odo);
+    }
+    return m;
+  };
+  const dayBefore = (d) => {
+    const x = /* @__PURE__ */ new Date(d + "T00:00:00");
+    x.setDate(x.getDate() - 1);
+    return isoD(x);
+  };
+  const kms = buckets.map((b) => {
+    if (!firstFill || b.end < firstFill.date) return 0;
+    const endO = odoAt(b.end > range.end ? range.end : b.end), startO = b.start <= firstFill.date ? +firstFill.odo : odoAt(dayBefore(b.start));
+    return endO != null && startO != null && endO > startO ? endO - startO : 0;
+  });
+  upsertChart("#c-km", {
+    type: "bar",
+    data: { labels: buckets.map((b) => b.label), datasets: [{ label: "Km", data: kms, backgroundColor: C.tyre, borderRadius: 4, barPercentage: 0.75 }] },
+    options: {
+      ...base,
+      plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n0.format(ctx.parsed.y)} km` } } },
+      scales: { ...base.scales, y: { ...base.scales.y, ticks: { callback: (v) => n0.format(v) } } }
+    }
+  }, kms.some((k) => k > 0) ? "" : "No odometer readings in this period.");
+  const odoP = odoList.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
+  upsertChart("#c-odo", {
+    type: "line",
+    data: { labels: odoP.map((e) => shortDate(e.date)), datasets: [{ label: "Odometer", data: odoP.map((e) => +e.odo), ...line(C.accent, odoP.length), tension: 0.1, fill: false }] },
+    options: {
+      ...base,
+      plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n0.format(ctx.parsed.y)} km` } } },
+      scales: { ...base.scales, y: { ...base.scales.y, ticks: { callback: (v) => n0.format(v) } } }
+    }
+  }, odoP.length ? "" : "No odometer readings in this period.");
 }
 function garageHTML() {
   const vs = state.vehicles.map((v) => {
