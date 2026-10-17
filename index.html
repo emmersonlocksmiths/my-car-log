@@ -2,7 +2,7 @@
 <html lang="en-AU">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>My Car Log</title>
   <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
@@ -504,6 +504,73 @@ html.brand-top .vtabs-empty { color: #ffffff; }
   .btn:hover, .chip:hover, .vtab:hover, .kind:hover, .qpick:hover { filter: brightness(1.08); }
   .tabs button:hover { color: var(--text); }
 }
+
+/* Feels like an app: no pinch or double-tap zoom */
+html, body { touch-action: pan-x pan-y; -webkit-text-size-adjust: 100%; }
+button, a, label, input, select, textarea { touch-action: manipulation; }
+
+/* Several jobs in one entry */
+.kind { position: relative; }
+.kind .tick {
+  position: absolute; top: 8px; right: 8px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--k); opacity: 0; transform: scale(.4); transition: opacity .25s ease, transform .3s var(--ease);
+}
+.kind .tick::after { content: ""; position: absolute; left: 6px; top: 3.5px; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.kinds.picked .kind.on .tick { opacity: 1; transform: none; }
+.kinds-hint { margin: -2px 0 0; font-size: .8rem; color: var(--muted); text-align: center; }
+.part { padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--surface) 60%, transparent); }
+.part-head { display: flex; align-items: center; gap: 8px; font: 600 .95rem var(--font-display); margin-bottom: -.2rem; }
+.part-ic { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: #fff; background: var(--k); }
+.part-ic svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fi.part { gap: .8rem; }
+.fields-wrap.no-anim .fi.fi-new { animation: rise .45s var(--ease) both; }
+.visit-total { margin: 0; display: flex; justify-content: space-between; align-items: baseline; font-weight: 600; }
+.visit-total strong { font: 600 1.25rem var(--font-display); }
+.badge-stack { display: grid; grid-auto-flow: column; justify-content: start; }
+.badge-stack .badge + .badge { margin-left: -14px; box-shadow: 0 0 0 2px var(--surface); }
+.entry:has(.badge-stack) { grid-template-columns: auto 1fr auto; }
+.entry .badge-stack .badge { width: 36px; height: 36px; }
+
+/* Tyres: several jobs, position picker, and the corner-by-corner map */
+.pill input[type=checkbox] { position: absolute; opacity: 0; pointer-events: none; }
+.pills.small .pill span { padding: .45rem .75rem; font-size: .84rem; }
+.reveal { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .45s var(--ease); }
+.reveal.open { grid-template-rows: 1fr; }
+.reveal-in { min-height: 0; overflow: hidden; display: grid; gap: .8rem; opacity: 0; transition: opacity .3s ease; padding: 2px; margin: -2px; }
+.reveal.open .reveal-in { opacity: 1; transition-delay: .1s; }
+.tyre-pick, .tyremap { display: grid; grid-template-columns: 1fr 64px 1fr; grid-template-rows: auto auto; gap: 10px; align-items: stretch; }
+.tyre-pick .tp-car, .tyremap .tm-car { grid-column: 2; grid-row: 1 / span 2; display: grid; place-items: center; color: var(--muted); }
+.tp-car svg, .tm-car svg { width: 54px; height: auto; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.tp-FL, .tm-FL { grid-column: 1; grid-row: 1; } .tp-FR, .tm-FR { grid-column: 3; grid-row: 1; }
+.tp-RL, .tm-RL { grid-column: 1; grid-row: 2; } .tp-RR, .tm-RR { grid-column: 3; grid-row: 2; }
+.tp {
+  appearance: none; border: 1.5px dashed var(--line); background: var(--surface); color: var(--text-2); border-radius: 14px;
+  min-height: 62px; font: 600 .85rem var(--font-body); cursor: pointer; display: grid; place-items: center;
+  transition: background-color .25s ease, border-color .25s ease, color .25s ease, transform .15s ease;
+}
+.tp:active { transform: scale(.96); }
+.tp.on { border-style: solid; border-color: var(--tyre); background: var(--tyre); color: #fff; }
+.tp.on span::before { content: "\2713\00a0"; }
+.tm { border: 1px solid var(--line); border-radius: 12px; padding: 9px 10px; display: grid; gap: 1px; min-width: 0; background: var(--surface); }
+.tm.newest { border-color: var(--accent); }
+.tm.unknown { border-style: dashed; }
+.tm-pos { font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.tm-age { font: 600 .95rem var(--font-display); }
+.tm.unknown .tm-age { font: 500 .85rem var(--font-body); color: var(--muted); }
+.tm-km { font-size: .82rem; color: var(--text-2); }
+.tm-sub { font-size: .7rem; color: var(--muted); }
+.rem-tyremap .rem-body { gap: 8px; }
+
+/* Garage: merge places */
+.places-tabs { margin-bottom: .4rem; }
+.places-tabs button { font-size: .85rem; padding: .5rem .3rem; }
+.place-list { display: grid; max-height: 340px; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+.place-row { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--text); font-size: .95rem; font-weight: 500; cursor: pointer; }
+.place-row:last-child { border-bottom: 0; }
+.place-row input { width: 1.15rem; height: 1.15rem; margin: 0; accent-color: var(--accent); }
+.place-row .pn { min-width: 0; overflow-wrap: anywhere; }
+.place-actions { margin-top: .8rem; }
+.pills.accent .pill input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -691,6 +758,10 @@ function periodRange(kind, now = /* @__PURE__ */ new Date(), firstDate = null) {
   if (kind === "all") {
     return { start: firstDate || "1900-01-01", end, prevStart: null, prevEnd: null, label: "All time", prevLabel: null };
   }
+  if (kind === "6m") {
+    const s6 = addDays(today2, -181), pe6 = addDays(s6, -1), ps6 = addDays(pe6, -181);
+    return { start: iso(s6), end, prevStart: iso(ps6), prevEnd: iso(pe6), label: "Last 6 months", prevLabel: "the 6 months before" };
+  }
   const s = addDays(today2, -90), pe = addDays(s, -1), ps = addDays(pe, -90);
   return { start: iso(s), end, prevStart: iso(ps), prevEnd: iso(pe), label: "Last 3 months", prevLabel: "the 3 months before" };
 }
@@ -762,6 +833,7 @@ function yearBreakdown(entries, now = /* @__PURE__ */ new Date()) {
 }
 var TYRE_CATEGORIES = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 function tyreCount(e) {
+  if (Array.isArray(e.newPositions) && e.newPositions.length) return e.newPositions.length;
   if (+e.tyreCount > 0) return +e.tyreCount;
   const n = String(e.notes || "").toLowerCase();
   const m = n.match(/(\d)\s*(new\s*)?(front|rear|back)?\s*tyres?/) || n.match(/(\d)\s*new/);
@@ -818,10 +890,10 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     +vehicle.serviceMonths || 12,
     vehicle.serviceKm ? "set" : learnedSvc ? "learned" : "default"
   );
-  const tyres = entries.filter((e) => tyreJob(e)).sort(byDateDesc);
-  const newTyres = tyres.filter((e) => tyreJob(e) === "new");
-  const rotations = tyres.filter((e) => tyreJob(e) === "rotation");
-  const fullSet = newTyres.find((e) => tyreCount(e) >= 4);
+  const tyres = entries.filter((e) => tyreJobsOf(e).length).sort(byDateDesc);
+  const newTyres = tyres.filter((e) => tyreJobsOf(e).includes("new"));
+  const rotations = tyres.filter((e) => tyreJobsOf(e).includes("rotation"));
+  const fullSet = newTyres.find((e) => newPositionsOf(e).length >= 4 || tyreCount(e) >= 4);
   const rotBase = [rotations[0], fullSet].filter(Boolean).sort(byDateDesc)[0];
   const learnedRot = learnedGap(rotations, 3e3, 25e3);
   const rotation = kmItem(
@@ -851,9 +923,61 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     service,
     rotation,
     tyreAge,
+    tyres: tyreState(entries, now),
     rego: renewal("Registration", +vehicle.regoMonths || 12),
     insurance: renewal("Insurance", +vehicle.insuranceMonths || 12)
   };
+}
+var TYRE_POS = ["FL", "FR", "RL", "RR"];
+var ROTATIONS = {
+  "front-back": { FL: "RL", RL: "FL", FR: "RR", RR: "FR" },
+  cross: { FL: "RR", RR: "FL", FR: "RL", RL: "FR" },
+  "rear-cross": { FL: "RL", FR: "RR", RL: "FR", RR: "FL" },
+  "forward-cross": { RL: "FL", RR: "FR", FL: "RR", FR: "RL" },
+  "side-side": { FL: "FR", FR: "FL", RL: "RR", RR: "RL" }
+};
+function tyreJobsOf(e) {
+  if (Array.isArray(e.tyreJobs) && e.tyreJobs.length) return e.tyreJobs;
+  const j = tyreJob(e);
+  return j ? [j] : [];
+}
+function newPositionsOf(e) {
+  if (Array.isArray(e.newPositions)) return e.newPositions;
+  if (!tyreJobsOf(e).includes("new")) return [];
+  const n = String(e.notes || "").toLowerCase();
+  const count = +e.tyreCount || tyreCount(e) || null;
+  if (count >= 4 || /\bfour\b|full set|set of/.test(n)) return [...TYRE_POS];
+  if (/front/.test(n) && (count === 2 || count == null)) return ["FL", "FR"];
+  if (/(rear|back)/.test(n) && (count === 2 || count == null)) return ["RL", "RR"];
+  return [];
+}
+function tyreState(entries, now = /* @__PURE__ */ new Date()) {
+  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0) || null;
+  const jobs = entries.filter((e) => tyreJobsOf(e).length).sort((a, b) => String(a.date).localeCompare(String(b.date)) || (+a.odo || 0) - (+b.odo || 0));
+  let at = Object.fromEntries(TYRE_POS.map((p) => [p, { unknown: true, rotations: 0 }]));
+  let unplaced = 0;
+  for (const e of jobs) {
+    const js = tyreJobsOf(e);
+    if (js.includes("rotation")) {
+      const map = ROTATIONS[e.rotation] || ROTATIONS["front-back"];
+      const next = {};
+      for (const p of TYRE_POS) next[map[p]] = { ...at[p], rotations: at[p].rotations + 1 };
+      at = next;
+    }
+    if (js.includes("new")) {
+      const pos = newPositionsOf(e);
+      if (!pos.length) unplaced += +e.tyreCount || tyreCount(e) || 1;
+      for (const p of pos) at[p] = { fittedDate: e.date, fittedOdo: num(e.odo), place: e.place || "", rotations: 0 };
+    }
+  }
+  const days = (d) => Math.round((/* @__PURE__ */ new Date(iso(now) + "T00:00:00") - /* @__PURE__ */ new Date(d + "T00:00:00")) / 864e5);
+  for (const p of TYRE_POS) {
+    const t = at[p];
+    if (t.unknown) continue;
+    t.daysSince = days(t.fittedDate);
+    t.kmSince = t.fittedOdo != null && latestOdo ? latestOdo - t.fittedOdo : null;
+  }
+  return { at, unplaced, any: jobs.some((e) => tyreJobsOf(e).includes("new")) };
 }
 
 // import.js
@@ -988,12 +1112,15 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "22";
+var APP_VERSION = "27";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
+var TYRE_JOBS = [["new", "New tyres"], ["rotation", "Rotation"], ["alignment", "Alignment & balance"], ["puncture", "Puncture repair"]];
+var ROT_LABEL = { "front-back": "Front \u2194 back", cross: "Cross (X)", "rear-cross": "Fronts back, rears cross", "forward-cross": "Rears forward, fronts cross", "side-side": "Left \u2194 right" };
+var POS_LABEL = { FL: "Front left", FR: "Front right", RL: "Rear left", RR: "Rear right" };
+var CAR_TOP = '<svg viewBox="0 0 60 110" aria-hidden="true"><path d="M14 18c0-9 7-14 16-14s16 5 16 14v74c0 9-7 14-16 14s-16-5-16-14z"/><path d="M18 34c3-4 21-4 24 0l-2 12H20zM20 78h20l2 10c-3 3-21 3-24 0z"/><path d="M30 6v8"/></svg>';
 var JOB_CATEGORY = { new: "Tyres", rotation: "Tyre rotation", alignment: "Wheel alignment", puncture: "Puncture repair" };
-var TYRE_LABEL = { Tyres: "New tyres", "Tyre rotation": "Rotation", "Wheel alignment": "Alignment & balance", "Puncture repair": "Puncture repair" };
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
 var ICONS = {
@@ -1188,23 +1315,6 @@ async function deleteVehicle(id) {
   }
   await deleteDoc(userDoc("vehicles", id));
 }
-function saveEntry(data, id, receipt) {
-  const ref = id ? userDoc("entries", id) : doc(userCol("entries"));
-  const b = writeBatch(db);
-  if (receipt === null) data.hasReceipt = false;
-  if (typeof receipt === "string") data.hasReceipt = true;
-  if (id) b.update(ref, { ...data, updatedAt: serverTimestamp() });
-  else b.set(ref, { ...data, by: state.user.email || "", createdAt: serverTimestamp() });
-  if (receipt === null) b.delete(userDoc("receipts", ref.id));
-  else if (typeof receipt === "string") b.set(userDoc("receipts", ref.id), { image: receipt, vehicleId: data.vehicleId });
-  return b.commit();
-}
-function deleteEntry(id) {
-  const b = writeBatch(db);
-  b.delete(userDoc("entries", id));
-  b.delete(userDoc("receipts", id));
-  return b.commit();
-}
 async function compressImage(file) {
   const bmp = await createImageBitmap(file);
   let max = 1400, quality = 0.7, url = "";
@@ -1221,6 +1331,16 @@ async function compressImage(file) {
   }
   return url;
 }
+["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (ev) => ev.preventDefault(), { passive: false }));
+document.addEventListener("touchmove", (ev) => {
+  if (ev.touches.length > 1) ev.preventDefault();
+}, { passive: false });
+var lastTouchEnd = 0;
+document.addEventListener("touchend", (ev) => {
+  const now = Date.now();
+  if (now - lastTouchEnd < 300 && !ev.target.closest("input, textarea, select")) ev.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
 function applyTheme(choice) {
   const root = document.documentElement;
   if (choice === "light" || choice === "dark") root.dataset.theme = choice;
@@ -1231,7 +1351,7 @@ function applyTheme(choice) {
   });
 }
 applyTheme(store.get("carlog.theme") || "auto");
-state.period = store.get("carlog.period") || "3m";
+state.period = ["month", "3m", "6m", "year", "all"].includes(store.get("carlog.period")) ? store.get("carlog.period") : "3m";
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   applyTheme(store.get("carlog.theme") || "auto");
   if (state.view === "charts") render();
@@ -1282,6 +1402,28 @@ function welcomeHTML() {
     <button class="btn primary" data-act="add-vehicle">Add vehicle</button>
   </div>`;
 }
+function tyreTitle(e) {
+  const n = tyreCount(e);
+  return tyreJobsOf(e).map((j) => TYRE_JOB_LABEL[j] + (j === "new" && n ? ` \xD7${n}` : "")).join(" + ") || "Tyres";
+}
+function partTitle(e) {
+  if (e.type === "fuel") return e.litres ? `${n2.format(e.litres)} L` : "Fuel";
+  if (kindOf(e) === "tyres") return tyreTitle(e);
+  return e.category || TYPE_LABEL[e.type];
+}
+function visitRow(parts) {
+  const e = parts[0];
+  const sub = [fmtDate(e.date)];
+  if (e.odo) sub.push(`${n0.format(e.odo)} km`);
+  if (e.place) sub.push(esc(e.place));
+  const total = parts.reduce((a, x) => a + (+x.cost || 0), 0);
+  const icons = parts.map((x) => `<span class="badge ${kindOf(x)}">${ICONS[kindOf(x)]}</span>`).join("");
+  return `<button class="entry" data-act="edit-entry" data-id="${e.id}">
+    <span class="badge-stack">${icons}</span>
+    <span><span class="t">${parts.map((x) => esc(partTitle(x))).join(" + ")}${parts.some((x) => x.hasReceipt) ? " \u{1F4CE}" : ""}</span><br><span class="s">${sub.join(" \xB7 ")}</span></span>
+    <span class="amt num">${money.format(total)}</span>
+  </button>`;
+}
 function entryRow(e) {
   let title = TYPE_LABEL[e.type], sub = [];
   if (e.type === "fuel") {
@@ -1289,8 +1431,7 @@ function entryRow(e) {
     if (e.litres > 0 && e.cost > 0) sub.push(`${n2.format(e.cost / e.litres * 100)} c/L`);
     if (e.fullTank === false) sub.push("partial");
   } else if (kindOf(e) === "tyres") {
-    title = TYRE_JOB_LABEL[tyreJob(e)] || TYRE_LABEL[e.category] || e.category;
-    if (e.tyreCount) title += ` \xD7${e.tyreCount}`;
+    title = tyreTitle(e);
   } else title = e.category || title;
   sub.unshift(fmtDate(e.date));
   if (e.odo) sub.push(`${n0.format(e.odo)} km`);
@@ -1301,7 +1442,7 @@ function entryRow(e) {
     <span class="amt num">${e.cost != null ? money.format(e.cost) : ""}</span>
   </button>`;
 }
-var PERIODS = [["month", "Month"], ["3m", "3 months"], ["quarter", "Quarter"], ["year", "Year"], ["all", "All time"]];
+var PERIODS = [["month", "Month"], ["3m", "3 months"], ["6m", "6 months"], ["year", "Year"], ["all", "All time"]];
 function delta(cur, prev, lowerIsBetter = true) {
   if (cur == null || prev == null || !isFinite(cur) || !isFinite(prev) || prev === 0) return "";
   const pct = (cur - prev) / Math.abs(prev) * 100;
@@ -1367,16 +1508,21 @@ function remindersHTML(v, list) {
       src(t)
     ));
   } else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
-  const a = r.tyreAge;
-  if (a) {
-    const cnt = tyreCount(a.last);
-    rows.push(row(
-      "tyres",
-      "Tyres",
-      "",
-      `<strong>${ago(a.daysSince)}</strong> old${a.kmSince != null ? ` \xB7 <strong class="num">${n0.format(a.kmSince)} km</strong>` : ""}`,
-      `${cnt ? `${cnt} new tyre${cnt === 1 ? "" : "s"}` : "New tyres"} \xB7 ${fmtDate(a.last.date)}${a.last.place ? " \xB7 " + esc(a.last.place) : ""}`
-    ));
+  const ts = r.tyres;
+  if (ts.any) {
+    const newest = Math.min(...TYRE_POS.map((p) => ts.at[p].daysSince ?? Infinity));
+    const cell = (p) => {
+      const t2 = ts.at[p];
+      if (t2.unknown) return `<div class="tm tm-${p} unknown"><span class="tm-pos">${POS_LABEL[p]}</span><span class="tm-age">Not recorded</span></div>`;
+      return `<div class="tm tm-${p} ${t2.daysSince === newest ? "newest" : ""}"><span class="tm-pos">${POS_LABEL[p]}</span>
+        <span class="tm-age">${ago(t2.daysSince)}</span><span class="tm-km num">${t2.kmSince != null ? n0.format(t2.kmSince) + " km" : "\u2013"}</span>
+        <span class="tm-sub">Fitted ${fmtDate(t2.fittedDate)}${t2.rotations ? ` \xB7 rotated ${t2.rotations}\xD7` : ""}</span></div>`;
+    };
+    rows.push(`<div class="rem rem-tyremap"><span class="rem-ic rem-tyres">${RICONS.tyres}</span><div class="rem-body">
+        <div class="rem-top"><span class="rem-title">Tyres</span></div>
+        <div class="tyremap">${cell("FL")}${cell("FR")}<span class="tm-car">${CAR_TOP}</span>${cell("RL")}${cell("RR")}</div>
+        ${ts.unplaced ? `<div class="rem-foot">${ts.unplaced} older tyre${ts.unplaced === 1 ? "" : "s"} logged without a position, so a corner may be newer than shown. Open those tyre entries in the Log and tap where they went.</div>` : ""}
+      </div></div>`);
   }
   for (const [key, title, cat, it] of [["rego", "Rego", "Registration", r.rego], ["insurance", "Insurance", "Insurance", r.insurance]]) {
     if (!it.last) {
@@ -1461,13 +1607,18 @@ function logHTML() {
   const chips = ["all", "fuel", "service", "expense"].map((k) => `<button class="chip ${f === k ? "on" : ""}" data-act="filter" data-f="${k}">${k === "all" ? "All" : TYPE_LABEL[k]}</button>`).join("");
   let html = "", month = null, monthTotal = {};
   for (const e of list) monthTotal[String(e.date).slice(0, 7)] = (monthTotal[String(e.date).slice(0, 7)] || 0) + (+e.cost || 0);
+  const shownVisits = /* @__PURE__ */ new Set();
   for (const e of list) {
+    if (e.visitId && shownVisits.has(e.visitId)) continue;
     const m = String(e.date).slice(0, 7);
     if (m !== month) {
       month = m;
       html += `<div class="month-head"><span>${fmtMonth(m)}</span><span class="num">${money.format(monthTotal[m])}</span></div>`;
     }
-    html += entryRow(e);
+    if (e.visitId) {
+      shownVisits.add(e.visitId);
+      html += visitRow(visitPartsOf(e));
+    } else html += entryRow(e);
   }
   return `<div class="chips">${chips}</div>
     <section class="card" style="padding-top:4px">${list.length ? `<div class="list">${html}</div>` : '<p class="empty">No entries.</p>'}</section>`;
@@ -1589,6 +1740,7 @@ function garageHTML() {
       <div class="row"><button class="btn grow" data-act="test-reset">Reload history</button><button class="btn danger grow" data-act="test-clear">Start empty</button></div>
     </section>` : ""}
     ${state.isAdmin ? peopleHTML() : ""}
+    ${placesHTML()}
     <section class="card stack"><h2 style="margin:0">Appearance</h2>
       <div class="seg theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <p class="muted small" style="margin:0">Auto follows your phone's light or dark setting.</p>
@@ -1599,6 +1751,49 @@ function garageHTML() {
     </section>
     </div>
     <p class="muted small" style="text-align:center;margin:0">My Car Log \xB7 version ${APP_VERSION}</p>`;
+}
+function placesHTML() {
+  const g = state.placeTab || "fuel";
+  const list = placesIn(g).sort((a, b) => a.name.localeCompare(b.name));
+  const sel = state.placeSel || /* @__PURE__ */ new Set();
+  return `<section class="card places"><h2>Places</h2>
+    <p class="muted small" style="margin:0 0 .6rem">Tick the ones that are the same place, then merge them so they show as one button.</p>
+    <div class="seg places-tabs">${PLACE_GROUPS.map(([k, l]) => `<button type="button" data-act="place-tab" data-g="${k}" class="${g === k ? "on" : ""}">${l}</button>`).join("")}</div>
+    <div class="place-list">${list.length ? list.map((p) => `<label class="place-row">
+        <input type="checkbox" data-act="place-pick" data-key="${esc(p.key)}" ${sel.has(p.key) ? "checked" : ""}>
+        <span class="pn">${esc(p.name)}</span><span class="pc muted small">${p.count} \xB7 ${fmtDate(p.last)}</span></label>`).join("") : '<p class="muted small" style="margin:.6rem 0 0">None yet.</p>'}</div>
+    <div class="row place-actions" ${sel.size ? "" : "hidden"}>
+      <button type="button" class="btn primary grow" data-act="place-merge">${sel.size > 1 ? `Merge ${sel.size}` : "Rename"}</button>
+      <button type="button" class="btn grow" data-act="place-clear">Clear</button>
+    </div>
+  </section>`;
+}
+function mergePlacesForm() {
+  const g = state.placeTab || "fuel";
+  const chosen = placesIn(g).filter((p) => state.placeSel.has(p.key)).sort((a, b) => b.count - a.count);
+  const count = chosen.reduce((a, p) => a + p.count, 0);
+  openSheet(
+    `
+    ${sheetHead(chosen.length > 1 ? "Merge places" : "Rename place")}
+    <p class="muted small" style="margin:0">${count} entr${count === 1 ? "y" : "ies"} will be changed to use this name:</p>
+    <div class="pills accent">${chosen.map((p, i) => `<label class="pill"><input type="radio" name="mname" value="${esc(p.name)}" ${i === 0 ? "checked" : ""}><span>${esc(p.name)}</span></label>`).join("")}</div>
+    <label>Or type a new name<input name="mcustom" autocomplete="off" placeholder="e.g. ${esc(chosen[0]?.name || "")}"></label>
+    <button class="btn primary" value="save">${chosen.length > 1 ? "Merge" : "Rename"}</button>`,
+    async () => {
+      const f = sheetForm;
+      const name = f.mcustom.value.trim() || (f.querySelector("[name=mname]:checked") || {}).value;
+      if (!name) return false;
+      const keys = new Set(chosen.map((p) => p.key));
+      const hits = state.entries.filter((e) => e.place && placeGroupOf(kindOf(e)) === g && keys.has(String(e.place).trim().toLowerCase().replace(/\s+/g, " ")));
+      for (let i = 0; i < hits.length; i += 400) {
+        const b = writeBatch(db);
+        for (const e of hits.slice(i, i + 400)) b.update(userDoc("entries", e.id), { place: name });
+        b.commit().catch((err) => toast("Sync problem: " + err.message));
+      }
+      state.placeSel = /* @__PURE__ */ new Set();
+      toast(`${hits.length} entr${hits.length === 1 ? "y" : "ies"} now say \u201C${name}\u201D`);
+    }
+  );
 }
 function peopleHTML() {
   const rows = state.members.map((m) => `<div class="vehicle"><div><strong>${esc(m.name || m.email)}</strong><br>
@@ -1736,108 +1931,207 @@ function vehicleForm(v) {
     }
   );
 }
-function placeSuggestions(kind, limit = 8) {
+var PLACE_GROUPS = [["fuel", "Stations"], ["work", "Workshops"], ["other", "Other"]];
+var placeGroupOf = (k) => k === "fuel" ? "fuel" : k === "expense" ? "other" : "work";
+function placesIn(group) {
   const byKey = /* @__PURE__ */ new Map();
   for (const e of state.entries) {
     const name = String(e.place || "").trim();
-    if (!name || kindOf(e) !== kind) continue;
+    if (!name || placeGroupOf(kindOf(e)) !== group) continue;
     const key = name.toLowerCase().replace(/\s+/g, " ");
-    const g = byKey.get(key) || { count: 0, last: "", names: /* @__PURE__ */ new Map() };
+    const g = byKey.get(key) || { key, count: 0, last: "", names: /* @__PURE__ */ new Map() };
     g.count++;
     if (String(e.date) > g.last) g.last = String(e.date);
     g.names.set(name, (g.names.get(name) || 0) + 1);
     byKey.set(key, g);
   }
-  return [...byKey.values()].sort((a, b) => b.count - a.count || b.last.localeCompare(a.last)).slice(0, limit).map((g) => [...g.names.entries()].sort((a, b) => b[1] - a[1])[0][0]);
+  return [...byKey.values()].map((g) => ({ ...g, name: [...g.names.entries()].sort((a, b) => b[1] - a[1])[0][0] }));
+}
+function placeSuggestions(kind, limit = 4) {
+  return placesIn(placeGroupOf(kind)).sort((a, b) => b.last.localeCompare(a.last) || b.count - a.count).slice(0, limit).map((g) => g.name);
 }
 function placeField(kind, label, value) {
   const picks = placeSuggestions(kind);
   const cur = String(value || "").trim().toLowerCase();
-  return `<label>${label}<input name="place" value="${esc(value)}" placeholder="${picks.length ? "Type a new one or tap below" : "optional"}" autocomplete="off"></label>
-    ${picks.length ? `<div class="quick" aria-label="Recent ${label.toLowerCase()}s">${picks.map((p) => `<button type="button" class="qpick ${p.toLowerCase() === cur ? "on" : ""}" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>` : ""}`;
+  return `<label>${label}<input name="place" value="${esc(value)}" placeholder="${picks.length ? "Type to search, or tap a recent one" : "optional"}" autocomplete="off" data-group="${placeGroupOf(kind)}"></label>
+    <div class="quick" id="place-picks" aria-label="Recent ${label.toLowerCase()}s">${picks.map((p) => `<button type="button" class="qpick ${p.toLowerCase() === cur ? "on" : ""}" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
+}
+var PART_ORDER = ["service", "tyres", "expense"];
+var visitPartsOf = (entry) => entry.visitId ? state.entries.filter((x) => x.visitId === entry.visitId).sort((a, b) => PART_ORDER.indexOf(kindOf(a)) - PART_ORDER.indexOf(kindOf(b))) : [entry];
+function saveVisit(parts, removeIds, receipt, receiptOwnerIndex) {
+  const b = writeBatch(db);
+  const refs = parts.map((p) => p.id ? userDoc("entries", p.id) : doc(userCol("entries")));
+  parts.forEach((p, i) => {
+    const data = { ...p.data };
+    if (i === receiptOwnerIndex) {
+      if (receipt === null) data.hasReceipt = false;
+      if (typeof receipt === "string") data.hasReceipt = true;
+    }
+    if (p.id) b.update(refs[i], { ...data, updatedAt: serverTimestamp() });
+    else b.set(refs[i], { ...data, by: state.user.email || "", createdAt: serverTimestamp() });
+  });
+  const owner = refs[receiptOwnerIndex];
+  if (receipt === null) b.delete(userDoc("receipts", owner.id));
+  else if (typeof receipt === "string") b.set(userDoc("receipts", owner.id), { image: receipt, vehicleId: parts[0].data.vehicleId });
+  for (const id of removeIds) {
+    b.delete(userDoc("entries", id));
+    b.delete(userDoc("receipts", id));
+  }
+  return b.commit();
+}
+function lastRotationPattern() {
+  const r = vehicleEntries().filter((e) => e.rotation).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  return r ? r.rotation : "front-back";
 }
 function entryForm(entry) {
   const isEdit = !!entry;
-  const e = entry ? { ...entry } : { date: today(), fullTank: true };
-  let kind = isEdit ? kindOf(entry) : null;
+  const existing = isEdit ? visitPartsOf(entry) : [];
+  const byKind = Object.fromEntries(existing.map((x) => [kindOf(x), x]));
+  const first = existing[0] || {};
+  const e = isEdit ? { ...first } : { date: today(), fullTank: true };
+  const kinds = new Set(existing.map(kindOf));
+  const receiptOwner = existing.find((x) => x.hasReceipt) || null;
+  e.hasReceipt = !!receiptOwner;
   let receipt;
+  const vals = {};
+  let justAdded = null;
   const all = vehicleEntries();
-  const fields = () => {
-    const sameKind = isEdit && kindOf(entry) === kind;
-    const cats = kind === "service" ? SERVICE_CATS : kind === "tyres" ? TYRE_CATS : EXPENSE_CATS;
-    const catVal = sameKind ? kind === "tyres" ? JOB_CATEGORY[tyreJob(entry)] || e.category : e.category : cats[0];
-    let i = 0;
-    const item = (html) => `<div class="fi" style="--i:${i++}">${html}</div>`;
-    const head = item(`<div class="grid2">
-        <label>Date<input type="date" name="date" required value="${esc(e.date)}"></label>
-        <label>Odometer (km)<input name="odo" inputmode="numeric" ${kind === "fuel" ? "required" : ""} value="${esc(e.odo)}"></label>
-      </div><p class="hint" id="odo-hint"></p>`);
-    let body;
-    if (kind === "fuel") {
-      body = item(`<div class="grid3">
-          <label>Litres<input name="litres" inputmode="decimal" required value="${esc(e.litres)}"></label>
-          <label>c/L<input name="cpl" inputmode="decimal" value="${e.litres > 0 && e.cost > 0 ? (e.cost / e.litres * 100).toFixed(1) : ""}"></label>
-          <label>Total $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div><p class="hint">Fill in any two and the third is worked out.</p>`) + item(`<label class="check"><input type="checkbox" name="fullTank" ${e.fullTank !== false ? "checked" : ""}>Filled the tank to full</label>
-          <label class="check"><input type="checkbox" name="missed" ${e.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>`) + item(placeField("fuel", "Service station", e.place));
-    } else if (kind === "tyres") {
-      body = item(`<div class="field-label">Job</div><div class="pills">${cats.map((c) => `<label class="pill"><input type="radio" name="category" value="${esc(c)}" ${catVal === c ? "checked" : ""}><span>${esc(TYRE_LABEL[c])}</span></label>`).join("")}</div>`) + item(`<div class="grid2">
-          <label>How many tyres<select name="tyreCount"><option value="">\u2013</option>${[1, 2, 3, 4, 5].map((n) => `<option ${+e.tyreCount === n ? "selected" : ""}>${n}</option>`).join("")}</select></label>
-          <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>`) + item(placeField("tyres", "Tyre shop", e.place));
-    } else {
-      body = item(`<div class="grid2">
-          <label>Category<select name="category">${cats.map((c) => `<option ${catVal === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
-          <label>Cost $<input name="cost" inputmode="decimal" required value="${esc(e.cost)}"></label>
-        </div>`) + item(placeField(kind, kind === "service" ? "Workshop" : "Where", e.place));
+  const v = (name, fallback) => vals[name] !== void 0 ? vals[name] : fallback ?? "";
+  const ordered = () => kinds.has("fuel") ? ["fuel"] : PART_ORDER.filter((k) => kinds.has(k));
+  const partHTML = (k) => {
+    const ex = byKind[k] || {};
+    const multi = ordered().length > 1;
+    const head = multi ? `<div class="part-head"><span class="part-ic" style="--k:var(--${k === "tyres" ? "tyre" : k})">${ICONS[k]}</span>${KINDS.find((o) => o.k === k).label}</div>` : "";
+    const optional = multi && ordered()[0] !== k;
+    const costField = (name) => `<label>Cost $<input name="${name}" inputmode="decimal" ${optional ? 'placeholder="optional"' : "required"} value="${esc(v(name, ex.cost))}"></label>`;
+    if (k === "service") {
+      const cur2 = v("svc_category", ex.category || SERVICE_CATS[0]);
+      return `${head}<div class="grid2">
+          <label>Category<select name="svc_category">${SERVICE_CATS.map((c) => `<option ${cur2 === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+          ${costField("svc_cost")}
+        </div>`;
     }
-    return head + body + item(`<label>Notes<textarea name="notes">${esc(e.notes)}</textarea></label>`) + item(`<div class="receipt" id="receipt-row">
-          <span id="receipt-thumb"></span>
+    if (k === "tyres") {
+      const jobs = vals.tyre_jobs || tyreJobsOf(ex).length && tyreJobsOf(ex) || ["new"];
+      const pos = vals.tyre_pos || (ex.id ? newPositionsOf(ex) : []);
+      const rot = v("tyre_rot", ex.rotation || lastRotationPattern());
+      const posBtn = (p) => `<button type="button" class="tp tp-${p} ${pos.includes(p) ? "on" : ""}" data-pos="${p}" aria-pressed="${pos.includes(p)}"><span>${POS_LABEL[p]}</span></button>`;
+      return `${head}<div class="field-label">What was done <span class="muted" style="font-weight:500">(pick all that apply)</span></div>
+        <div class="pills" id="tyre-jobs">${TYRE_JOBS.map(([key, label]) => `<label class="pill"><input type="checkbox" name="tj" value="${key}" ${jobs.includes(key) ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
+        <div class="reveal ${jobs.includes("rotation") ? "open" : ""}" id="tyre-rot-box"><div class="reveal-in">
+          <div class="field-label">Rotation pattern</div>
+          <div class="pills small">${Object.entries(ROT_LABEL).map(([key, label]) => `<label class="pill"><input type="radio" name="tyre_rot" value="${key}" ${rot === key ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
+        </div></div>
+        <div class="reveal ${jobs.includes("new") ? "open" : ""}" id="tyre-new-box"><div class="reveal-in">
+          <div class="field-label">Where are the new tyres now?</div>
+          <div class="tyre-pick">${posBtn("FL")}${posBtn("FR")}<span class="tp-car">${CAR_TOP}</span>${posBtn("RL")}${posBtn("RR")}</div>
+          <div class="quick tp-quick"><button type="button" class="qpick" data-set="FL,FR">Front pair</button><button type="button" class="qpick" data-set="RL,RR">Rear pair</button><button type="button" class="qpick" data-set="FL,FR,RL,RR">All 4</button></div>
+          <p class="hint" id="tyre-pos-hint">If they were rotated too, tap where the new ones ended up.</p>
+        </div></div>
+        <div class="grid2">${costField("tyre_cost")}</div>`;
+    }
+    const cur = v("exp_category", ex.category || EXPENSE_CATS[0]);
+    return `${head}<div class="grid2">
+        <label>Category<select name="exp_category">${EXPENSE_CATS.map((c) => `<option ${cur === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        ${costField("exp_cost")}
+      </div>`;
+  };
+  const fields = () => {
+    const ks = ordered();
+    let i = 0;
+    const item = (html, extra = "") => `<div class="fi ${extra}" style="--i:${i++}">${html}</div>`;
+    let out = item(`<div class="grid2">
+        <label>Date<input type="date" name="date" required value="${esc(v("date", e.date))}"></label>
+        <label>Odometer (km)<input name="odo" inputmode="numeric" ${kinds.has("fuel") ? "required" : ""} value="${esc(v("odo", e.odo))}"></label>
+      </div><p class="hint" id="odo-hint"></p>`);
+    if (kinds.has("fuel")) {
+      const ex = byKind.fuel || e;
+      const L = v("litres", ex.litres), C = v("cost", ex.cost);
+      out += item(`<div class="grid3">
+          <label>Litres<input name="litres" inputmode="decimal" required value="${esc(L)}"></label>
+          <label>c/L<input name="cpl" inputmode="decimal" value="${esc(v("cpl", ex.litres > 0 && ex.cost > 0 ? (ex.cost / ex.litres * 100).toFixed(1) : ""))}"></label>
+          <label>Total $<input name="cost" inputmode="decimal" required value="${esc(C)}"></label>
+        </div><p class="hint">Fill in any two and the third is worked out.</p>`) + item(`<label class="check"><input type="checkbox" name="fullTank" ${(vals.fullTank ?? ex.fullTank) !== false ? "checked" : ""}>Filled the tank to full</label>
+          <label class="check"><input type="checkbox" name="missed" ${vals.missed ?? ex.missed ? "checked" : ""}>I missed logging the fill-up before this one</label>`) + item(placeField("fuel", "Service station", v("place", e.place)));
+    } else {
+      for (const k of ks) out += item(partHTML(k), `part ${k === justAdded ? "fi-new" : ""}`);
+      if (ks.length > 1) out += item(`<p class="visit-total">Total <strong class="num" id="visit-total">\u2013</strong></p>
+        <p class="hint">One bill for everything? Put the total against ${KINDS.find((o) => o.k === ks[0]).label} and leave the others blank.</p>`);
+      const placeLabel = kinds.has("service") ? "Workshop" : kinds.has("tyres") ? "Tyre shop" : "Where";
+      out += item(placeField(ks[0], placeLabel, v("place", e.place)));
+    }
+    return out + item(`<label>Notes<textarea name="notes">${esc(v("notes", e.notes))}</textarea></label>`) + item(`<div class="receipt" id="receipt-row">
+          <span id="receipt-thumb">${typeof receipt === "string" ? `<img src="${receipt}" alt="Receipt">` : ""}</span>
           <label class="btn small" style="display:inline-block">\u{1F4F7} ${e.hasReceipt ? "Replace" : "Add"} receipt<input type="file" name="receipt" accept="image/*" hidden></label>
-          ${e.hasReceipt ? '<button type="button" class="link" id="receipt-view">View</button><button type="button" class="link" id="receipt-remove" style="color:var(--danger)">Remove</button>' : ""}
+          ${e.hasReceipt && receipt !== null ? '<button type="button" class="link" id="receipt-view">View</button><button type="button" class="link" id="receipt-remove" style="color:var(--danger)">Remove</button>' : ""}
         </div>`) + item(`<button class="btn primary wide" value="save">Save</button>
-          ${isEdit ? '<button class="btn danger wide" value="delete" formnovalidate style="margin-top:.6rem">Delete entry</button>' : ""}`);
+          ${isEdit ? `<button class="btn danger wide" value="delete" formnovalidate style="margin-top:.6rem">Delete ${existing.length > 1 ? "these entries" : "entry"}</button>` : ""}`);
   };
-  const kindsHTML = () => `<div class="kinds ${kind ? "picked" : ""}" role="radiogroup" aria-label="Entry type">${KINDS.map((o) => `<button type="button" class="kind ${o.k === kind ? "on" : ""}" data-kind="${o.k}" role="radio" aria-checked="${o.k === kind}" style="--k:var(--${o.k === "tyres" ? "tyre" : o.k})">
-      <span class="ic">${ICONS[o.k]}</span><span class="nm">${o.label}</span><span class="ds">${o.desc}</span>
-    </button>`).join("")}</div>`;
+  const title = () => {
+    const ks = ordered();
+    if (isEdit) return "Edit entry";
+    if (!ks.length) return "What are you adding?";
+    if (ks.length > 1) return "New " + ks.map((k) => KINDS.find((o) => o.k === k).label.toLowerCase()).join(" + ");
+    return { fuel: "New fill-up", service: "New service", tyres: "New tyre job", expense: "New expense" }[ks[0]];
+  };
+  const kindsHTML = () => `<div class="kinds ${kinds.size ? "picked" : ""}" role="group" aria-label="What this entry covers">${KINDS.map((o) => `<button type="button" class="kind ${kinds.has(o.k) ? "on" : ""}" data-kind="${o.k}" aria-pressed="${kinds.has(o.k)}" style="--k:var(--${o.k === "tyres" ? "tyre" : o.k})">
+      <span class="ic">${ICONS[o.k]}</span><span class="nm">${o.label}</span><span class="ds">${o.desc}</span><span class="tick" aria-hidden="true"></span>
+    </button>`).join("")}</div>
+    <p class="kinds-hint" ${kinds.size && !kinds.has("fuel") ? "" : "hidden"}>Did the job cover more? Tap Service, Tyres and Expense together.</p>`;
   const keep = () => {
-    const f = sheetForm;
-    if (!f.date) return;
-    e.date = f.date.value;
-    e.odo = f.odo.value;
-    e.cost = f.cost?.value;
-    e.notes = f.notes?.value;
-    e.place = f.place?.value;
-    if (f.litres) e.litres = f.litres.value;
+    if ($("#tyre-jobs", sheetForm)) {
+      vals.tyre_jobs = [...sheetForm.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
+      vals.tyre_pos = [...sheetForm.querySelectorAll(".tp.on")].map((x) => x.dataset.pos);
+    }
+    sheetForm.querySelectorAll("input[name], select[name], textarea[name]").forEach((el) => {
+      if (el.type === "file" || el.name === "tj") return;
+      if (el.type === "checkbox") vals[el.name] = el.checked;
+      else if (el.type === "radio") {
+        if (el.checked) vals[el.name] = el.value;
+      } else vals[el.name] = el.value;
+    });
   };
-  const pick = (k) => {
-    if (k === kind) return;
+  const toggle = (k) => {
     keep();
-    const first = !kind;
-    kind = k;
+    const wasEmpty = !kinds.size;
+    if (k === "fuel") {
+      if (kinds.has("fuel")) return;
+      kinds.clear();
+      kinds.add("fuel");
+      justAdded = null;
+    } else if (kinds.has(k)) {
+      if (kinds.size === 1) return;
+      kinds.delete(k);
+      justAdded = null;
+    } else {
+      kinds.delete("fuel");
+      kinds.add(k);
+      justAdded = wasEmpty ? null : k;
+    }
     const wrap = $(".fields-wrap", sheetForm);
     $(".kinds", sheetForm).classList.add("picked");
     sheetForm.querySelectorAll(".kind").forEach((b) => {
-      b.classList.toggle("on", b.dataset.kind === k);
-      b.setAttribute("aria-checked", b.dataset.kind === k);
+      b.classList.toggle("on", kinds.has(b.dataset.kind));
+      b.setAttribute("aria-pressed", kinds.has(b.dataset.kind));
     });
-    $(".sheet-head h2", sheetForm).textContent = isEdit ? "Edit entry" : { fuel: "New fill-up", service: "New service", tyres: "New tyre job", expense: "New expense" }[k];
+    $(".kinds-hint", sheetForm).hidden = !kinds.size || kinds.has("fuel");
+    $(".sheet-head h2", sheetForm).textContent = title();
+    if (!wasEmpty) wrap.classList.add("no-anim");
     $(".fields-inner", sheetForm).innerHTML = fields();
     wire();
-    if (first) requestAnimationFrame(() => wrap.classList.add("open"));
+    if (wasEmpty) requestAnimationFrame(() => wrap.classList.add("open"));
   };
   const draw = () => {
-    sheetForm.innerHTML = `${sheetHead(isEdit ? "Edit entry" : "What are you adding?")}${kindsHTML()}
-      <div class="fields-wrap ${kind ? "open no-anim" : ""}"><div class="fields-inner">${kind ? fields() : ""}</div></div>`;
-    sheetForm.querySelectorAll(".kind").forEach((b) => b.addEventListener("click", () => pick(b.dataset.kind)));
-    if (kind) wire();
+    sheetForm.innerHTML = `${sheetHead(title())}${kindsHTML()}
+      <div class="fields-wrap ${kinds.size ? "open no-anim" : ""}"><div class="fields-inner">${kinds.size ? fields() : ""}</div></div>`;
+    sheetForm.querySelectorAll(".kind").forEach((b) => b.addEventListener("click", () => toggle(b.dataset.kind)));
+    if (kinds.size) wire();
   };
   const wire = () => {
     const f = sheetForm;
     const odoCheck = () => {
       const hint = $("#odo-hint");
-      const prev = maxOdoBefore(all, f.date.value, e.id);
+      const prev = maxOdoBefore(all, f.date.value, existing[0]?.id);
       const o = numOrNull(f.odo.value);
       if (o !== null && prev !== null && o < prev) {
         hint.textContent = `Lower than an earlier reading (${n0.format(prev)} km). Double-check it.`;
@@ -1850,13 +2144,53 @@ function entryForm(entry) {
     f.odo.addEventListener("input", odoCheck);
     f.date.addEventListener("change", odoCheck);
     odoCheck();
-    const marks = () => sheetForm.querySelectorAll(".qpick").forEach((b) => b.classList.toggle("on", b.dataset.v.toLowerCase() === f.place.value.trim().toLowerCase()));
-    sheetForm.querySelectorAll(".qpick").forEach((b) => b.addEventListener("click", () => {
+    const picksEl = $("#place-picks");
+    const recent = [...picksEl.querySelectorAll(".qpick")].map((b) => b.dataset.v);
+    const allPlaces = placesIn(f.place.dataset.group).sort((a, b) => b.count - a.count).map((g) => g.name);
+    const drawPicks = () => {
+      const q = f.place.value.trim().toLowerCase();
+      const exact = allPlaces.some((n) => n.toLowerCase() === q);
+      const list = q && !exact ? allPlaces.filter((n) => n.toLowerCase().includes(q)).slice(0, 6) : recent;
+      picksEl.innerHTML = list.map((n) => `<button type="button" class="qpick ${n.toLowerCase() === q ? "on" : ""}" data-v="${esc(n)}">${esc(n)}</button>`).join("");
+    };
+    picksEl.addEventListener("click", (ev) => {
+      const b = ev.target.closest(".qpick");
+      if (!b) return;
       f.place.value = f.place.value.trim().toLowerCase() === b.dataset.v.toLowerCase() ? "" : b.dataset.v;
-      marks();
-    }));
-    f.place.addEventListener("input", marks);
-    if (kind === "fuel") {
+      drawPicks();
+    });
+    f.place.addEventListener("input", drawPicks);
+    if ($("#tyre-jobs")) {
+      const syncJobs = () => {
+        const on = new Set([...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value));
+        $("#tyre-new-box").classList.toggle("open", on.has("new"));
+        $("#tyre-rot-box").classList.toggle("open", on.has("rotation"));
+        $("#tyre-pos-hint").textContent = on.has("rotation") ? "Rotated as well? Tap where the new ones ended up after the rotation." : "Tap each corner that got a new tyre.";
+      };
+      f.querySelectorAll("[name=tj]").forEach((x) => x.addEventListener("change", syncJobs));
+      const setPos = (list) => f.querySelectorAll(".tp").forEach((b) => {
+        const on = list.includes(b.dataset.pos);
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", on);
+      });
+      f.querySelectorAll(".tp").forEach((b) => b.addEventListener("click", () => {
+        const on = !b.classList.contains("on");
+        b.classList.toggle("on", on);
+        b.setAttribute("aria-pressed", on);
+      }));
+      f.querySelectorAll(".tp-quick .qpick").forEach((b) => b.addEventListener("click", () => setPos(b.dataset.set.split(","))));
+      syncJobs();
+    }
+    const totalEl = $("#visit-total");
+    if (totalEl) {
+      const sum = () => {
+        const t = ["svc_cost", "tyre_cost", "exp_cost"].reduce((a, n) => a + (f[n] ? numOrNull(f[n].value) || 0 : 0), 0);
+        totalEl.textContent = money.format(t);
+      };
+      ["svc_cost", "tyre_cost", "exp_cost"].forEach((n) => f[n]?.addEventListener("input", sum));
+      sum();
+    }
+    if (kinds.has("fuel")) {
       const order = [];
       const recalc = (changed) => {
         const i = order.indexOf(changed);
@@ -1885,34 +2219,75 @@ function entryForm(entry) {
       $("#receipt-row").innerHTML = '<span class="muted small">Receipt will be removed when you save.</span>';
     });
     $("#receipt-view")?.addEventListener("click", async () => {
-      const snap = await getDoc(userDoc("receipts", e.id));
+      const snap = await getDoc(userDoc("receipts", receiptOwner.id));
       if (snap.exists() && !$(".receipt-full")) $("#receipt-row").insertAdjacentHTML("afterend", `<img class="receipt-full" src="${snap.data().image}" alt="Receipt">`);
     });
   };
   openSheet("", async (action) => {
     if (action === "delete") {
       if (!armed(sheetForm.querySelector("button[value=delete]"), "Tap again to delete")) return false;
-      deleteEntry(e.id).catch((err) => toast("Sync problem: " + err.message));
-      toast("Entry deleted");
+      const b = writeBatch(db);
+      for (const x of existing) {
+        b.delete(userDoc("entries", x.id));
+        b.delete(userDoc("receipts", x.id));
+      }
+      b.commit().catch((err) => toast("Sync problem: " + err.message));
+      toast(existing.length > 1 ? "Entries deleted" : "Entry deleted");
       return;
     }
-    if (!kind) return false;
+    if (!kinds.size) return false;
     const f = sheetForm;
-    const type = kind === "tyres" ? "service" : kind;
-    const data = {
+    const ks = ordered();
+    if (ks.includes("tyres")) {
+      const jobs = [...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
+      if (!jobs.length) {
+        toast("Pick what was done to the tyres");
+        return false;
+      }
+      if (jobs.includes("new") && !f.querySelector(".tp.on")) {
+        toast("Tap where the new tyres went");
+        $(".tyre-pick")?.scrollIntoView({ block: "center", behavior: "smooth" });
+        return false;
+      }
+    }
+    const common = {
       vehicleId: e.vehicleId || state.vehicleId,
-      type,
       date: f.date.value,
       odo: numOrNull(f.odo.value),
-      cost: numOrNull(f.cost.value),
       place: f.place.value.trim(),
       notes: f.notes.value.trim()
     };
-    if (kind === "fuel") Object.assign(data, { litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
-    else data.category = f.category.value;
-    if (kind === "tyres") data.tyreCount = numOrNull(f.tyreCount.value);
+    const visitId = ks.length > 1 ? first.visitId || doc(userCol("entries")).id : null;
+    const parts = ks.map((k) => {
+      const data = { ...common, visitId };
+      if (k === "fuel") Object.assign(data, { type: "fuel", cost: numOrNull(f.cost.value), litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
+      if (k === "service") Object.assign(data, { type: "service", category: f.svc_category.value, cost: numOrNull(f.svc_cost.value) });
+      if (k === "tyres") {
+        const jobs = [...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
+        const pos = jobs.includes("new") ? [...f.querySelectorAll(".tp.on")].map((x) => x.dataset.pos) : [];
+        Object.assign(data, {
+          type: "service",
+          category: JOB_CATEGORY[jobs[0]] || "Tyres",
+          tyreJobs: jobs,
+          newPositions: pos,
+          tyreCount: pos.length || null,
+          rotation: jobs.includes("rotation") ? (f.querySelector("[name=tyre_rot]:checked") || {}).value || "front-back" : null,
+          cost: numOrNull(f.tyre_cost.value)
+        });
+      }
+      if (k === "expense") Object.assign(data, { type: "expense", category: f.exp_category.value, cost: numOrNull(f.exp_cost.value) });
+      return { id: byKind[k]?.id, data };
+    });
+    const removeIds = existing.filter((x) => !ks.includes(kindOf(x))).map((x) => x.id);
+    let owner = parts.findIndex((p) => receiptOwner && p.id === receiptOwner.id);
+    if (owner < 0) owner = 0;
+    if (receiptOwner && removeIds.includes(receiptOwner.id) && receipt === void 0) {
+      parts[0].id = parts[0].id || receiptOwner.id;
+      removeIds.splice(removeIds.indexOf(receiptOwner.id), 1);
+      owner = 0;
+    }
     sheet.close();
-    saveEntry(data, entry?.id, receipt).catch((err) => toast("Sync problem: " + err.message));
+    saveVisit(parts, removeIds, receipt, owner).catch((err) => toast("Sync problem: " + err.message));
     toast(isEdit ? "Entry updated" : "Saved");
   });
   draw();
@@ -2007,6 +2382,15 @@ async function importFile(file) {
   );
 }
 $("#main").addEventListener("change", (ev) => {
+  if (ev.target.dataset.act === "place-pick") {
+    state.placeSel = state.placeSel || /* @__PURE__ */ new Set();
+    if (ev.target.checked) state.placeSel.add(ev.target.dataset.key);
+    else state.placeSel.delete(ev.target.dataset.key);
+    const n = state.placeSel.size, box = $(".place-actions");
+    box.hidden = !n;
+    $("[data-act=place-merge]").textContent = n > 1 ? `Merge ${n}` : "Rename";
+    return;
+  }
   if (ev.target.id !== "import-file" || !ev.target.files[0]) return;
   importFile(ev.target.files[0]).catch((err) => {
     console.error(err);
@@ -2035,6 +2419,14 @@ $("#main").addEventListener("click", async (ev) => {
   const act = el.dataset.act;
   if (act === "add-vehicle") vehicleForm();
   else if (act === "add-member") memberForm();
+  else if (act === "place-tab") {
+    state.placeTab = el.dataset.g;
+    state.placeSel = /* @__PURE__ */ new Set();
+    render();
+  } else if (act === "place-clear") {
+    state.placeSel = /* @__PURE__ */ new Set();
+    render();
+  } else if (act === "place-merge") mergePlacesForm();
   else if (act === "theme") {
     store.set("carlog.theme", el.dataset.theme);
     applyTheme(el.dataset.theme);
