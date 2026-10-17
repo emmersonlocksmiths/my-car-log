@@ -4,7 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>My Car Log</title>
-  <meta name="theme-color" content="#111317">
+  <meta name="theme-color" content="#f4f6f8" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)">
+  <script>try{var t=localStorage.getItem("carlog.theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="My Car Log">
@@ -16,7 +18,33 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Sora:wght@500;600;700&display=swap">
   <style>
 :root {
-  /* Graphite & cyan: one dark look on every phone */
+  /* Graphite & cyan, light version (dark version below) */
+  color-scheme: light;
+  --bg: #f4f6f8;
+  --surface: #ffffff;
+  --surface-2: #eef1f4;
+  --line: #dee3e8;
+  --text: #111317;
+  --text-2: #3e4650;
+  --muted: #6b7682;
+  --accent: #0b98b8;
+  --accent-ink: #ffffff;
+  --danger: #d64545;
+  --ok: #1f9d5f;
+  --fuel: #0b98b8;
+  --service: #c97f0b;
+  --expense: #7b5ce0;
+  --grid: #e6eaee;
+  --tabbar: #ffffff;
+  --glow: rgba(11, 152, 184, .25);
+  --radius: 14px;
+  --tabs-h: 64px;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Sora", "DM Sans", system-ui, -apple-system, sans-serif;
+}
+/* Dark: follows the phone's setting unless Light is chosen in Garage */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
   color-scheme: dark;
   --bg: #111317;
   --surface: #1a1e23;
@@ -33,10 +61,29 @@
   --service: #c67f0b;
   --expense: #8c6fe6;
   --grid: #23282f;
-  --radius: 14px;
-  --tabs-h: 64px;
-  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Sora", "DM Sans", system-ui, -apple-system, sans-serif;
+  --tabbar: #15181c;
+  --glow: rgba(22, 194, 226, .28);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #111317;
+  --surface: #1a1e23;
+  --surface-2: #22272e;
+  --line: #2a3038;
+  --text: #f1f3f5;
+  --text-2: #c2c9d2;
+  --muted: #8b95a1;
+  --accent: #16c2e2;
+  --accent-ink: #071318;
+  --danger: #f06a6a;
+  --ok: #2bb673;
+  --fuel: #0ea5c6;
+  --service: #c67f0b;
+  --expense: #8c6fe6;
+  --grid: #23282f;
+  --tabbar: #15181c;
+  --glow: rgba(22, 194, 226, .28);
 }
 
 * { box-sizing: border-box; }
@@ -201,14 +248,18 @@ h2 { font-weight: 600; letter-spacing: -.01em; }
 .btn, .chip, .tabs button, .seg button, input, select, textarea { font-family: var(--font-body); }
 
 /* Graphite & cyan finishing touches */
-.fab { box-shadow: 0 8px 22px rgba(22, 194, 226, .28), 0 2px 6px rgba(0, 0, 0, .5); }
-.tabs { background: #15181c; }
+.fab { box-shadow: 0 8px 22px var(--glow), 0 2px 6px rgba(0, 0, 0, .35); }
+.tabs { background: var(--tabbar); }
 .tabs button.active { color: var(--accent); }
-.btn.primary { box-shadow: 0 4px 14px rgba(22, 194, 226, .18); }
+.btn.primary { box-shadow: 0 4px 14px var(--glow); }
 .chip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
+.seg button.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
 .toast { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); }
 input:focus, select:focus, textarea:focus { outline-color: var(--accent); }
+
+/* Appearance switch in Garage */
+.seg.theme { grid-template-columns: repeat(3, 1fr); }
+.seg.theme button.on { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -259,7 +310,7 @@ input:focus, select:focus, textarea:focus { outline-color: var(--accent); }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// ../carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -269,7 +320,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// ../carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -403,7 +454,7 @@ function toCSV(vehicleName, entries) {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
-// ../carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -499,7 +550,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// ../carlog-src/app.js
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -531,7 +582,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "12";
+var APP_VERSION = "13";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
@@ -751,6 +802,20 @@ async function compressImage(file) {
   }
   return url;
 }
+function applyTheme(choice) {
+  const root = document.documentElement;
+  if (choice === "light" || choice === "dark") root.dataset.theme = choice;
+  else delete root.dataset.theme;
+  const dark = choice === "dark" || choice !== "light" && matchMedia("(prefers-color-scheme: dark)").matches;
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => {
+    m.content = dark ? "#111317" : "#f4f6f8";
+  });
+}
+applyTheme(store.get("carlog.theme") || "auto");
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  applyTheme(store.get("carlog.theme") || "auto");
+  if (state.view === "charts") render();
+});
 function render() {
   const sel = $("#vehicle-select");
   sel.innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<option value="${v.id}" ${v.id === state.vehicleId ? "selected" : ""}>${esc(v.name)}</option>`).join("") : "<option>No vehicles yet</option>";
@@ -986,6 +1051,10 @@ function garageHTML() {
       <div class="row"><button class="btn grow" data-act="test-reset">Reload history</button><button class="btn danger grow" data-act="test-clear">Start empty</button></div>
     </section>` : ""}
     ${state.isAdmin ? peopleHTML() : ""}
+    <section class="card stack"><h2 style="margin:0">Appearance</h2>
+      <div class="seg theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
+      <p class="muted small" style="margin:0">Auto follows your phone's light or dark setting.</p>
+    </section>
     <section class="card stack"><h2 style="margin:0">Account</h2>
       <p class="muted small" style="margin:0">Signed in as ${esc(state.user.email || "you")}${state.isAdmin ? " \xB7 owner" : ""}</p>
       <button class="btn" data-act="sign-out">Sign out</button>
@@ -1360,7 +1429,11 @@ $("#main").addEventListener("click", async (ev) => {
   const act = el.dataset.act;
   if (act === "add-vehicle") vehicleForm();
   else if (act === "add-member") memberForm();
-  else if (act === "remove-member") {
+  else if (act === "theme") {
+    store.set("carlog.theme", el.dataset.theme);
+    applyTheme(el.dataset.theme);
+    render();
+  } else if (act === "remove-member") {
     const m = state.members.find((x) => x.id === el.dataset.id);
     if (armed(el, "Tap again to remove")) {
       deleteDoc(doc(db, "members", el.dataset.id)).catch((err) => toast("Sync problem: " + err.message));
