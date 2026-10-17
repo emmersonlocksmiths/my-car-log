@@ -1,7 +1,7 @@
 // Caches the app's own files so it opens instantly and works with no signal.
 // Firebase keeps your data offline itself; this only covers the app shell.
 // Bump VERSION whenever you change any file so phones pick up the update.
-const VERSION = 'carlog-v10';
+const VERSION = 'carlog-v11';
 const SHELL = [
   './', 'index.html',
   'manifest.webmanifest', 'icons/banner.jpg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
@@ -22,7 +22,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET') return;
-  const ours = url.origin === location.origin || url.hostname === 'cdnjs.cloudflare.com' || url.hostname === 'www.gstatic.com';
+  const ours = url.origin === location.origin || url.hostname === 'cdnjs.cloudflare.com' || url.hostname === 'www.gstatic.com'
+    || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (!ours) return;
   // The app's own files are re-checked with GitHub every time (GitHub otherwise lets
   // phones reuse a copy for up to 10 minutes), so updates show on the next open.

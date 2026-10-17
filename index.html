@@ -12,6 +12,9 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Sora:wght@500;600;700&display=swap">
   <style>
 :root {
   color-scheme: light;
@@ -31,6 +34,8 @@
   --grid: #e7e5df;
   --radius: 14px;
   --tabs-h: 64px;
+  --font-body: "DM Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Sora", "DM Sans", system-ui, -apple-system, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -56,7 +61,7 @@ html, body { margin: 0; }
 body {
   background: var(--bg);
   color: var(--text);
-  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 16px/1.45 var(--font-body);
   -webkit-tap-highlight-color: transparent;
 }
 [hidden] { display: none !important; }
@@ -200,6 +205,17 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
 
 /* Banner artwork (sign-in screen and top of Home) */
 .banner { display: block; width: 100%; height: auto; aspect-ratio: 8 / 3; object-fit: cover; border-radius: var(--radius); background: #0a1d3a; }
+
+/* Typography: Sora for headings and the numbers that matter, DM Sans for everything else */
+h1, h2, h3, .hero .big, .stat .v, .entry .amt, .month-head .num, .topbar select, .sheet-head h2 {
+  font-family: var(--font-display);
+}
+h2 { font-weight: 600; letter-spacing: -.01em; }
+.hero .big { font-weight: 700; letter-spacing: -.03em; }
+.stat .v { font-weight: 600; letter-spacing: -.02em; }
+.entry .amt { font-weight: 600; }
+.topbar select { font-weight: 600; letter-spacing: -.01em; }
+.btn, .chip, .tabs button, .seg button, input, select, textarea { font-family: var(--font-body); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -250,7 +266,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// firebase-config.js
+// ../carlog-src/firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -260,7 +276,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// calc.js
+// ../carlog-src/calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -394,7 +410,7 @@ function toCSV(vehicleName, entries) {
   return [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\n");
 }
 
-// import.js
+// ../carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -490,7 +506,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// app.js
+// ../carlog-src/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -522,7 +538,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "10";
+var APP_VERSION = "11";
 var SERVICE_CATS = ["Scheduled service", "Tyres", "Repairs", "Brakes", "Battery", "Oil change", "Wheel alignment", "Other service"];
 var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
