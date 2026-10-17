@@ -748,6 +748,8 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
   background: linear-gradient(90deg, rgb(34,177,76), rgb(110,192,58), rgb(176,204,44), rgb(240,196,28), rgb(244,150,34), rgb(236,104,42), rgb(220,56,56)); }
 .wear-bar b { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; border: 3px solid var(--surface); box-shadow: 0 0 0 1.5px var(--text), 0 1px 4px rgba(0,0,0,.35); transition: left .7s var(--ease); }
 .wear-bar { margin-left: 11px; margin-right: 11px; }
+
+.stats .stat.wide { grid-column: 1 / -1; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -990,6 +992,9 @@ function periodStats(entries, start, end) {
     ppl: litres > 0 ? litreCost / litres : null,
     costPerKm: km ? total / km : null,
     fuelPerWeek: days >= 7 ? totals.fuel / (days / 7) : null,
+    fuelPerKm: km && totals.fuel ? totals.fuel / km : null,
+    costPerDay: days > 0 ? total / days : null,
+    kmPerWeek: km && days >= 7 ? km / (days / 7) : null,
     avgFill: fills ? totals.fuel / fills : null
   };
 }
@@ -1314,7 +1319,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "32";
+var APP_VERSION = "33";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1937,7 +1942,7 @@ function homeHTML() {
   const year = (/* @__PURE__ */ new Date()).getFullYear();
   const quarters = quarterBreakdown(list, year);
   const years = yearBreakdown(list);
-  const tile = (value, label, d, sub) => `<div class="stat"><div class="v num" data-m="t-${label}">${value}</div><div class="k">${label}</div>
+  const tile = (value, label, d, sub, cls = "") => `<div class="stat ${cls}"><div class="v num" data-m="t-${label}">${value}</div><div class="k">${label}</div>
       <div class="d">${d || ""}${sub ? `<span class="muted">${sub}</span>` : ""}</div></div>`;
   const vs = b ? `<span class="muted small">vs ${esc(p.prevLabel)}</span>` : "";
   const row = (label, st, extra = "") => st.future ? `<tr class="future"><th>${label}</th><td colspan="4">\u2013</td></tr>` : `<tr class="${st.current ? "now" : ""}"><th>${label}${st.current ? ' <span class="so-far">so far</span>' : ""}${extra}</th>
@@ -1945,6 +1950,7 @@ function homeHTML() {
         <td class="num">${fmtL100(st.l100)}</td><td class="num">${st.fills ? fmtC(st.costPerKm) : "\u2013"}</td></tr>`;
   const head = "<thead><tr><th></th><th>Spend</th><th>Km</th><th>L/100</th><th>c/km</th></tr></thead>";
   const comingUp = remindersHTML(v, list);
+  const odo = list.filter((e) => +e.odo > 0).sort((x, y) => +y.odo - +x.odo)[0] || null;
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
     <div class="chips period" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
@@ -1967,12 +1973,13 @@ function homeHTML() {
       </div>` : '<p class="muted small" style="margin:.5rem 0 0">Nothing spent in this period.</p>'}
     </section>
     <section class="stats">
-      ${tile(fmtL100(a.l100), "Fuel economy L/100km", b && delta(a.l100, b.l100), a.tanks ? `${a.tanks} tank${a.tanks === 1 ? "" : "s"}` : "")}
-      ${tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm))}
-      ${tile(fmtKm(a.km), "Km driven", b && delta(a.km, b.km, null))}
-      ${tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl))}
       ${tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek))}
-      ${tile(String(a.fills), "Fill-ups", "", a.avgFill ? `avg ${money0.format(a.avgFill)}` : "")}
+      ${tile(fmtC(a.fuelPerKm), "Fuel cost per km", b && delta(a.fuelPerKm, b.fuelPerKm))}
+      ${tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl))}
+      ${tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm))}
+      ${tile(a.costPerDay == null ? "\u2013" : money.format(a.costPerDay), "Cost per day", b && delta(a.costPerDay, b.costPerDay))}
+      ${tile(a.kmPerWeek == null ? "\u2013" : fmtKm(Math.round(a.kmPerWeek)), "Km per week", b && delta(a.kmPerWeek, b.kmPerWeek, null))}
+      ${tile(odo ? n0.format(+odo.odo) + " km" : "\u2013", "Odometer", "", odo ? `as of ${fmtDate(odo.date)}` : "", "wide")}
     </section>
     </div><div class="dash-side">${comingUp}</div></div>
     <div class="dash-tables">
