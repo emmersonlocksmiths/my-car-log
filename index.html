@@ -34,6 +34,7 @@
   --fuel: #0b98b8;
   --service: #c97f0b;
   --expense: #7b5ce0;
+  --rego: #d0457a;
   --tyre: #5d6b7c;
   --grid: #e6eaee;
   --tabbar: #ffffff;
@@ -61,6 +62,7 @@
   --fuel: #0ea5c6;
   --service: #c67f0b;
   --expense: #8c6fe6;
+  --rego: #ec6b9c;
   --tyre: #7d8ea3;
   --grid: #23282f;
   --tabbar: #15181c;
@@ -83,6 +85,7 @@
   --fuel: #0ea5c6;
   --service: #c67f0b;
   --expense: #8c6fe6;
+  --rego: #ec6b9c;
   --tyre: #7d8ea3;
   --grid: #23282f;
   --tabbar: #15181c;
@@ -194,6 +197,7 @@ main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) +
 .badge.fuel { background: var(--fuel); }
 .badge.service { background: var(--service); }
 .badge.expense { background: var(--expense); }
+.badge.rego { background: var(--rego); }
 .badge.tyres { background: var(--tyre); }
 .entry .t { font-weight: 650; }
 .entry .s { font-size: .82rem; color: var(--muted); }
@@ -414,8 +418,9 @@ html.brand-top .vtabs-empty { color: #ffffff; }
 .rem-ic svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .rem-service { background: var(--service); }
 .rem-rotation, .rem-tyres { background: var(--tyre); }
-.rem-rego { background: var(--accent); color: var(--accent-ink); }
-.rem-insurance { background: var(--expense); }
+.rem-rego { background: var(--rego); }
+.rem-insurance { background: var(--rego); }
+.rem-wipers { background: #3f8fd6; }
 .rem-body { min-width: 0; display: grid; gap: 3px; }
 .rem-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .rem-title { font: 600 1rem var(--font-display); letter-spacing: -.01em; }
@@ -719,6 +724,18 @@ main.anim-soft > * { animation: soft-in .38s ease both; animation-delay: calc(va
 .tc svg { width: 40px; height: 40px; }
 .tc .tr-v { font-size: .86rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Five kinds on the add screen: fuel across the top, then two by two */
+.kinds:not(.picked) .kind[data-kind="fuel"] { grid-column: 1 / -1; }
+.kinds.picked { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.kinds.picked .kind .nm { font-size: .74rem; line-height: 1.15; }
+.kind .nm-s { display: none; }
+.kinds.picked .kind .nm-l { display: none; } .kinds.picked .kind .nm-s { display: inline; }
+.chips[data-ind-key="log"] .chip { padding-left: 11px; padding-right: 11px; }
+
+/* Wear bar in the tyre colours (wipers) */
+.wear-bar { display: block; height: 8px; border-radius: 999px; margin: 7px 0 3px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; }
+.wear-bar i { display: block; height: 100%; border-radius: inherit; background-image: linear-gradient(90deg, rgb(34,177,76), rgb(110,192,58), rgb(176,204,44), rgb(240,196,28), rgb(244,150,34), rgb(236,104,42), rgb(220,56,56)); background-repeat: no-repeat; transition: width .7s var(--ease); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -820,6 +837,9 @@ function averageEconomy(points) {
   const l = points.reduce((s, p) => s + p.litres, 0);
   return d > 0 ? l / d * 100 : null;
 }
+var REGO_CATS = ["Registration", "Insurance"];
+var groupOf = (e) => e.type === "expense" && REGO_CATS.includes(e.category) ? "rego" : e.type;
+var isWiper = (e) => e.category === "Wiper blades" || /wiper/i.test(e.notes || "");
 var ym = (d) => String(d).slice(0, 7);
 function monthly(entries, months = 12, now = /* @__PURE__ */ new Date()) {
   const keys = [];
@@ -827,10 +847,10 @@ function monthly(entries, months = 12, now = /* @__PURE__ */ new Date()) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     keys.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
   }
-  const rows = Object.fromEntries(keys.map((k) => [k, { month: k, fuel: 0, service: 0, expense: 0 }]));
+  const rows = Object.fromEntries(keys.map((k) => [k, { month: k, fuel: 0, service: 0, rego: 0, expense: 0 }]));
   for (const e of entries) {
     const r = rows[ym(e.date)];
-    if (r && r[e.type] !== void 0) r[e.type] += num(e.cost) || 0;
+    if (r && r[groupOf(e)] !== void 0) r[groupOf(e)] += num(e.cost) || 0;
   }
   return keys.map((k) => rows[k]);
 }
@@ -916,11 +936,11 @@ function periodRange(kind, now = /* @__PURE__ */ new Date(), firstDate = null) {
 function periodStats(entries, start, end) {
   const inRange = (e) => String(e.date) >= start && String(e.date) <= end;
   const list = entries.filter(inRange);
-  const totals = { fuel: 0, service: 0, expense: 0 };
+  const totals = { fuel: 0, service: 0, rego: 0, expense: 0 };
   let litres = 0, litreCost = 0, fills = 0;
   for (const e of list) {
     const c = num(e.cost) || 0;
-    if (totals[e.type] !== void 0) totals[e.type] += c;
+    if (totals[groupOf(e)] !== void 0) totals[groupOf(e)] += c;
     if (e.type === "fuel") {
       fills++;
       if (num(e.litres) > 0 && c > 0) {
@@ -929,7 +949,7 @@ function periodStats(entries, start, end) {
       }
     }
   }
-  const total = totals.fuel + totals.service + totals.expense;
+  const total = totals.fuel + totals.service + totals.rego + totals.expense;
   let maxIn = null, maxBefore = null, minIn = null;
   for (const e of entries) {
     const o = num(e.odo);
@@ -1078,6 +1098,22 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     rotation,
     tyreAge,
     tyres: tyreState(entries, now),
+    wipers: (() => {
+      const months = +vehicle.wiperMonths || 12;
+      const last = entries.filter(isWiper).sort(byDateDesc)[0] || null;
+      if (!last) return { last: null, months, status: "unknown" };
+      const due = addMonths(last.date, months);
+      const days = daysUntil(due, now);
+      return {
+        last,
+        months,
+        due,
+        days,
+        daysSince: -daysUntil(last.date, now),
+        kmSince: num(last.odo) !== null && latestOdo ? latestOdo - +last.odo : null,
+        status: days < 0 ? "due" : days <= 30 ? "soon" : "ok"
+      };
+    })(),
     rego: renewal("Registration", +vehicle.regoMonths || 12, vehicle.regoDue || null),
     insurance: renewal("Insurance", +vehicle.insuranceMonths || 12, vehicle.insuranceDue || null)
   };
@@ -1266,8 +1302,8 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "29";
-var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Other service"];
+var APP_VERSION = "30";
+var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
 var TYRE_JOBS = [["new", "New tyres"], ["rotation", "Rotation"], ["alignment", "Alignment & balance"], ["puncture", "Puncture repair"]];
@@ -1275,21 +1311,25 @@ var ROT_LABEL = { "front-back": "Front \u2194 back", cross: "Cross (X)", "rear-c
 var POS_LABEL = { FL: "Front left", FR: "Front right", RL: "Rear left", RR: "Rear right" };
 var CAR_TOP = '<svg viewBox="0 0 60 110" aria-hidden="true"><path d="M14 18c0-9 7-14 16-14s16 5 16 14v74c0 9-7 14-16 14s-16-5-16-14z"/><path d="M18 34c3-4 21-4 24 0l-2 12H20zM20 78h20l2 10c-3 3-21 3-24 0z"/><path d="M30 6v8"/></svg>';
 var JOB_CATEGORY = { new: "Tyres", rotation: "Tyre rotation", alignment: "Wheel alignment", puncture: "Puncture repair" };
-var EXPENSE_CATS = ["Registration", "Insurance", "Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
-var TYPE_LABEL = { fuel: "Fuel", service: "Service", expense: "Expense" };
+var REGO_CATS2 = REGO_CATS;
+var EXPENSE_CATS = ["Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
+var TYPE_LABEL = { fuel: "Fuel", service: "Service", rego: "Rego & insurance", expense: "Expense" };
+var FILTER_LABEL = { all: "All", fuel: "Fuel", service: "Service", rego: "Rego & ins.", expense: "Other" };
 var ICONS = {
   fuel: '<svg viewBox="0 0 24 24"><path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M4 10h11M15 8h2a2 2 0 0 1 2 2v7a1.5 1.5 0 0 0 3 0V9l-3-3"/></svg>',
   service: '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>',
   expense: '<svg viewBox="0 0 24 24"><path d="M4 7h16v12H4zM4 11h16M8 15h3"/></svg>',
+  rego: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h2M11 12h2M15 12h2"/></svg>',
   tyres: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1"/></svg>'
 };
 var KINDS = [
   { k: "fuel", label: "Fuel", desc: "Fill-up at the servo" },
   { k: "service", label: "Service", desc: "Servicing and repairs" },
   { k: "tyres", label: "Tyres", desc: "New tyres, rotation, alignment" },
-  { k: "expense", label: "Expense", desc: "Rego, insurance, tolls and more" }
+  { k: "rego", label: "Rego & insurance", short: "Rego & ins.", desc: "Registration and insurance" },
+  { k: "expense", label: "Other expense", short: "Other", desc: "Tolls, parking, car wash and more" }
 ];
-var kindOf = (e) => e.type === "service" && TYRE_CATS.includes(e.category) ? "tyres" : e.type;
+var kindOf = (e) => e.type === "service" && TYRE_CATS.includes(e.category) ? "tyres" : groupOf(e);
 var state = {
   user: null,
   garage: null,
@@ -1753,6 +1793,10 @@ function tyreGuideHTML(v, r) {
   return `<details class="tw-guide"><summary>Tyre colour guide</summary><ul>${steps}</ul>
     <p class="muted small" style="margin:0">Tyres change colour on the Dashboard as they wear.${lead && r.kmPerDay ? ` Dates are for ${leadName}, from your recent driving.` : ""}</p></details>`;
 }
+var wearBar = (f) => {
+  const x = Math.min(1, Math.max(0.02, f));
+  return `<span class="wear-bar" aria-hidden="true"><i style="width:${(x * 100).toFixed(1)}%;background-size:${(100 / x).toFixed(1)}% 100%"></i></span>`;
+};
 var fmtMonthD = (d) => d.toLocaleDateString("en-AU", { month: "short", year: "numeric" });
 var roundKm = (k) => k >= 1e3 ? Math.round(k / 100) * 100 : Math.round(k);
 function ago(days) {
@@ -1773,6 +1817,7 @@ var RICONS = {
   rotation: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.7 5.7M4 12a8 8 0 0 1 13.7-5.7"/><path d="M18 3v4h-4M6 21v-4h4"/></svg>',
   tyres: ICONS.tyres,
   rego: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h2M11 12h2M15 12h2"/></svg>',
+  wipers: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5h17l-2.2 10.5H5.7z"/><path d="M12 17.5L7.5 10"/></svg>',
   insurance: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
 };
 function remindersHTML(v, list) {
@@ -1830,6 +1875,17 @@ function remindersHTML(v, list) {
         <div class="tyrecar">${ringCell("FL", "left")}${car}${ringCell("FR", "right")}${ringCell("RL", "left")}${ringCell("RR", "right")}</div>
       </div></div>`);
   }
+  const w = r.wipers;
+  if (w.last) {
+    rows.push(row(
+      "wipers",
+      "Wiper blades",
+      statusChip(w.status, w.status === "due"),
+      `Replaced <strong>${fmtDate(w.last.date)}</strong> \xB7 ${ago(w.daysSince)} ago${wearBar(w.daysSince / (w.months * 30.44))}`,
+      [w.kmSince != null ? `<span class="num">${n0.format(w.kmSince)}</span> km since` : "", w.last.cost ? money.format(+w.last.cost) : "", w.last.place ? esc(w.last.place) : ""].filter(Boolean).join(" \xB7 "),
+      w.days >= 0 ? `Next change around ${fmtDate(w.due)}` : `Due ${ago(-w.days)} ago, every ${w.months} months`
+    ));
+  } else rows.push(row("wipers", "Wiper blades", statusChip("unknown"), "No change logged yet", "Add one with + \u2192 Service \u2192 Wiper blades."));
   const setLink = (label) => `<button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">${label}</button>`;
   for (const [key, title, cat, it] of [["rego", "Rego", "Registration", r.rego], ["insurance", "Insurance", "Insurance", r.insurance]]) {
     if (!it.due) {
@@ -1888,12 +1944,14 @@ function homeHTML() {
       ${a.total ? `<div class="split" aria-hidden="true">
         <span data-m="s-fuel" style="flex:${t.fuel / tot} 1 0%;background:var(--fuel)"></span>
         <span data-m="s-service" style="flex:${t.service / tot} 1 0%;background:var(--service)"></span>
+        <span data-m="s-rego" style="flex:${t.rego / tot} 1 0%;background:var(--rego)"></span>
         <span data-m="s-expense" style="flex:${t.expense / tot} 1 0%;background:var(--expense)"></span>
       </div>
       <div class="legend">
-        <span><i style="background:var(--fuel)"></i>Fuel <b data-m="l-fuel">${money0.format(t.fuel)}</b></span>
-        <span><i style="background:var(--service)"></i>Service <b data-m="l-service">${money0.format(t.service)}</b></span>
-        <span><i style="background:var(--expense)"></i>Other <b data-m="l-expense">${money0.format(t.expense)}</b></span>
+        ${t.fuel ? `<span><i style="background:var(--fuel)"></i>Fuel <b data-m="l-fuel">${money0.format(t.fuel)}</b></span>` : ""}
+        ${t.service ? `<span><i style="background:var(--service)"></i>Service <b data-m="l-service">${money0.format(t.service)}</b></span>` : ""}
+        ${t.rego ? `<span><i style="background:var(--rego)"></i>Rego & insurance <b data-m="l-rego">${money0.format(t.rego)}</b></span>` : ""}
+        ${t.expense ? `<span><i style="background:var(--expense)"></i>Other <b data-m="l-expense">${money0.format(t.expense)}</b></span>` : ""}
       </div>` : '<p class="muted small" style="margin:.5rem 0 0">Nothing spent in this period.</p>'}
     </section>
     <section class="stats">
@@ -1916,8 +1974,8 @@ function homeHTML() {
 }
 function logHTML() {
   const f = state.logFilter;
-  const list = sortDesc(vehicleEntries().filter((e) => f === "all" || e.type === f));
-  const chips = ["all", "fuel", "service", "expense"].map((k) => `<button class="chip ${f === k ? "on" : ""}" data-act="filter" data-f="${k}">${k === "all" ? "All" : TYPE_LABEL[k]}</button>`).join("");
+  const list = sortDesc(vehicleEntries().filter((e) => f === "all" || groupOf(e) === f));
+  const chips = ["all", "fuel", "service", "rego", "expense"].map((k) => `<button class="chip ${f === k ? "on" : ""}" data-act="filter" data-f="${k}">${FILTER_LABEL[k]}</button>`).join("");
   let html = "", month = null, monthTotal = {};
   for (const e of list) monthTotal[String(e.date).slice(0, 7)] = (monthTotal[String(e.date).slice(0, 7)] || 0) + (+e.cost || 0);
   const shownVisits = /* @__PURE__ */ new Set();
@@ -1963,7 +2021,7 @@ function drawCharts() {
     return;
   }
   const list = vehicleEntries();
-  const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), expense: cssVar("--expense") };
+  const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), rego: cssVar("--rego"), expense: cssVar("--expense") };
   Chart.defaults.color = C.text;
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
   const base = {
@@ -1996,7 +2054,7 @@ function drawCharts() {
     type: "bar",
     data: {
       labels: months.map((m) => (/* @__PURE__ */ new Date(m.month + "-01T00:00:00")).toLocaleDateString("en-AU", { month: "short" })),
-      datasets: [bar("Fuel", "fuel", C.fuel), bar("Service", "service", C.service), bar("Other", "expense", C.expense)]
+      datasets: [bar("Fuel", "fuel", C.fuel), bar("Service", "service", C.service), bar("Rego & insurance", "rego", C.rego), bar("Other", "expense", C.expense)]
     },
     options: {
       ...base,
@@ -2009,7 +2067,7 @@ function drawCharts() {
   }));
   const cats = byCategory(list).filter((c) => c.total > 0);
   $("#cat-box").style.height = Math.max(120, cats.length * 34 + 30) + "px";
-  const catColor = (name) => name === "Fuel" ? C.fuel : SERVICE_CATS.includes(name) || TYRE_CATS.includes(name) ? C.service : C.expense;
+  const catColor = (name) => name === "Fuel" ? C.fuel : REGO_CATS2.includes(name) ? C.rego : SERVICE_CATS.includes(name) || TYRE_CATS.includes(name) ? C.service : C.expense;
   state.charts.push(new Chart($("#c-cat"), {
     type: "bar",
     data: { labels: cats.map((c) => c.category), datasets: [{ data: cats.map((c) => +c.total.toFixed(2)), backgroundColor: cats.map((c) => catColor(c.category)), borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
@@ -2231,6 +2289,7 @@ function vehicleForm(v) {
       <label>Tyre rotation every (km)<input name="rotationKm" inputmode="numeric" placeholder="${esc(rem.rotation.intervalKm)}" value="${esc(v.rotationKm)}"></label>
       <label>Tyres last about (km)<input name="tyreLifeKm" inputmode="numeric" placeholder="50000" value="${esc(v.tyreLifeKm)}"></label>
     </div>
+    <label>Wiper blades every (months)<input name="wiperMonths" inputmode="numeric" placeholder="12" value="${esc(v.wiperMonths)}"></label>
     ${isEdit ? tyreGuideHTML(v, rem) : ""}
     <div class="grid2">
       <label>Rego due<input type="date" name="regoDue" value="${esc(v.regoDue || "")}"></label>
@@ -2263,6 +2322,7 @@ function vehicleForm(v) {
         serviceMonths: numOrNull(f.serviceMonths.value),
         rotationKm: numOrNull(f.rotationKm.value),
         tyreLifeKm: numOrNull(f.tyreLifeKm.value),
+        wiperMonths: numOrNull(f.wiperMonths.value),
         regoMonths: +f.regoMonths.value,
         insuranceMonths: +f.insuranceMonths.value,
         regoDue: f.regoDue.value || null,
@@ -2274,7 +2334,7 @@ function vehicleForm(v) {
   );
 }
 var PLACE_GROUPS = [["fuel", "Stations"], ["work", "Workshops"], ["other", "Other"]];
-var placeGroupOf = (k) => k === "fuel" ? "fuel" : k === "expense" ? "other" : "work";
+var placeGroupOf = (k) => k === "fuel" ? "fuel" : k === "expense" || k === "rego" ? "other" : "work";
 function placesIn(group) {
   const byKey = /* @__PURE__ */ new Map();
   for (const e of state.entries) {
@@ -2298,7 +2358,7 @@ function placeField(kind, label, value) {
   return `<label>${label}<input name="place" value="${esc(value)}" placeholder="${picks.length ? "Type to search, or tap a recent one" : "optional"}" autocomplete="off" data-group="${placeGroupOf(kind)}"></label>
     <div class="quick" id="place-picks" aria-label="Recent ${label.toLowerCase()}s">${picks.map((p) => `<button type="button" class="qpick ${p.toLowerCase() === cur ? "on" : ""}" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
 }
-var PART_ORDER = ["service", "tyres", "expense"];
+var PART_ORDER = ["service", "tyres", "rego", "expense"];
 var visitPartsOf = (entry) => entry.visitId ? state.entries.filter((x) => x.visitId === entry.visitId).sort((a, b) => PART_ORDER.indexOf(kindOf(a)) - PART_ORDER.indexOf(kindOf(b))) : [entry];
 function saveVisit(parts, removeIds, receipt, receiptOwnerIndex) {
   const b = writeBatch(db);
@@ -2372,9 +2432,15 @@ function entryForm(entry) {
         </div></div>
         <div class="grid2">${costField("tyre_cost")}</div>`;
     }
+    if (k === "rego") {
+      const cur2 = v("rego_category", ex.category || "Registration");
+      return `${head}<div class="field-label">What was paid</div>
+        <div class="pills">${[["Registration", "Rego"], ["Insurance", "Insurance"]].map(([c, l]) => `<label class="pill"><input type="radio" name="rego_category" value="${c}" ${cur2 === c ? "checked" : ""}><span>${l}</span></label>`).join("")}</div>
+        <div class="grid2">${costField("rego_cost")}</div>`;
+    }
     const cur = v("exp_category", ex.category || EXPENSE_CATS[0]);
     return `${head}<div class="grid2">
-        <label>Category<select name="exp_category">${EXPENSE_CATS.map((c) => `<option ${cur === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label>Category<select name="exp_category">${(EXPENSE_CATS.includes(cur) ? EXPENSE_CATS : [cur, ...EXPENSE_CATS]).map((c) => `<option ${cur === c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label>
         ${costField("exp_cost")}
       </div>`;
   };
@@ -2414,12 +2480,12 @@ function entryForm(entry) {
     if (isEdit) return "Edit entry";
     if (!ks.length) return "What are you adding?";
     if (ks.length > 1) return "New " + ks.map((k) => KINDS.find((o) => o.k === k).label.toLowerCase()).join(" + ");
-    return { fuel: "New fill-up", service: "New service", tyres: "New tyre job", expense: "New expense" }[ks[0]];
+    return { fuel: "New fill-up", service: "New service", tyres: "New tyre job", rego: "Rego or insurance", expense: "New expense" }[ks[0]];
   };
   const kindsHTML = () => `<div class="kinds ${kinds.size ? "picked" : ""}" role="group" aria-label="What this entry covers">${KINDS.map((o) => `<button type="button" class="kind ${kinds.has(o.k) ? "on" : ""}" data-kind="${o.k}" aria-pressed="${kinds.has(o.k)}" style="--k:var(--${o.k === "tyres" ? "tyre" : o.k})">
-      <span class="ic">${ICONS[o.k]}</span><span class="nm">${o.label}</span><span class="ds">${o.desc}</span><span class="tick" aria-hidden="true"></span>
+      <span class="ic">${ICONS[o.k]}</span><span class="nm"><span class="nm-l">${o.label}</span><span class="nm-s">${o.short || o.label}</span></span><span class="ds">${o.desc}</span><span class="tick" aria-hidden="true"></span>
     </button>`).join("")}</div>
-    <p class="kinds-hint" ${kinds.size && !kinds.has("fuel") ? "" : "hidden"}>Did the job cover more? Tap Service, Tyres and Expense together.</p>`;
+    <p class="kinds-hint" ${kinds.size && !kinds.has("fuel") ? "" : "hidden"}>Did the bill cover more? Tap more than one.</p>`;
   const keep = () => {
     if ($("#tyre-jobs", sheetForm)) {
       vals.tyre_jobs = [...sheetForm.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
@@ -2526,10 +2592,10 @@ function entryForm(entry) {
     const totalEl = $("#visit-total");
     if (totalEl) {
       const sum = () => {
-        const t = ["svc_cost", "tyre_cost", "exp_cost"].reduce((a, n) => a + (f[n] ? numOrNull(f[n].value) || 0 : 0), 0);
+        const t = ["svc_cost", "tyre_cost", "rego_cost", "exp_cost"].reduce((a, n) => a + (f[n] ? numOrNull(f[n].value) || 0 : 0), 0);
         totalEl.textContent = money.format(t);
       };
-      ["svc_cost", "tyre_cost", "exp_cost"].forEach((n) => f[n]?.addEventListener("input", sum));
+      ["svc_cost", "tyre_cost", "rego_cost", "exp_cost"].forEach((n) => f[n]?.addEventListener("input", sum));
       sum();
     }
     if (kinds.has("fuel")) {
@@ -2617,6 +2683,7 @@ function entryForm(entry) {
           cost: numOrNull(f.tyre_cost.value)
         });
       }
+      if (k === "rego") Object.assign(data, { type: "expense", category: (f.querySelector("[name=rego_category]:checked") || {}).value || "Registration", cost: numOrNull(f.rego_cost.value) });
       if (k === "expense") Object.assign(data, { type: "expense", category: f.exp_category.value, cost: numOrNull(f.exp_cost.value) });
       return { id: byKind[k]?.id, data };
     });
