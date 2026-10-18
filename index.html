@@ -2433,7 +2433,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "61";
+var APP_VERSION = "62";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2675,127 +2675,6 @@ async function compressImage(file, startMax = 1400) {
     quality = Math.max(0.4, quality - 0.1);
   }
   return url;
-}
-function placeDrop(prev, intro = false) {
-  const card = $(".veh-drop"), banner = $(".hero-banner");
-  const tab = document.querySelector("#vtabs .vtab.on, .vtabs .vtab.on, .vtab.on");
-  if (banner && prev && prev.src && !calm()) {
-    const g = document.createElement("div");
-    g.className = "veh-drop ghost";
-    g.style.left = prev.left;
-    g.innerHTML = `<img src="${prev.src}" alt="">`;
-    banner.appendChild(g);
-    g.animate([{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-115%)", opacity: 0.6 }], { duration: 280, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards" }).onfinish = () => g.remove();
-  }
-  if (!card || !banner) return;
-  const br = banner.getBoundingClientRect(), w = card.offsetWidth || 132;
-  const cx = tab ? tab.getBoundingClientRect().left + tab.getBoundingClientRect().width / 2 - br.left : br.width / 2;
-  card.style.left = `${Math.round(Math.max(10, Math.min(br.width - w - 10, cx - w / 2)))}px`;
-  if (prev && prev.src !== void 0 && !calm() || intro && !calm()) {
-    card.animate(
-      [{ transform: "translateY(-115%)" }, { transform: "translateY(6%)", offset: 0.75 }, { transform: "translateY(0)" }],
-      { duration: 520, delay: prev && prev.src ? 200 : 60, easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards" }
-    );
-  }
-}
-addEventListener("resize", () => placeDrop(null));
-function cropEditor(box, src, crop, onChange) {
-  box.innerHTML = `<div class="crop-frame"><img alt="" draggable="false"></div>
-    <div class="crop-zoom"><span aria-hidden="true">\u2212</span><input type="range" min="1" max="4" step="0.01" aria-label="Zoom"><span aria-hidden="true">+</span></div>`;
-  const frame = box.querySelector(".crop-frame"), img = frame.querySelector("img"), zoom = box.querySelector("input");
-  const st = { iw: 1, ih: 1, z: crop?.z || 1, cx: crop?.cx, cy: crop?.cy };
-  let W = 0, H = 0, ox = 0, oy = 0;
-  const scale = () => Math.max(W / st.iw, H / st.ih) * st.z;
-  const clamp = () => {
-    const s0 = scale();
-    ox = Math.min(0, Math.max(W - st.iw * s0, ox));
-    oy = Math.min(0, Math.max(H - st.ih * s0, oy));
-  };
-  const draw = () => {
-    const s0 = scale();
-    clamp();
-    img.style.width = `${st.iw * s0}px`;
-    img.style.height = `${st.ih * s0}px`;
-    img.style.transform = `translate(${ox}px, ${oy}px)`;
-    st.cx = -ox / (st.iw * s0);
-    st.cy = -oy / (st.ih * s0);
-    onChange({ z: st.z, cx: st.cx, cy: st.cy });
-  };
-  const zoomTo = (z, px = W / 2, py = H / 2) => {
-    const before = scale();
-    st.z = Math.max(1, Math.min(4, z));
-    const after = scale();
-    ox = px - (px - ox) * (after / before);
-    oy = py - (py - oy) * (after / before);
-    zoom.value = st.z;
-    draw();
-  };
-  img.onload = () => {
-    st.iw = img.naturalWidth;
-    st.ih = img.naturalHeight;
-    W = frame.clientWidth;
-    H = frame.clientHeight;
-    const s0 = scale();
-    ox = st.cx != null ? -st.cx * st.iw * s0 : (W - st.iw * s0) / 2;
-    oy = st.cy != null ? -st.cy * st.ih * s0 : (H - st.ih * s0) / 2;
-    zoom.value = st.z;
-    draw();
-  };
-  img.src = src;
-  zoom.addEventListener("input", () => zoomTo(+zoom.value));
-  const pts = /* @__PURE__ */ new Map();
-  let last = null, pinch = null;
-  frame.addEventListener("pointerdown", (e) => {
-    frame.setPointerCapture(e.pointerId);
-    pts.set(e.pointerId, [e.clientX, e.clientY]);
-    last = [e.clientX, e.clientY];
-    pinch = null;
-  });
-  frame.addEventListener("pointermove", (e) => {
-    if (!pts.has(e.pointerId)) return;
-    pts.set(e.pointerId, [e.clientX, e.clientY]);
-    if (pts.size === 2) {
-      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), r = frame.getBoundingClientRect();
-      if (pinch) zoomTo(pinch.z * (d / pinch.d), (a[0] + b[0]) / 2 - r.left, (a[1] + b[1]) / 2 - r.top);
-      else pinch = { d, z: st.z };
-      return;
-    }
-    ox += e.clientX - last[0];
-    oy += e.clientY - last[1];
-    last = [e.clientX, e.clientY];
-    draw();
-  });
-  const up = (e) => {
-    pts.delete(e.pointerId);
-    pinch = null;
-    const rest = [...pts.values()][0];
-    if (rest) last = rest;
-  };
-  frame.addEventListener("pointerup", up);
-  frame.addEventListener("pointercancel", up);
-  frame.addEventListener("wheel", (e) => {
-    e.preventDefault();
-    const r = frame.getBoundingClientRect();
-    zoomTo(st.z * (e.deltaY < 0 ? 1.08 : 0.93), e.clientX - r.left, e.clientY - r.top);
-  }, { passive: false });
-}
-function cropToDataURL(src, crop) {
-  return new Promise((res, rej) => {
-    const im = new Image();
-    im.onload = () => {
-      const iw = im.naturalWidth, ih = im.naturalHeight, z = crop?.z || 1;
-      const cover = Math.max(3 / iw, 2 / ih);
-      const sw = 3 / (cover * z), sh = 2 / (cover * z);
-      const sx = (crop?.cx ?? (1 - sw / iw) / 2) * iw, sy = (crop?.cy ?? (1 - sh / ih) / 2) * ih;
-      const c = document.createElement("canvas");
-      c.width = 600;
-      c.height = 400;
-      c.getContext("2d").drawImage(im, sx, sy, sw, sh, 0, 0, 600, 400);
-      res(c.toDataURL("image/jpeg", 0.82));
-    };
-    im.onerror = rej;
-    im.src = src;
-  });
 }
 var ocrWorker = null;
 var ocrProgress = null;
@@ -3159,12 +3038,10 @@ function render() {
   }
   if (state.view === "home" && prev.view === "home" && (mode === "same" || mode === "vehicle") && state.vehicles.length && !state.loadError && main.children.length) {
     const before2 = snapNums(main);
-    const oldDrop = main.querySelector(".veh-drop"), oldPic = oldDrop?.querySelector("img").getAttribute("src"), oldLeft = oldDrop?.style.left;
     renderChrome();
     const tmp = document.createElement("div");
     tmp.innerHTML = homeHTML();
     patchChildren(main, tmp);
-    placeDrop(mode === "vehicle" ? { src: oldPic, left: oldLeft } : null);
     state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
     morphNums(main, before2);
     placeIndicators();
@@ -3273,10 +3150,8 @@ function renderInner() {
     main.innerHTML = welcomeHTML();
     return;
   }
-  if (state.view === "home") {
-    main.innerHTML = homeHTML();
-    requestAnimationFrame(() => placeDrop(null, true));
-  } else if (state.view === "log") main.innerHTML = logHTML();
+  if (state.view === "home") main.innerHTML = homeHTML();
+  else if (state.view === "log") main.innerHTML = logHTML();
   else if (state.view === "charts") {
     main.innerHTML = chartsHTML();
     drawCharts();
@@ -3696,7 +3571,7 @@ function homeHTML() {
   const comingUp = remindersHTML(v, list);
   const odo = list.filter((e) => +e.odo > 0).sort((x, y) => +y.odo - +x.odo)[0] || null;
   return `
-    <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log">${v.photo ? `<div class="veh-drop" data-vid="${v.id}"><img src="${esc(v.photo)}" alt="${esc(v.name)}"></div>` : ""}</div>
+    <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
     <div class="dash-grid"><div class="dash-top">
     <div class="chips period sticky-period" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
     <div class="dash-main">
@@ -4816,20 +4691,10 @@ function markPaidForm(v, kind) {
 function vehicleForm(v) {
   const isEdit = !!v;
   v = v || {};
-  let photo;
-  let photoSrc = v.photoSrc || v.photo || null, photoCrop = v.photoCrop || null, cropTouched = false;
-  const saveExtra = {};
   const rem = reminders(isEdit ? state.entries.filter((e) => e.vehicleId === v.id) : [], v);
   openSheet(
     `
     ${sheetHead(isEdit ? "Edit vehicle" : "Add vehicle")}
-    <div class="vphoto" id="vphoto">
-      <div class="vphoto-pic" id="vphoto-pic">${v.photo ? "" : "<span>No photo yet</span>"}</div>
-      <div class="vphoto-btns">
-        <label class="btn small">${v.photo ? "Change photo" : "Add photo"}<input type="file" id="vphoto-file" accept="image/*" hidden></label>
-        <button type="button" class="btn small danger" id="vphoto-del" ${v.photo ? "" : "hidden"}>Remove</button>
-      </div>
-    </div>
     <label>Name<input name="vname" required placeholder="e.g. Work van" value="${esc(v.name)}"></label>
     <div class="grid3">
       <label>Year<input name="year" inputmode="numeric" value="${esc(v.year)}"></label>
@@ -4873,10 +4738,7 @@ function vehicleForm(v) {
         return;
       }
       const f = sheetForm;
-      if (photo === null) Object.assign(saveExtra, { photo: null, photoSrc: null, photoCrop: null });
-      else if (photoSrc && (photo !== void 0 || cropTouched)) Object.assign(saveExtra, { photo: await cropToDataURL(photoSrc, photoCrop), photoSrc, photoCrop });
       saveVehicle({
-        ...saveExtra,
         name: f.vname.value.trim(),
         year: f.year.value.trim(),
         make: f.make.value.trim(),
@@ -4899,42 +4761,6 @@ function vehicleForm(v) {
       toast(isEdit ? "Vehicle updated" : "Vehicle added");
     }
   );
-  const fileIn = sheetForm.querySelector("#vphoto-file"), pic = sheetForm.querySelector("#vphoto-pic"), del = sheetForm.querySelector("#vphoto-del");
-  const showCrop = () => cropEditor(pic, photoSrc, photoCrop, (c) => {
-    photoCrop = c;
-    cropTouched = true;
-  });
-  if (photoSrc) {
-    pic.classList.add("editing");
-    showCrop();
-    cropTouched = false;
-  }
-  fileIn?.addEventListener("change", async () => {
-    const file = fileIn.files && fileIn.files[0];
-    if (!file) return;
-    pic.classList.remove("editing");
-    pic.innerHTML = "<span>Loading\u2026</span>";
-    try {
-      photoSrc = await compressImage(file, 1100);
-      photoCrop = null;
-      photo = "new";
-      pic.classList.add("editing");
-      showCrop();
-      del.hidden = false;
-      fileIn.closest("label").firstChild.textContent = "Change photo";
-    } catch {
-      pic.innerHTML = "<span>Could not read that photo</span>";
-    }
-    fileIn.value = "";
-  });
-  del?.addEventListener("click", () => {
-    photo = null;
-    photoSrc = null;
-    pic.classList.remove("editing");
-    pic.innerHTML = "<span>No photo yet</span>";
-    del.hidden = true;
-    fileIn.closest("label").firstChild.textContent = "Add photo";
-  });
 }
 var PLACE_GROUPS = [["fuel", "Stations"], ["work", "Workshops"], ["other", "Other"]];
 var placeGroupOf = (k) => k === "fuel" ? "fuel" : k === "expense" || k === "rego" ? "other" : "work";
