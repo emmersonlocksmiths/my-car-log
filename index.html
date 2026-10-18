@@ -1527,9 +1527,10 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
   const tankGaps = fillsByOdo.slice(1).map((e, i) => +e.odo - +fillsByOdo[i].odo).filter((g) => g >= 50 && g <= 1500).slice(-10);
   const fillsByDate = entries.filter((e) => e.type === "fuel").sort(byDateDesc);
   const lastFill = fillsByDate[0] || null;
-  const recentFills = fillsByDate.filter((e) => num(e.litres) > 0 && num(e.cost) > 0).slice(0, 6);
+  const recentFills = fillsByDate.filter((e) => num(e.litres) > 0 && num(e.cost) > 0).slice(0, 3);
   const avgLitres = avg(recentFills.map((e) => +e.litres));
-  const lastPpl = recentFills[0] ? +recentFills[0].cost / +recentFills[0].litres : null;
+  const rl = recentFills.reduce((a, e) => a + +e.litres, 0);
+  const lastPpl = rl ? recentFills.reduce((a, e) => a + +e.cost, 0) / rl : null;
   const kmPerTank = tankGaps.length ? avg(tankGaps) : null;
   const sinceFill = lastFill && num(lastFill.odo) !== null && latestOdo ? Math.max(0, latestOdo - +lastFill.odo) : null;
   const fuelKmLeft = kmPerTank != null && sinceFill != null ? Math.round(kmPerTank - sinceFill) : null;
@@ -1539,7 +1540,7 @@ function reminders(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     kmLeft: fuelKmLeft,
     avgLitres,
     ppl: lastPpl,
-    cost: avgLitres && lastPpl ? avgLitres * lastPpl : avgCost(fillsByDate, 5),
+    cost: avgCost(fillsByDate, 3),
     due: fuelKmLeft != null ? dateForKm(Math.max(0, fuelKmLeft)) : null,
     // Fuel for the next 90 days at your current rate
     per90: kmPerDay && kmPerTank && avgLitres && lastPpl ? kmPerDay * 90 / kmPerTank * avgLitres * lastPpl : null
@@ -2340,7 +2341,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "48";
+var APP_VERSION = "49";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
