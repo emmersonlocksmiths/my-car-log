@@ -1172,6 +1172,17 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
   .pred { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .pred-c:last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
+
+/* Garage: sections fold open and closed */
+.garage-grid > section.gs { gap: 0; }
+.gs .gs-head { display: flex; align-items: center; gap: 10px; }
+.gs h2[data-act=garage-fold] { flex: 1; display: flex; align-items: center; gap: 10px; margin: 0; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; }
+.gs-chev { margin-left: auto; width: 10px; height: 10px; border-right: 2.5px solid var(--muted); border-bottom: 2.5px solid var(--muted); transform: rotate(45deg) translate(-3px, -3px); transition: transform .3s var(--ease); flex: none; }
+.gs.open .gs-chev { transform: rotate(-135deg) translate(-2px, -2px); }
+.gs:not(.open) .cs-btns { display: none; }
+.gs .gs-body > .reveal-in { padding-top: 0; }
+.gs.open .gs-body > .reveal-in { padding-top: 14px; }
+.gs .gs-body > .reveal-in { transition: opacity .3s ease, padding-top .3s var(--ease); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2367,7 +2378,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "54";
+var APP_VERSION = "56";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3092,7 +3103,10 @@ function renderInner() {
   } else if (state.view === "car") {
     main.innerHTML = carHTML();
     mountCar();
-  } else main.innerHTML = garageHTML();
+  } else {
+    main.innerHTML = garageHTML();
+    collapseGarage(main);
+  }
 }
 function loadErrorHTML() {
   const denied = state.loadError === "permission-denied";
@@ -3448,19 +3462,14 @@ function remindersHTML(v, list) {
 }
 var DASH_STATS = [
   ["fuelWeek", "Fuel spend per week", true],
-  ["fuelMonth", "Fuel spend per month"],
   ["fuelPerKm", "Fuel cost per km", true],
   ["ppl", "Fuel price per litre", true],
   ["econ", "Fuel economy"],
-  ["lastTank", "Last tank economy"],
-  ["bestWorst", "Best and worst tank"],
   ["litres", "Litres used"],
   ["fills", "Fill-ups"],
   ["avgFill", "Average fill-up"],
   ["kmTank", "Km per tank"],
   ["cheapest", "Cheapest fill-up"],
-  ["servo", "Favourite servo"],
-  ["sinceFill", "Since last fill-up"],
   ["costKm", "Running cost per km", true],
   ["costDay", "Cost per day", true],
   ["costMonth", "Cost per month"],
@@ -3533,38 +3542,20 @@ function homeHTML() {
     const econ = fuelEconomy(list).filter((q) => inR(p.start, p.end)(q));
     const priced = fp.filter((e) => +e.litres > 0 && +e.cost > 0).map((e) => ({ e, ppl: +e.cost / +e.litres }));
     const cheap = priced.sort((x, y) => x.ppl - y.ppl)[0];
-    const servos = {};
-    fp.forEach((e) => {
-      const n = String(e.place || "").trim();
-      if (n) servos[n] = (servos[n] || 0) + 1;
-    });
-    const fav = Object.entries(servos).sort((x, y) => y[1] - x[1])[0];
-    const lastFill = list.filter((e) => e.type === "fuel").sort((x, y) => String(y.date).localeCompare(String(x.date)))[0];
     const est = estimateOdo(list);
     const kmTank = reminders(list, v).fuel.kmPerTank;
     const perMonth = (x, st) => x != null && st.days ? x / st.days * 30.44 : null;
     const L = (x) => x == null ? "\u2013" : `${n1.format(x)} L/100`;
     const T = {
       fuelWeek: () => tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek)),
-      fuelMonth: () => tile(a.totals.fuel ? money0.format(perMonth(a.totals.fuel, a)) : "\u2013", "Fuel spend per month", b && delta(perMonth(a.totals.fuel, a), perMonth(b.totals.fuel, b))),
       fuelPerKm: () => tile(fmtC(a.fuelPerKm), "Fuel cost per km", b && delta(a.fuelPerKm, b.fuelPerKm)),
       ppl: () => tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl)),
       econ: () => tile(L(a.l100), "Fuel economy", b && delta(a.l100, b.l100)),
-      lastTank: () => tile(econ.length ? L(econ[econ.length - 1].l100) : "\u2013", "Last tank economy", "", econ.length ? fmtDate(econ[econ.length - 1].date) : ""),
-      bestWorst: () => {
-        const xs = econ.map((q) => q.l100);
-        return tile(xs.length ? `${n1.format(Math.min(...xs))} / ${n1.format(Math.max(...xs))}` : "\u2013", "Best / worst tank", "", xs.length ? "L/100km" : "");
-      },
       litres: () => tile(fp.length ? `${n0.format(litres(fp))} L` : "\u2013", "Litres used", b && delta(litres(fp), litres(fb), null)),
       fills: () => tile(n0.format(fp.length), "Fill-ups", b && delta(fp.length, fb.length, null)),
       avgFill: () => tile(a.avgFill == null ? "\u2013" : money0.format(a.avgFill), "Average fill-up", b && delta(a.avgFill, b.avgFill)),
       kmTank: () => tile(kmTank ? `${n0.format(kmTank)} km` : "\u2013", "Km per tank"),
       cheapest: () => tile(cheap ? `${n1.format(cheap.ppl * 100)}c` : "\u2013", "Cheapest fill-up", "", cheap ? esc(cheap.e.place || fmtDate(cheap.e.date)) : ""),
-      servo: () => tile(fav ? esc(fav[0]) : "\u2013", "Favourite servo", "", fav ? `${fav[1]} fill-up${fav[1] === 1 ? "" : "s"}` : "", "txt"),
-      sinceFill: () => {
-        const d = lastFill ? Math.max(0, Math.round((Date.now() - /* @__PURE__ */ new Date(lastFill.date + "T00:00:00")) / 864e5)) : null;
-        return tile(d == null ? "\u2013" : d === 0 ? "Today" : ago(d), "Since last fill-up", "", lastFill && +lastFill.odo && est.odo ? `~${n0.format(Math.max(0, est.odo - +lastFill.odo))} km` : "");
-      },
       costKm: () => tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm)),
       costDay: () => tile(a.costPerDay == null ? "\u2013" : money.format(a.costPerDay), "Cost per day", b && delta(a.costPerDay, b.costPerDay)),
       costMonth: () => tile(a.total ? money0.format(perMonth(a.total, a)) : "\u2013", "Cost per month", b && delta(perMonth(a.total, a), perMonth(b.total, b))),
@@ -4348,6 +4339,52 @@ function drawCalendar(odoList, range, C) {
        <div class="cal-key">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>` : '<p class="empty" style="margin:0">No odometer readings in this period.</p>';
   const sc = box.querySelector(".cal-scroll");
   if (sc) sc.scrollLeft = sc.scrollWidth;
+}
+document.addEventListener("keydown", (ev) => {
+  const h = ev.target.closest?.("[data-act=garage-fold]");
+  if (h && (ev.key === "Enter" || ev.key === " ")) {
+    ev.preventDefault();
+    h.click();
+  }
+});
+var GARAGE_OPEN_DEFAULT = ["Vehicles"];
+function collapseGarage(root) {
+  let saved = null;
+  try {
+    saved = JSON.parse(store.get("carlog.garageOpen") || "null");
+  } catch {
+  }
+  const open = new Set(Array.isArray(saved) ? saved : GARAGE_OPEN_DEFAULT);
+  root.querySelectorAll(".garage-grid > section.card").forEach((sec) => {
+    const h2 = sec.querySelector("h2");
+    if (!h2 || sec.classList.contains("gs")) return;
+    const key = h2.textContent.trim();
+    const head = h2.closest(".cs-head") || h2;
+    const body = document.createElement("div");
+    body.className = "reveal gs-body";
+    const inner = document.createElement("div");
+    inner.className = "reveal-in";
+    let n = head.nextSibling;
+    while (n) {
+      const next = n.nextSibling;
+      inner.appendChild(n);
+      n = next;
+    }
+    body.appendChild(inner);
+    sec.appendChild(body);
+    sec.classList.add("gs");
+    head.classList.add("gs-head");
+    h2.setAttribute("role", "button");
+    h2.tabIndex = 0;
+    h2.dataset.act = "garage-fold";
+    h2.dataset.key = key;
+    h2.insertAdjacentHTML("beforeend", '<span class="gs-chev" aria-hidden="true"></span>');
+    const isOpen = open.has(key);
+    sec.classList.toggle("open", isOpen);
+    body.classList.toggle("open", isOpen);
+    body.inert = !isOpen;
+    h2.setAttribute("aria-expanded", isOpen);
+  });
 }
 function garageHTML() {
   const vs = state.vehicles.map((v) => {
@@ -5441,6 +5478,15 @@ $("#main").addEventListener("click", async (ev) => {
     store.set("carlog.chartsPrev", JSON.stringify([...set]));
     state.animCharts = true;
     drawCharts();
+  } else if (act === "garage-fold") {
+    const sec = el.closest("section.gs"), body = sec.querySelector(":scope > .gs-body");
+    const isOpen = !sec.classList.contains("open");
+    sec.classList.toggle("open", isOpen);
+    body.classList.toggle("open", isOpen);
+    body.inert = !isOpen;
+    el.setAttribute("aria-expanded", isOpen);
+    const keys = [...document.querySelectorAll("section.gs.open h2[data-key]")].map((h) => h.dataset.key);
+    store.set("carlog.garageOpen", JSON.stringify(keys));
   } else if (act === "dash-toggle") {
     const on = dashStatsOn(), k = el.dataset.k;
     if (on.has(k)) on.delete(k);
