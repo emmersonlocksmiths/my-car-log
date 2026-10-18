@@ -1255,6 +1255,13 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .stats .stat-group { margin: 6px 2px 0; }
 @media (min-width: 1024px) { .stat-row .stat { flex-basis: calc(33.333% - 8px); } }
 main { overflow-anchor: none; }
+
+/* Charts page: smooth changes when switching period or vehicle */
+.chart-box { transition: height .45s var(--ease); }
+.chart-empty { opacity: 0; pointer-events: none; transition: opacity .3s ease; }
+.chart-empty.show { opacity: 1; pointer-events: auto; }
+.charts-grid { overflow-anchor: none; }
+@media (prefers-reduced-motion: reduce) { .chart-box, .chart-empty { transition: none; } }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2450,7 +2457,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "66";
+var APP_VERSION = "67";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2692,6 +2699,41 @@ async function compressImage(file, startMax = 1400) {
     quality = Math.max(0.4, quality - 0.1);
   }
   return url;
+}
+function fadeText(el, text) {
+  if (el.textContent === text) return;
+  if (calm() || !el.animate) {
+    el.textContent = text;
+    return;
+  }
+  el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: "ease-out" }).onfinish = () => {
+    el.textContent = text;
+    el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, easing: "ease-in" });
+  };
+}
+function chartsAnchor(root) {
+  if (window.scrollY < 40) return null;
+  const line = (document.querySelector(".topbar")?.getBoundingClientRect().bottom || 0) + 8;
+  let best = null;
+  for (const el of root.querySelectorAll("[data-chart]")) {
+    const r = el.getBoundingClientRect();
+    if (r.bottom <= line || r.top > innerHeight) continue;
+    const d = Math.abs(r.top - line);
+    if (!best || d < best.d) best = { key: el.dataset.chart, top: r.top, d };
+  }
+  return best;
+}
+function keepChartsAnchor(root, a) {
+  if (!a) return;
+  const el = root.querySelector(`[data-chart="${a.key}"]`);
+  if (!el) return;
+  const t0 = performance.now();
+  const step = () => {
+    const dy = el.getBoundingClientRect().top - a.top;
+    if (Math.abs(dy) > 0.5) window.scrollBy({ top: dy, behavior: "instant" });
+    if (performance.now() - t0 < 520) requestAnimationFrame(step);
+  };
+  step();
 }
 var ANCHORS = [
   [".hero", () => "hero"],
@@ -3072,10 +3114,12 @@ function render() {
     });
     main.querySelectorAll("[data-tt]").forEach((h) => {
       const c = CHART_LIST.find((x) => x[1] === h.dataset.tt);
-      if (c) h.textContent = c[3](w);
+      if (c) fadeText(h, c[3](w));
     });
+    const anchor = chartsAnchor(main);
     state.animCharts = true;
     drawCharts();
+    keepChartsAnchor(main, anchor);
     state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
     placeIndicators();
     return;
@@ -3820,8 +3864,9 @@ function upsertChart(sel, cfg, emptyMsg) {
   if (!el) return;
   const msg = el.parentElement.querySelector(".chart-empty");
   if (msg) {
-    msg.hidden = !emptyMsg;
-    msg.textContent = emptyMsg || "";
+    msg.hidden = false;
+    if (emptyMsg) msg.textContent = emptyMsg;
+    msg.classList.toggle("show", !!emptyMsg);
   }
   const ex = state.charts.find((c) => c.canvas === el);
   if (!ex) {
@@ -3897,9 +3942,10 @@ function drawCharts() {
         maintainAspectRatio: false,
         cutout: "58%",
         animation: base.animation,
+        // Slices keep the same order and colour every period; ones with nothing this period just shrink away
         plugins: {
-          legend: { display: true, position: wide ? "right" : "bottom", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3, padding: 10 } },
-          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)} \xB7 ${total ? Math.round(ctx.parsed / total * 100) : 0}%` } }
+          legend: { display: true, position: wide ? "right" : "bottom", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3, padding: 10, filter: (item, data) => (data.datasets[0].data[item.index] || 0) > 0 } },
+          tooltip: { filter: (ctx) => ctx.parsed > 0, callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)} \xB7 ${total ? Math.round(ctx.parsed / total * 100) : 0}%` } }
         }
       }
     };
@@ -4076,10 +4122,10 @@ function drawCharts() {
     labelled: true
   }, prevLine(pbuckets.map((b) => r2(totalOf(b))), { stack: "prev", label: "Previous period total" })), spentAny ? "" : "Nothing spent in this period.");
   if (has("cat")) {
-    const cats = byCategory(list).filter((c) => c.total > 0);
-    const cm = colourMap(cats.map((c) => c.category), CAT_COL);
-    const colors = cats.map((c) => cm[c.category]);
-    upsertChart("#c-cat", pie("cat", cats.map((c) => c.category), cats.map((c) => r2(c.total)), colors, (v) => money.format(v)), cats.length ? "" : "Nothing spent in this period.");
+    const order = byCategory(all).filter((c) => c.total > 0).map((c) => c.category);
+    const now = Object.fromEntries(byCategory(list).map((c) => [c.category, c.total]));
+    const cm = colourMap(order, CAT_COL);
+    upsertChart("#c-cat", pie("cat", order, order.map((c) => r2(now[c] || 0)), order.map((c) => cm[c]), (v) => money.format(v)), order.some((c) => now[c] > 0) ? "" : "Nothing spent in this period.");
   }
   if (has("cumul")) {
     let run = 0;
@@ -4151,9 +4197,9 @@ function drawCharts() {
       const k = TYRE_CATS.includes(c) ? "Tyres" : c === "Scheduled service" || /service|oil/i.test(c) && c !== "Other service" ? "Scheduled service" : "Repairs";
       sv[k] += +e.cost || 0;
     }
-    const keys = Object.keys(sv).filter((k) => sv[k] > 0);
+    const keys = Object.keys(sv);
     const col = { "Scheduled service": CAT_COL["Scheduled service"], Repairs: CAT_COL.Repairs, Tyres: CAT_COL.Tyres };
-    upsertChart("#c-svc", pie("svc", keys, keys.map((k) => r2(sv[k])), keys.map((k) => col[k]), (v) => money.format(v)), keys.length ? "" : "No services or repairs in this period.");
+    upsertChart("#c-svc", pie("svc", keys, keys.map((k) => r2(sv[k])), keys.map((k) => col[k]), (v) => money.format(v)), keys.some((k) => sv[k] > 0) ? "" : "No services or repairs in this period.");
   }
   if (has("biggest")) {
     const groups = /* @__PURE__ */ new Map();
@@ -4257,7 +4303,13 @@ function drawCharts() {
     }
     places.set(name, p);
   }
-  const placeCol = colourMap([...places.values()].sort((a, b) => b.count - a.count).map((p) => p.name));
+  const allPlaces = {};
+  all.filter((e) => e.type === "fuel").forEach((e) => {
+    const n = String(e.place || "").trim();
+    if (n) allPlaces[n] = (allPlaces[n] || 0) + 1;
+  });
+  const placeOrder = Object.entries(allPlaces).sort((a, b) => b[1] - a[1]).map(([n]) => n);
+  const placeCol = colourMap(placeOrder);
   if (has("station")) {
     const st = [...places.values()].filter((p) => p.litres > 0).map((p) => ({ ...p, ppl: p.cost / p.litres * 100 })).sort((a, b) => a.ppl - b.ppl).slice(0, 10);
     setHeight("station", st.length);
@@ -4291,17 +4343,17 @@ function drawCharts() {
     upsertChart("#c-station", cfg, st.length ? "" : "No fill-ups with a service station in this period.");
   }
   if (has("stationUse")) {
-    const pl = [...places.values()].sort((a, b) => b.count - a.count);
-    const top = pl.slice(0, 6), rest = pl.slice(6).reduce((s, p) => s + p.count, 0);
-    const lbl = [...top.map((p) => p.name), ...rest ? ["Other"] : []], vals = [...top.map((p) => p.count), ...rest ? [rest] : []];
-    upsertChart("#c-stationUse", pie("stationUse", lbl, vals, lbl.map((n) => placeCol[n] || "#9aa5b1"), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), lbl.length ? "" : "No fill-ups with a service station in this period.");
+    const top = placeOrder.slice(0, 6), cnt = (n) => places.get(n)?.count || 0;
+    const rest = [...places.values()].filter((p) => !top.includes(p.name)).reduce((s, p) => s + p.count, 0);
+    const lbl = [...top, ...placeOrder.length > 6 ? ["Other"] : []], vals = [...top.map(cnt), ...placeOrder.length > 6 ? [rest] : []];
+    upsertChart("#c-stationUse", pie("stationUse", lbl, vals, lbl.map((n) => placeCol[n] || "#9aa5b1"), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), vals.some((x) => x > 0) ? "" : "No fill-ups with a service station in this period.");
   }
   if (has("weekday")) {
     const names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], cnt = [0, 0, 0, 0, 0, 0, 0];
     for (const e of fillsP) cnt[((/* @__PURE__ */ new Date(e.date + "T00:00:00")).getDay() + 6) % 7]++;
-    const idx = names.map((_, i) => i).filter((i) => cnt[i] > 0);
+    const idx = names.map((_, i) => i);
     const pal = ["#0b98b8", "#e8871e", "#7b5ce0", "#2f9e5a", "#d64545", "#e0b31b", "#3b6fd8"];
-    upsertChart("#c-weekday", pie("weekday", idx.map((i) => names[i]), idx.map((i) => cnt[i]), idx.map((i) => pal[i]), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), idx.length ? "" : "No fill-ups in this period.");
+    upsertChart("#c-weekday", pie("weekday", idx.map((i) => names[i]), idx.map((i) => cnt[i]), idx.map((i) => pal[i]), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), cnt.some((x) => x > 0) ? "" : "No fill-ups in this period.");
   }
   const anyKm = kms.some((k) => k > 0);
   if (has("km")) upsertChart("#c-km", withPrev("km", {
@@ -4344,12 +4396,10 @@ function drawCharts() {
     return { v, es, color: vcol(i), spend: inP.reduce((s, e) => s + (+e.cost || 0), 0), km: kmOf(es, range.start, range.end) };
   });
   if (has("bothSpend")) {
-    const vs = perV.filter((x) => x.spend > 0);
-    upsertChart("#c-bothSpend", pie("bothSpend", vs.map((x) => x.v.name), vs.map((x) => r2(x.spend)), vs.map((x) => x.color), (v) => money.format(v)), vs.length ? "" : "Nothing spent in this period.");
+    upsertChart("#c-bothSpend", pie("bothSpend", perV.map((x) => x.v.name), perV.map((x) => r2(x.spend)), perV.map((x) => x.color), (v) => money.format(v)), perV.some((x) => x.spend > 0) ? "" : "Nothing spent in this period.");
   }
   if (has("bothKm")) {
-    const vs = perV.filter((x) => x.km > 0);
-    upsertChart("#c-bothKm", pie("bothKm", vs.map((x) => x.v.name), vs.map((x) => x.km), vs.map((x) => x.color), (v) => `${n0.format(v)} km`), vs.length ? "" : "No odometer readings in this period.");
+    upsertChart("#c-bothKm", pie("bothKm", perV.map((x) => x.v.name), perV.map((x) => x.km), perV.map((x) => x.color), (v) => `${n0.format(v)} km`), perV.some((x) => x.km > 0) ? "" : "No odometer readings in this period.");
   }
   if (has("bothEcon")) {
     const sets = perV.map((x) => {
@@ -4441,6 +4491,7 @@ function drawCalendar(odoList, range, C) {
        <div class="cal-key">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>` : '<p class="empty" style="margin:0">No odometer readings in this period.</p>';
   const sc = box.querySelector(".cal-scroll");
   if (sc) sc.scrollLeft = sc.scrollWidth;
+  if (state.animCharts && !calm() && box.animate) box.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 380, easing: "ease-out" });
 }
 document.addEventListener("keydown", (ev) => {
   const h = ev.target.closest?.("[data-act=garage-fold]");
