@@ -2264,7 +2264,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "46";
+var APP_VERSION = "47";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2691,7 +2691,6 @@ function partDetailHTML(p, key = state.carPart) {
       ${p.k === "tyres" && p.wheels ? wheelsHTML(p, String(key || "").split(":")[1]) : p.k === "lights" && p.spots ? lightsHTML(p, String(key || "").split(":")[1]) || wearBar(p.wear ?? 0) : p.wear != null ? wearBar(p.wear) : ""}
       ${life ? `<div class="pd-sub">Usually lasts about ${life}</div>` : ""}
       <ul class="pd-hist">${p.hist.slice(0, 6).map((e) => `<li><button type="button" class="link" data-act="edit-entry" data-id="${e.id}">${fmtDate(e.date)}</button><span>${esc(e.notes || e.category || "")}</span><span class="num">${e.cost ? money.format(+e.cost) : ""}</span></li>`).join("")}</ul>` : `<div class="pd-main muted">Nothing logged for this part yet.</div>`}
-    <button type="button" class="btn small pd-add" data-act="log-part" data-part="${p.k === "lights" && String(key || "").startsWith("lights:") ? key : p.k}">Log ${esc(p.k === "lights" && String(key || "").startsWith("lights:") ? partLabel(key).toLowerCase() : p.label.toLowerCase())}</button>
   </div>`;
 }
 function carHTML() {
@@ -3707,15 +3706,15 @@ function drawCharts() {
   const fillsP = list.filter((e) => e.type === "fuel").sort((a, b) => String(a.date).localeCompare(String(b.date)) || (+a.odo || 0) - (+b.odo || 0));
   const NONE = "Nothing logged in this period.";
   if (has("month")) upsertChart("#c-month", withPrev("month", {
-    type: "bar",
-    data: { labels, datasets: [["Fuel", "fuel", C.fuel], ["Service", "service", C.service], ["Rego & insurance", "rego", C.rego], ["Other", "expense", C.expense]].map(([label, key, color]) => ({ label, data: buckets.map((b) => r2(b[key])), backgroundColor: color, borderColor: C.surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 4, barPercentage: 0.75 })) },
+    type: "line",
+    data: { labels, datasets: [["Fuel", "fuel", C.fuel], ["Service", "service", C.service], ["Rego & insurance", "rego", C.rego], ["Other", "expense", C.expense]].map(([label, key, color], i) => ({ label, data: buckets.map((b) => r2(b[key])), borderColor: color, backgroundColor: mixHex(color, C.surface, 0.55), fill: i ? "-1" : "origin", borderWidth: 2, cubicInterpolationMode: "monotone", pointRadius: buckets.length > 40 ? 0 : 2.5, pointHoverRadius: 5, pointHitRadius: 8, pointBackgroundColor: color })) },
     options: {
       ...base,
       plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}`, footer: (items) => `This period: ${money.format(items.filter((i) => i.dataset.stack !== "prev").reduce((s, i) => s + i.parsed.y, 0))}` } } },
-      scales: { x: { ...base.scales.x, stacked: true }, y: { ...yTicks((v) => money0.format(v)), stacked: true } }
+      scales: { x: base.scales.x, y: { ...yTicks((v) => money0.format(v)), stacked: true, beginAtZero: true } }
     },
     labelled: true
-  }, prevBars(pbuckets.map((b) => r2(totalOf(b))), { stack: "prev" })), spentAny ? "" : "Nothing spent in this period.");
+  }, prevLine(pbuckets.map((b) => r2(totalOf(b))), { stack: "prev", label: "Previous period total" })), spentAny ? "" : "Nothing spent in this period.");
   if (has("cat")) {
     const cats = byCategory(list).filter((c) => c.total > 0);
     const cm = colourMap(cats.map((c) => c.category), CAT_COL);
