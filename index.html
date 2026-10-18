@@ -1183,6 +1183,11 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .gs .gs-body > .reveal-in { padding-top: 0; }
 .gs.open .gs-body > .reveal-in { padding-top: 14px; }
 .gs .gs-body > .reveal-in { transition: opacity .3s ease, padding-top .3s var(--ease); }
+
+/* Add screen: options centred in their boxes, names sized to fit on one line */
+.kind { align-items: center; justify-content: center; text-align: center; padding: 16px 10px 14px; }
+.kind .nm { font-size: clamp(.92rem, 4.2vw, 1.08rem); white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.kind .ds { font-size: clamp(.74rem, 3.3vw, .8rem); text-wrap: balance; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2378,7 +2383,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "58";
+var APP_VERSION = "59";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2421,9 +2426,9 @@ var ICONS = {
 var KINDS = [
   { k: "fuel", label: "Fuel", desc: "Fill-up at the servo" },
   { k: "service", label: "Service", desc: "Servicing and repairs" },
-  { k: "tyres", label: "Tyres", desc: "New, rotation, alignment, repairs" },
-  { k: "rego", label: "Rego & insurance", short: "Rego & ins.", desc: "Registration and insurance" },
-  { k: "expense", label: "Other expense", short: "Other", desc: "Tolls, parking, car wash and more" }
+  { k: "tyres", label: "Tyres", desc: "New, rotation, pressure" },
+  { k: "rego", label: "Rego & insurance", short: "Rego", desc: "Yearly renewals" },
+  { k: "expense", label: "Other expense", short: "Other", desc: "Tolls, parking, car wash" }
 ];
 var kindOf = (e) => e.type === "service" && TYRE_CATS.includes(e.category) ? "tyres" : groupOf(e);
 var state = {
