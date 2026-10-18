@@ -1450,10 +1450,15 @@ function estimateOdo(entries, now = /* @__PURE__ */ new Date()) {
     }
   }
   if (latestOdo === null) return { odo: null, latestOdo: null, kmPerDay: null, days: 0 };
-  const recent = periodStats(entries, iso(addDays(now, -90)), today2);
-  const first = entries.map((e) => e.date).sort()[0];
-  const all = first ? periodStats(entries, first, today2) : null;
-  const kmPerDay = recent.km && recent.km > 0 ? recent.km / recent.days : all?.km ? all.km / all.days : null;
+  const reads = entries.filter((e) => num(e.odo) !== null && e.date).map((e) => [String(e.date), +e.odo]).sort((a, b) => a[0].localeCompare(b[0]) || a[1] - b[1]);
+  const from = iso(addDays(/* @__PURE__ */ new Date(latestDate + "T00:00:00"), -91));
+  const base = reads.filter(([d]) => d <= from).pop() || reads.find(([d]) => d >= from) || reads[0];
+  const span = -daysUntil(base[0], /* @__PURE__ */ new Date(latestDate + "T00:00:00"));
+  let kmPerDay = span >= 7 && latestOdo > base[1] ? (latestOdo - base[1]) / span : null;
+  if (kmPerDay == null) {
+    const first = reads[0], all = -daysUntil(first[0], /* @__PURE__ */ new Date(latestDate + "T00:00:00"));
+    kmPerDay = all >= 7 && latestOdo > first[1] ? (latestOdo - first[1]) / all : null;
+  }
   const days = Math.min(120, Math.max(0, -daysUntil(latestDate, now)));
   return { odo: latestOdo + (kmPerDay ? Math.round(kmPerDay * days) : 0), latestOdo, kmPerDay, days };
 }
@@ -2347,7 +2352,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "50";
+var APP_VERSION = "51";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3470,7 +3475,18 @@ function homeHTML() {
       ${tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm))}
       ${tile(a.costPerDay == null ? "\u2013" : money.format(a.costPerDay), "Cost per day", b && delta(a.costPerDay, b.costPerDay))}
       ${tile(a.kmPerWeek == null ? "\u2013" : fmtKm(Math.round(a.kmPerWeek)), "Km per week", b && delta(a.kmPerWeek, b.kmPerWeek, null))}
-      ${tile(odo ? n0.format(+odo.odo) + " km" : "\u2013", "Odometer", "", odo ? `as of ${fmtDate(odo.date)}` : "", "wide")}
+      ${(() => {
+    const est = estimateOdo(vehicleEntries());
+    if (!odo) return tile("\u2013", "Odometer", "", "", "wide");
+    const predicted = est.odo != null && est.days > 0 && est.kmPerDay;
+    return tile(
+      `${n0.format(predicted ? est.odo : +odo.odo)} km`,
+      predicted ? "Odometer today (predicted)" : "Odometer",
+      "",
+      `Last posted <span class="num">${n0.format(+odo.odo)}</span> km on ${fmtDate(odo.date)}${predicted ? ` \xB7 ~${n0.format(Math.round(est.kmPerDay))} km a day` : ""}`,
+      "wide"
+    );
+  })()}
     </section>
     </div><div class="dash-side">${comingUp}</div></div>
 `;
