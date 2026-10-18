@@ -815,6 +815,19 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
 .hero-top { min-height: 118px; }
 .hero-delta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hero .legend { min-height: 3.1em; align-content: start; }
+
+/* Scan docket */
+.scan-row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 12px; align-items: center; padding: 12px; border: 1.5px dashed color-mix(in srgb, var(--fuel) 55%, var(--line)); border-radius: 14px; background: color-mix(in srgb, var(--fuel) 7%, transparent); }
+.scan-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--fuel); color: #fff; border: 0; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.scan-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.scan-btn.busy { opacity: .7; pointer-events: none; }
+.scan-status { font-size: .82rem; color: var(--text-2); line-height: 1.35; }
+.scan-status.ok { color: var(--ok); font-weight: 600; }
+.scan-status.warn { color: var(--service); font-weight: 600; }
+.scan-bar { grid-column: 1 / -1; display: block; height: 4px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 25%, transparent); overflow: hidden; }
+.scan-bar i { display: block; height: 100%; width: 5%; background: var(--fuel); border-radius: inherit; transition: width .3s ease; }
+input.scanned { animation: scanned 1.6s ease; }
+@keyframes scanned { 0%, 40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--fuel) 45%, transparent); border-color: var(--fuel); } 100% { box-shadow: none; } }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1234,6 +1247,72 @@ function tyreState(entries, now = /* @__PURE__ */ new Date()) {
   }
   return { at, unplaced, any: jobs.some((e) => tyreJobsOf(e).includes("new")) };
 }
+function parseDocket(rawText, today2 = /* @__PURE__ */ new Date()) {
+  const text = String(rawText || "").replace(/[|]/g, " ").replace(/(\d)\s*[,]\s*(\d{2,3})(?!\d)/g, "$1.$2").replace(/(\d)\s+\.(\d)/g, "$1.$2").replace(/(\d)\.\s+(\d)/g, "$1.$2");
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const N = (s) => parseFloat(String(s).replace(/[^\d.]/g, ""));
+  const litres = /* @__PURE__ */ new Set(), ppl = /* @__PURE__ */ new Set(), totals = [], money2 = /* @__PURE__ */ new Set();
+  for (const line of lines) {
+    const l = line.toLowerCase();
+    for (const m of l.matchAll(/(\d{1,3}\.\d{1,3})\s*(?:l\b|lt\b|ltr|ltrs|litre|liter)/g)) litres.add(N(m[1]));
+    for (const m of l.matchAll(/(?:litres?|liters?|ltrs?|volume|vol|qty|quantity)\s*[:=]?\s*(\d{1,3}\.\d{1,3})/g)) litres.add(N(m[1]));
+    for (const m of l.matchAll(/(\d{2,3}\.\d{1,2})\s*(?:c\s*\/?\s*l\b|cpl|cents?|c\b)/g)) ppl.add(N(m[1]) / 100);
+    for (const m of l.matchAll(/@\s*\$?\s*(\d{1,3}\.\d{1,3})/g)) {
+      const v = N(m[1]);
+      ppl.add(v > 20 ? v / 100 : v);
+    }
+    for (const m of l.matchAll(/\$?\s*(\d\.\d{2,3})\s*(?:\/\s*l\b|per\s*l)/g)) ppl.add(N(m[1]));
+    for (const m of l.matchAll(/(?:unit\s*price|price|rate)\s*[:=]?\s*\$?\s*(\d{1,3}\.\d{1,3})/g)) {
+      const v = N(m[1]);
+      ppl.add(v > 20 ? v / 100 : v);
+    }
+    const isTotal = /total|amount|amt|eftpos|sale|purchase|balance|due|paid|card|visa|mastercard/.test(l) && !/sub\s*total|gst|tax|change|rounding|discount|saving/.test(l);
+    for (const m of l.matchAll(/\$\s*(\d{1,4}\.\d{2})(?!\d)|(?:^|\s)(\d{1,4}\.\d{2})(?!\d)(?!\s*(?:l\b|lt|ltr|c\b|c\/|cpl))/g)) {
+      const v = N(m[1] || m[2]);
+      if (v > 0) {
+        money2.add(v);
+        if (isTotal) totals.push(v);
+      }
+    }
+  }
+  const L = [...litres].filter((v) => v >= 1 && v <= 400);
+  const P = [...ppl].filter((v) => v >= 0.8 && v <= 4.5);
+  const T = [...new Set(totals)].filter((v) => v >= 1 && v <= 2e3);
+  const M = [...money2].filter((v) => v >= 1 && v <= 2e3);
+  const close = (a, b) => Math.abs(a - b) <= Math.max(0.06, b * 0.015);
+  let best = null;
+  for (const l of L) for (const p of P) for (const t of [...T, ...M]) {
+    if (close(l * p, t)) {
+      const score = (T.includes(t) ? 2 : 1) + t / 1e4;
+      if (!best || score > best.score) best = { litres: l, ppl: p, total: t, score };
+    }
+  }
+  if (!best) for (const l of L) for (const t of [...T, ...M]) {
+    const p = t / l;
+    if (p >= 0.8 && p <= 4.5) {
+      const score = (T.includes(t) ? 2 : 1) + t / 1e4;
+      if (!best || score > best.score) best = { litres: l, ppl: +p.toFixed(4), total: t, score };
+    }
+  }
+  if (!best) for (const p of P) for (const t of T.length ? T : M) {
+    const l = t / p;
+    if (l >= 1 && l <= 400) {
+      best = { litres: +l.toFixed(2), ppl: p, total: t };
+      break;
+    }
+  }
+  const out = best ? { litres: best.litres, ppl: best.ppl, total: best.total } : { litres: L[0] ?? null, ppl: P[0] ?? null, total: T.length ? Math.max(...T) : null };
+  out.date = null;
+  const dm = text.match(/(\b\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})\b/);
+  if (dm) {
+    let [, d, mo, y] = dm.map(Number);
+    if (y < 100) y += 2e3;
+    const dt = new Date(y, mo - 1, d);
+    const age = (today2 - dt) / 864e5;
+    if (dt.getMonth() === mo - 1 && age >= -1 && age <= 120) out.date = iso(dt);
+  }
+  return out;
+}
 
 // carlog-src/import.js
 var RULES = [
@@ -1367,7 +1446,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "41";
+var APP_VERSION = "42";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1589,6 +1668,45 @@ async function compressImage(file) {
     quality = Math.max(0.4, quality - 0.1);
   }
   return url;
+}
+var ocrWorker = null;
+var ocrProgress = null;
+async function prepDocket(file) {
+  const bmp = await createImageBitmap(file);
+  const scale = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(bmp.width * scale);
+  c.height = Math.round(bmp.height * scale);
+  const g = c.getContext("2d");
+  g.drawImage(bmp, 0, 0, c.width, c.height);
+  const img = g.getImageData(0, 0, c.width, c.height), d = img.data;
+  let lo = 255, hi = 0;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    d[i] = y;
+    if (y < lo) lo = y;
+    if (y > hi) hi = y;
+  }
+  const span = Math.max(40, hi - lo);
+  for (let i = 0; i < d.length; i += 4) {
+    const v = Math.max(0, Math.min(255, (d[i] - lo) / span * 255 * 1.15 - 10));
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  g.putImageData(img, 0, 0);
+  return c;
+}
+async function readDocket(file, onProgress) {
+  ocrProgress = onProgress;
+  if (!window.Tesseract) await loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+  if (!ocrWorker) {
+    ocrWorker = await Tesseract.createWorker("eng", 1, {
+      logger: (m) => {
+        if (ocrProgress) ocrProgress(m.status === "recognizing text" ? 0.3 + m.progress * 0.7 : Math.min(0.3, (m.progress || 0) * 0.3), m.status);
+      }
+    });
+  }
+  const { data } = await ocrWorker.recognize(await prepDocket(file));
+  return parseDocket(data.text);
 }
 ["gesturestart", "gesturechange", "gestureend"].forEach((t) => document.addEventListener(t, (ev) => ev.preventDefault(), { passive: false }));
 document.addEventListener("touchmove", (ev) => {
@@ -2768,6 +2886,11 @@ function entryForm(entry) {
       </div><p class="hint" id="odo-hint"></p>`);
     if (kinds.has("fuel")) {
       const ex = byKind.fuel || e;
+      out = item(`<div class="scan-row">
+          <label class="btn scan-btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 9h8M8 12h8M8 15h5"/></svg>Scan docket<input type="file" accept="image/*" id="scan-input" hidden></label>
+          <span class="scan-status" id="scan-status">Take a photo of the docket to fill in the litres, price and total.</span>
+          <span class="scan-bar" id="scan-bar" hidden><i></i></span>
+        </div>`) + out;
       const L = v("litres", ex.litres), C = v("cost", ex.cost);
       out += item(`<div class="grid3">
           <label>Litres<input name="litres" inputmode="decimal" required value="${esc(L)}"></label>
@@ -2912,6 +3035,59 @@ function entryForm(entry) {
       ["svc_cost", "tyre_cost", "rego_cost", "exp_cost"].forEach((n) => f[n]?.addEventListener("input", sum));
       sum();
     }
+    const scan = $("#scan-input");
+    if (scan) scan.addEventListener("change", async () => {
+      const file = scan.files[0];
+      if (!file) return;
+      const st = $("#scan-status"), bar = $("#scan-bar"), btn = scan.closest(".scan-btn");
+      btn.classList.add("busy");
+      bar.hidden = false;
+      st.className = "scan-status";
+      st.textContent = ocrWorker ? "Reading the docket\u2026" : "Getting the reader ready (first time only)\u2026";
+      const setP = (p) => {
+        bar.firstElementChild.style.width = Math.round(Math.max(0.05, p) * 100) + "%";
+      };
+      setP(0.05);
+      try {
+        compressImage(file).then((url) => {
+          receipt = url;
+          const t = $("#receipt-thumb");
+          if (t) t.innerHTML = `<img src="${url}" alt="Receipt">`;
+        }).catch(() => {
+        });
+        const r = await readDocket(file, (p, status) => {
+          setP(p);
+          if (status === "recognizing text") st.textContent = "Reading the docket\u2026";
+        });
+        const got = [];
+        const put = (name, val) => {
+          if (val == null || !f[name]) return;
+          f[name].value = val;
+          f[name].classList.remove("scanned");
+          void f[name].offsetWidth;
+          f[name].classList.add("scanned");
+          got.push(name);
+        };
+        if (r.litres) put("litres", r.litres.toFixed(2));
+        if (r.ppl) put("cpl", (r.ppl * 100).toFixed(1));
+        if (r.total) put("cost", r.total.toFixed(2));
+        if (r.date && r.date !== f.date.value) {
+          put("date", r.date);
+          f.date.dispatchEvent(new Event("change"));
+        }
+        const full = r.litres && r.ppl && r.total;
+        st.textContent = full ? "Done. Check the numbers before you save." : got.length ? "Got some of it. Fill in what's missing." : "Couldn't read that one clearly. Try again with the docket flat and in good light, or type it in.";
+        st.className = "scan-status " + (full ? "ok" : "warn");
+      } catch (err) {
+        console.error(err);
+        st.textContent = navigator.onLine ? "The docket reader didn't load. Try again in a moment." : "The docket reader needs internet the first time.";
+        st.className = "scan-status warn";
+      } finally {
+        btn.classList.remove("busy");
+        bar.hidden = true;
+        scan.value = "";
+      }
+    });
     if (kinds.has("fuel")) {
       const order = [];
       const recalc = (changed) => {
