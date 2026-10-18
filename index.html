@@ -968,11 +968,8 @@ function periodRange(kind, now = /* @__PURE__ */ new Date(), firstDate = null) {
   const end = iso(today2);
   const monthName = (d) => d.toLocaleDateString("en-AU", { month: "long" });
   if (kind === "month") {
-    const s2 = new Date(today2.getFullYear(), today2.getMonth(), 1);
-    const ps2 = new Date(today2.getFullYear(), today2.getMonth() - 1, 1);
-    const pLen = new Date(today2.getFullYear(), today2.getMonth(), 0).getDate();
-    const pe2 = new Date(ps2.getFullYear(), ps2.getMonth(), Math.min(today2.getDate(), pLen));
-    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `${monthName(today2)} so far`, prevLabel: `same days of ${monthName(ps2)}` };
+    const s2 = addDays(today2, -29), pe2 = addDays(s2, -1), ps2 = addDays(pe2, -29);
+    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: "Last month", prevLabel: "the month before" };
   }
   if (kind === "quarter") {
     const q = Math.floor(today2.getMonth() / 3);
@@ -1370,7 +1367,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "40";
+var APP_VERSION = "41";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
