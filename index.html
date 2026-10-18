@@ -2367,7 +2367,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "53";
+var APP_VERSION = "54";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3163,7 +3163,7 @@ function delta(cur, prev, lowerIsBetter = true) {
   const pct = (cur - prev) / Math.abs(prev) * 100;
   if (Math.abs(pct) < 1) return '<span class="delta flat">\u25CF steady</span>';
   const up = pct > 0;
-  const cls = lowerIsBetter === null ? "flat" : up === lowerIsBetter ? "bad" : "good";
+  const cls = up ? "bad" : "good";
   return `<span class="delta ${cls}">${up ? "\u25B2" : "\u25BC"} ${n0.format(Math.abs(pct))}%</span>`;
 }
 var fmtC = (dollars) => dollars == null || !isFinite(dollars) ? "\u2013" : `${n1.format(dollars * 100)}c`;
