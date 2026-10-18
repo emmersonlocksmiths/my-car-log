@@ -1123,6 +1123,19 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .prev-tog[hidden] { display: none; }
 .prev-tog input { width: 16px; height: 16px; margin: 0; accent-color: #f0a04b; cursor: pointer; }
 .prev-tog:has(input:checked) { border-color: #f0a04b; background: color-mix(in srgb, #f0a04b 14%, var(--surface)); color: var(--text); }
+
+/* Car tab: each tyre's own wear */
+.wheels { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0 4px; }
+.wh { appearance: none; display: grid; gap: 6px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font: inherit; text-align: left; cursor: pointer; transition: border-color .2s, background-color .2s; }
+.wh.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.wh-n { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: .92rem; }
+.wh-km { font-size: .9rem; }
+.wh .wear-bar { margin: 2px 0 0; }
+.pd-dots { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 14px; height: 14px; }
+.pd-dots i { border-radius: 50%; }
+.light-pos { display: grid; gap: 6px; margin-top: 10px; }
+.light-pos[hidden] { display: none; }
+.lp-t { font-weight: 600; font-size: .9rem; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1668,6 +1681,34 @@ function partsStatus(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
     return { ...p, km, mo, hist, last, daysSince, kmSince, wear };
   });
 }
+var LIGHT_POS = ["FL", "FR", "RL", "RR"];
+function lightPositionsOf(e) {
+  if (Array.isArray(e.lightPos) && e.lightPos.length) return e.lightPos.filter((p) => LIGHT_POS.includes(p));
+  const n = String(e.notes || "").toLowerCase();
+  const fr = /\b(front|head\s*light|headlight|low\s*beam|high\s*beam)/.test(n), rr = /\b(rear|tail|brake\s*light|reverse)/.test(n);
+  const l = /\b(left|passenger)\b/.test(n), r = /\b(right|driver'?s?)\b/.test(n);
+  return LIGHT_POS.filter((p) => (fr || rr ? p[0] === "F" ? fr : rr : true) && (l || r ? p[1] === "L" ? l : r : true));
+}
+function lightsState(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
+  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0) || null;
+  const def = PARTS.find((x) => x.k === "lights");
+  const life = (vehicle.partLife || {}).lights || {};
+  const km = life.km ?? def.km, mo = life.mo ?? def.mo;
+  const hist = entries.filter((e) => partsOf(e).includes("lights")).sort(byDateDesc);
+  const out = {};
+  for (const p of LIGHT_POS) {
+    const last = hist.find((e) => lightPositionsOf(e).includes(p));
+    if (!last) {
+      out[p] = null;
+      continue;
+    }
+    const daysSince = -daysUntil(last.date, now);
+    const kmSince = num(last.odo) !== null && latestOdo ? Math.max(0, latestOdo - +last.odo) : null;
+    const fk = km && kmSince != null ? kmSince / km : null, fm = mo ? daysSince / (mo * 30.44) : null;
+    out[p] = { last, daysSince, kmSince, f: fk == null && fm == null ? 0 : Math.max(fk ?? 0, fm ?? 0) };
+  }
+  return out;
+}
 
 // import.js
 var RULES = [
@@ -1772,6 +1813,37 @@ function parseMyCar(rows) {
 // car3d.js
 var GREY = 7042690;
 var SHAPES = {
+  // Real models, drawn from their published dimensions (wheels at ±wheelbase/2)
+  commodore: {
+    label: "Holden Commodore",
+    L: 4.9,
+    W: 1.9,
+    wheelbase: 2.915,
+    r: 0.34,
+    axleY: 0.34,
+    tailY: 0.9,
+    // VE sedan: long bonnet, steeply raked screen, short high boot deck
+    profile: [[-2.49, 0.4], [2.38, 0.36], [2.44, 0.64], [2.37, 0.77], [2.1, 0.83], [0.95, 0.95], [0.12, 1.43], [-0.3, 1.47], [-0.98, 1.43], [-1.78, 1.08], [-2.4, 1.04], [-2.49, 0.96], [-2.51, 0.56]],
+    screen: [[0.95, 0.95], [0.12, 1.43]],
+    engineX: 1.6,
+    engineY: 0.62,
+    dashX: 0.72
+  },
+  iload: {
+    label: "Hyundai iLoad",
+    L: 5.15,
+    W: 1.92,
+    wheelbase: 3.2,
+    r: 0.355,
+    axleY: 0.355,
+    tailY: 1.15,
+    // Semi-bonneted van: short sloping nose, long raked screen, flat roof, square back
+    profile: [[-2.55, 0.42], [2.52, 0.4], [2.62, 0.72], [2.55, 0.98], [1.95, 1.11], [1.05, 1.88], [0.8, 1.935], [-2.45, 1.935], [-2.55, 1.86], [-2.57, 0.5]],
+    screen: [[1.95, 1.11], [1.05, 1.88]],
+    engineX: 2,
+    engineY: 0.72,
+    dashX: 1.3
+  },
   hatch: {
     label: "Hatchback",
     L: 4.1,
@@ -1935,8 +2007,8 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
   parts.windscreen[0].material.opacity = 0.3;
   for (const z of [-0.32, 0.38]) add("wipers", new T.BoxGeometry(0.05, 0.035, 0.62), [sx0 - 0.08, sy0 + 0.08, z], [0, 0.35, 0]);
   const hx = S.wheelbase / 2, wz = S.W / 2 - 0.02;
-  for (const [x, z] of [[hx, wz], [hx, -wz], [-hx, wz], [-hx, -wz]]) {
-    add("tyres", new T.TorusGeometry(S.r - 0.09, 0.1, 12, 28), [x, S.axleY, z]);
+  for (const [x, z, pos] of [[hx, -wz, "FL"], [hx, wz, "FR"], [-hx, -wz, "RL"], [-hx, wz, "RR"]]) {
+    add("tyres:" + pos, new T.TorusGeometry(S.r - 0.09, 0.1, 12, 28), [x, S.axleY, z]);
     const rim = new T.Mesh(new T.CylinderGeometry(S.r - 0.13, S.r - 0.13, 0.16, 24), new T.MeshStandardMaterial({ color: 8950432, roughness: 0.4, metalness: 0.6 }));
     rim.rotation.x = Math.PI / 2;
     rim.position.set(x, S.axleY, z);
@@ -1968,15 +2040,18 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
   add("oil", new T.CylinderGeometry(0.05, 0.05, 0.16, 12), [-0.2, 0.36, 0.32], [0, 0, Math.PI / 2]);
   const front = S.profile[2][0] - 0.02, rear = S.profile[S.profile.length - 1][0] + 0.02;
   for (const z of [S.W * 0.36, -S.W * 0.36]) {
-    add("lights", new T.BoxGeometry(0.06, 0.12, 0.32), [front, S.profile[2][1] + 0.06, z]);
-    add("lights", new T.BoxGeometry(0.06, 0.18, 0.16), [rear, S.tailY, z]);
+    add("lights:" + (z > 0 ? "FR" : "FL"), new T.BoxGeometry(0.06, 0.12, 0.32), [front, S.profile[2][1] + 0.06, z]);
+    add("lights:" + (z > 0 ? "RR" : "RL"), new T.BoxGeometry(0.06, 0.18, 0.16), [rear, S.tailY, z]);
   }
   let selected = null, colors = {};
   const tmp = new T.Color();
+  const inSel = (k) => !!selected && (k === selected || k.split(":")[0] === selected);
+  const selMeshes = () => Object.entries(parts).filter(([k]) => inSel(k)).flatMap(([, ms]) => ms);
+  const colorOf = (k) => k in colors ? colors[k] : colors[k.split(":")[0]];
   function setStatus(map) {
     colors = map || {};
     for (const [k, ms] of Object.entries(parts)) {
-      const c = colors[k];
+      const c = colorOf(k);
       for (const m of ms) {
         m.material.color.set(c || (k === "windscreen" ? 11126749 : GREY));
         m.material.roughness = c ? 0.35 : 0.7;
@@ -1992,8 +2067,8 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
     for (const [k, ms] of Object.entries(parts)) for (const m of ms) {
       m.material.emissive.set(0);
       m.scale.setScalar(1);
-      m.userData.halo.visible = k === selected;
-      m.userData.halo.material.color.set(colors[k] || 1491682);
+      m.userData.halo.visible = inSel(k);
+      m.userData.halo.material.color.set(colorOf(k) || 1491682);
     }
     if (tag) {
       tag.remove();
@@ -2006,10 +2081,11 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
       container.appendChild(tag);
     }
     if (!selected) focusTo.set(0, 0, 0);
-    if (selected && parts[selected]) {
+    const sm = selMeshes();
+    if (selected && sm.length) {
       const c = new T.Vector3();
-      parts[selected].forEach((m) => c.add(m.position));
-      c.divideScalar(parts[selected].length);
+      sm.forEach((m) => c.add(m.position));
+      c.divideScalar(sm.length);
       const ang = Math.atan2(c.z, c.x || 1e-4);
       const camAng = Math.atan2(camera.position.z, camera.position.x);
       let want = -(camAng - ang);
@@ -2059,7 +2135,7 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
     shellMat.opacity = 0.13 - 0.09 * fade;
     edges.material.opacity = 0.55 - 0.4 * fade;
     for (const [k, ms] of Object.entries(parts)) {
-      const on = k === selected;
+      const on = inSel(k);
       for (const m of ms) {
         const base = k === "windscreen" ? 0.3 : 1;
         const op = on ? k === "windscreen" ? 0.85 : 1 : base * (1 - 0.86 * fade);
@@ -2068,19 +2144,20 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
         m.material.depthWrite = op >= 1;
       }
     }
-    if (selected && parts[selected]) {
+    const sm = selected ? selMeshes() : [];
+    if (sm.length) {
       const s = Math.sin(t / 240);
       const k = 0.45 + 0.4 * s;
-      for (const m of parts[selected]) {
-        tmp.set(colors[selected] || 1491682).multiplyScalar(k);
+      for (const m of sm) {
+        tmp.set(colorOf(m.userData.part) || 1491682).multiplyScalar(k);
         m.material.emissive.copy(tmp);
         m.scale.setScalar(1.14 + 0.08 * s);
         m.userData.halo.material.opacity = 0.35 + 0.25 * s;
       }
       if (tag) {
         const c = new T.Vector3();
-        parts[selected].forEach((m) => c.add(m.getWorldPosition(new T.Vector3())));
-        c.divideScalar(parts[selected].length);
+        sm.forEach((m) => c.add(m.getWorldPosition(new T.Vector3())));
+        c.divideScalar(sm.length);
         c.y += 0.25;
         c.project(camera);
         tag.style.transform = `translate(${(c.x + 1) / 2 * w}px, ${(1 - c.y) / 2 * h}px) translate(-50%, -100%)`;
@@ -2187,7 +2264,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "45";
+var APP_VERSION = "46";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2518,6 +2595,8 @@ var bodyOf = (v) => {
   if (v && SHAPES[v.body]) return v.body;
   if (v && v.body === "car") return "sedan";
   const t = `${v?.name || ""} ${v?.make || ""} ${v?.model || ""}`;
+  if (/i-?load|starex/i.test(t)) return "iload";
+  if (/commodore|\bsv6\b|\bss\b|calais/i.test(t)) return "commodore";
   if (/\bvan\b|hiace|transit|sprinter|trafic|vito|express|staria|carnival/i.test(t)) return "van";
   if (/\bute\b|hilux|ranger|triton|navara|d-?max|bt-?50|amarok|colorado/i.test(t)) return "ute";
   if (/suv|4wd|prado|landcruiser|pajero|rav4|x-?trail|cx-?5|outlander|everest|fortuner/i.test(t)) return "suv";
@@ -2541,28 +2620,89 @@ function shapeForm(v) {
 function carParts() {
   const v = currentVehicle(), list = vehicleEntries();
   const r = reminders(list, v);
-  return partsStatus(list, { ...v, svcKm: r.service.intervalKm, svcMonths: r.service.months }).map((p) => ({ ...p, color: p.wear != null ? wearColor(p.wear) : null }));
+  const tw = v ? tyreWear(v, r) : { info: {} };
+  return partsStatus(list, { ...v, svcKm: r.service.intervalKm, svcMonths: r.service.months }).map((p) => {
+    const out = { ...p, color: p.wear != null ? wearColor(p.wear) : null };
+    if (p.k === "tyres") {
+      out.wheels = tw.info;
+      const known = TYRE_POS.map((pos) => tw.info[pos]).filter(Boolean);
+      if (known.length) {
+        out.wear = Math.max(...known.map((x) => x.f));
+        out.color = wearColor(out.wear);
+      }
+    }
+    if (p.k === "lights") {
+      const ls = lightsState(list, v || {});
+      out.spots = Object.fromEntries(LIGHT_POS.map((pos) => [pos, ls[pos] && { ...ls[pos], color: wearColor(ls[pos].f) }]));
+      const known = LIGHT_POS.map((pos) => ls[pos]).filter(Boolean);
+      if (known.length) {
+        out.wear = Math.max(...known.map((x) => x.f));
+        out.color = wearColor(out.wear);
+      }
+    }
+    return out;
+  });
 }
-function partDetailHTML(p) {
+var partBase = (key) => String(key || "").split(":")[0];
+var partLabel = (key) => {
+  const [b, pos] = String(key || "").split(":");
+  return pos ? `${POS_LABEL[pos]} ${b === "lights" ? "light" : "tyre"}` : PARTS.find((x) => x.k === b)?.label;
+};
+var is3dPart = (key) => !!key && PARTS.some((x) => x.k === partBase(key));
+function carColours(ps) {
+  const map = Object.fromEntries(ps.filter((p) => p.color).map((p) => [p.k, p.color]));
+  const t = ps.find((p) => p.k === "tyres");
+  if (t && t.wheels && TYRE_POS.some((pos) => t.wheels[pos])) for (const pos of TYRE_POS) map["tyres:" + pos] = t.wheels[pos] ? t.wheels[pos].color : null;
+  const l = ps.find((p) => p.k === "lights");
+  if (l && l.spots && LIGHT_POS.some((pos) => l.spots[pos])) for (const pos of LIGHT_POS) map["lights:" + pos] = l.spots[pos] ? l.spots[pos].color : null;
+  return map;
+}
+function lightsHTML(p, sel) {
+  const w = p.spots || {};
+  if (!LIGHT_POS.some((pos) => w[pos])) return "";
+  const cell = (pos) => {
+    const x = w[pos];
+    return `<button type="button" class="wh ${sel === pos ? "on" : ""}" data-act="pick-part" data-part="lights:${pos}">
+      <span class="wh-n"><span class="pd-dot" style="background:${x ? x.color : "transparent"};${x ? "" : "border:2px solid var(--line)"}"></span>${POS_LABEL[pos]}</span>
+      ${x ? `<span class="wh-km">${ago(x.daysSince)} ago</span>${wearBar(x.f)}` : '<span class="wh-km muted">No history</span>'}
+    </button>`;
+  };
+  return `<div class="wheels">${LIGHT_POS.map(cell).join("")}</div>`;
+}
+function wheelsHTML(p, sel) {
+  const w = p.wheels || {};
+  if (!TYRE_POS.some((pos) => w[pos])) return "";
+  const cell = (pos) => {
+    const x = w[pos];
+    return `<button type="button" class="wh ${sel === pos ? "on" : ""}" data-act="pick-part" data-part="tyres:${pos}">
+      <span class="wh-n"><span class="pd-dot" style="background:${x ? x.color : "transparent"};${x ? "" : "border:2px solid var(--line)"}"></span>${POS_LABEL[pos]}</span>
+      ${x ? `<span class="wh-km num">${n0.format(x.done)} km</span>${wearBar(x.f)}` : '<span class="wh-km muted">No history</span>'}
+    </button>`;
+  };
+  return `<div class="wheels">${TYRE_POS.map(cell).join("")}</div>`;
+}
+function partDetailHTML(p, key = state.carPart) {
   if (!p) return `<div class="part-detail empty"><span>Tap a part on the car, or one in the list, to see its history.</span></div>`;
   const st = p.wear == null ? p.last ? "ok" : "unknown" : p.wear >= 1 ? "due" : p.wear >= 0.85 ? "soon" : "ok";
   const life = [p.km ? `${n0.format(p.km)} km` : "", p.mo ? `${p.mo >= 12 && p.mo % 12 === 0 ? p.mo / 12 + " year" + (p.mo > 12 ? "s" : "") : p.mo + " months"}` : ""].filter(Boolean).join(" or ");
   return `<div class="part-detail">
     <div class="pd-top"><span class="pd-dot" style="background:${p.color || "var(--muted)"}"></span><strong>${esc(p.label)}</strong>${statusChip(st, st === "due")}</div>
     ${p.last ? `<div class="pd-main">Last done <strong>${fmtDate(p.last.date)}</strong> \xB7 ${ago(p.daysSince)} ago${p.kmSince != null ? ` \xB7 <span class="num">${n0.format(p.kmSince)}</span> km` : ""}</div>
-      ${p.wear != null ? wearBar(p.wear) : ""}
+      ${p.k === "tyres" && p.wheels ? wheelsHTML(p, String(key || "").split(":")[1]) : p.k === "lights" && p.spots ? lightsHTML(p, String(key || "").split(":")[1]) || wearBar(p.wear ?? 0) : p.wear != null ? wearBar(p.wear) : ""}
       ${life ? `<div class="pd-sub">Usually lasts about ${life}</div>` : ""}
       <ul class="pd-hist">${p.hist.slice(0, 6).map((e) => `<li><button type="button" class="link" data-act="edit-entry" data-id="${e.id}">${fmtDate(e.date)}</button><span>${esc(e.notes || e.category || "")}</span><span class="num">${e.cost ? money.format(+e.cost) : ""}</span></li>`).join("")}</ul>` : `<div class="pd-main muted">Nothing logged for this part yet.</div>`}
-    <button type="button" class="btn small pd-add" data-act="log-part" data-part="${p.k}">Log ${esc(p.label.toLowerCase())}</button>
+    <button type="button" class="btn small pd-add" data-act="log-part" data-part="${p.k === "lights" && String(key || "").startsWith("lights:") ? key : p.k}">Log ${esc(p.k === "lights" && String(key || "").startsWith("lights:") ? partLabel(key).toLowerCase() : p.label.toLowerCase())}</button>
   </div>`;
 }
 function carHTML() {
   const ps = carParts();
-  const sel = ps.find((p) => p.k === state.carPart) || null;
+  const sel = ps.find((p) => p.k === partBase(state.carPart)) || null;
   const done = ps.filter((p) => p.last).sort((a, b) => (b.wear ?? -1) - (a.wear ?? -1));
   const rest = ps.filter((p) => !p.last);
-  const row = (p) => `<button type="button" class="part-row ${p.k === state.carPart ? "on" : ""}" data-act="pick-part" data-part="${p.k}">
-      <span class="pd-dot" style="background:${p.color || "transparent"};${p.color ? "" : "border:2px solid var(--line)"}"></span>
+  const four = (p) => p.k === "tyres" ? p.wheels : p.k === "lights" ? p.spots : null;
+  const dot = (p) => four(p) && TYRE_POS.some((pos) => four(p)[pos]) ? `<span class="pd-dots">${TYRE_POS.map((pos) => `<i style="background:${four(p)[pos] ? four(p)[pos].color : "var(--line)"}"></i>`).join("")}</span>` : `<span class="pd-dot" style="background:${p.color || "transparent"};${p.color ? "" : "border:2px solid var(--line)"}"></span>`;
+  const row = (p) => `<button type="button" class="part-row ${p.k === partBase(state.carPart) ? "on" : ""}" data-act="pick-part" data-part="${p.k}">
+      ${dot(p)}
       <span class="pr-t"><span class="pr-n">${esc(p.label)}</span><span class="pr-s">${p.last ? `${fmtDate(p.last.date)} \xB7 ${ago(p.daysSince)} ago` : "Not logged"}</span></span>
       ${p.wear != null ? `<span class="pr-bar"><i style="width:${Math.min(100, Math.max(4, p.wear * 100)).toFixed(0)}%;background:${p.color}"></i></span>` : ""}
     </button>`;
@@ -2582,16 +2722,16 @@ function carHTML() {
 function updateCar() {
   if (!state.car3d) return;
   const ps = carParts();
-  state.car3d.setStatus(Object.fromEntries(ps.filter((p) => p.color).map((p) => [p.k, p.color])));
-  state.car3d.select(PARTS.some((x) => x.k === state.carPart) ? state.carPart : null, PARTS.find((x) => x.k === state.carPart)?.label);
+  state.car3d.setStatus(carColours(ps));
+  state.car3d.select(is3dPart(state.carPart) ? state.carPart : null, partLabel(state.carPart));
 }
 function pickPart(key) {
   state.carPart = key;
-  state.car3d?.select(PARTS.some((x) => x.k === key) ? key : null, PARTS.find((x) => x.k === key)?.label);
+  state.car3d?.select(is3dPart(key) ? key : null, partLabel(key));
   const ps = carParts();
   const d = $("#part-detail");
-  if (d) d.innerHTML = partDetailHTML(ps.find((p) => p.k === key));
-  document.querySelectorAll(".part-row").forEach((b) => b.classList.toggle("on", b.dataset.part === key));
+  if (d) d.innerHTML = partDetailHTML(ps.find((p) => p.k === partBase(key)), key);
+  document.querySelectorAll(".part-row").forEach((b) => b.classList.toggle("on", b.dataset.part === partBase(key)));
 }
 async function mountCar() {
   const box = $("#car3d");
@@ -4331,6 +4471,10 @@ function entryForm(entry, preset = null) {
   if (preset?.parts) {
     vals.parts = preset.parts;
     vals.svc_category = "Repairs";
+    if (preset.lightPos) {
+      vals.lightPos = preset.lightPos;
+      vals.partsOpen = true;
+    }
   }
   let justAdded = null;
   const all = vehicleEntries();
@@ -4357,6 +4501,8 @@ function entryForm(entry, preset = null) {
         <div class="reveal parts-reveal ${vals.partsOpen || ex.id && picked.some((k2) => k2 !== "oil") ? "open" : ""}" id="parts-box"><div class="reveal-in">
         <div class="pills small parts-pick" id="parts-pick">${allParts().filter((x) => x.k !== "tyres").map((x) => `<label class="pill"><input type="checkbox" name="pp" value="${esc(x.k)}" ${picked.includes(x.k) ? "checked" : ""}><span>${esc(x.label)}</span></label>`).join("")}
           <button type="button" class="pill-add" id="part-add">+ Add a part</button></div>
+        <div class="light-pos" id="light-pos" ${picked.includes("lights") ? "" : "hidden"}><span class="lp-t">Which lights?</span>
+          <div class="pills small">${LIGHT_POS.map((p) => `<label class="pill"><input type="checkbox" name="lp" value="${p}" ${(vals.lightPos || ex.lightPos || []).includes(p) ? "checked" : ""}><span>${POS_LABEL[p]}</span></label>`).join("")}</div></div>
         <div class="part-new" id="part-new" hidden><input id="part-new-name" placeholder="e.g. Water pump, Starter motor" autocapitalize="sentences" enterkeyhint="done"><button type="button" class="btn small primary" id="part-new-ok">Add</button></div>
         </div></div>
         <p class="hint" id="svc-hint">${cur2 === "Scheduled service" ? "General service is ticked. Tap anything else that was replaced." : ""}</p>`;
@@ -4463,6 +4609,7 @@ function entryForm(entry, preset = null) {
     }
     if (sheetForm.querySelector("[name=pp]")) {
       vals.parts = [...sheetForm.querySelectorAll("[name=pp]:checked")].map((x) => x.value);
+      vals.lightPos = [...sheetForm.querySelectorAll("[name=lp]:checked")].map((x) => x.value);
       vals.tyre_pos = [...sheetForm.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos);
       vals.tyre_rpos = [...sheetForm.querySelectorAll(".fix-pick .tp.on")].map((x) => x.dataset.pos);
     }
@@ -4661,6 +4808,7 @@ function entryForm(entry, preset = null) {
       });
       f.addEventListener("change", (ev) => {
         if (ev.target.name === "pp" || ev.target.name === "svc_category") sum();
+        if (ev.target.name === "pp" && ev.target.value === "lights" && $("#light-pos")) $("#light-pos").hidden = !ev.target.checked;
       });
       $("#parts-pick").addEventListener("click", () => setTimeout(sum, 0));
       sum();
@@ -4841,6 +4989,10 @@ function entryForm(entry, preset = null) {
       const data = { ...common, visitId };
       if (k === "fuel") Object.assign(data, { type: "fuel", cost: numOrNull(f.cost.value), litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
       if (k === "service") Object.assign(data, { type: "service", category: f.svc_category.value, cost: numOrNull(f.svc_cost.value), parts: [...f.querySelectorAll("[name=pp]:checked")].map((x) => x.value) });
+      if (k === "service") {
+        const lp = [...f.querySelectorAll("[name=lp]:checked")].map((x) => x.value);
+        data.lightPos = data.parts.includes("lights") ? lp.length ? lp : [...LIGHT_POS] : null;
+      }
       if (k === "tyres") {
         const jobs = [...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
         const pos = jobs.some((j) => FITS.includes(j)) ? [...f.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos) : [];
@@ -5049,8 +5201,10 @@ $("#main").addEventListener("click", async (ev) => {
   } else if (act === "edit-vehicle") vehicleForm(state.vehicles.find((v) => v.id === el.dataset.id));
   else if (act === "pick-shape") shapeForm(currentVehicle());
   else if (act === "pick-part") pickPart(el.dataset.part === state.carPart ? null : el.dataset.part);
-  else if (act === "log-part") entryForm(null, el.dataset.part === "tyres" ? { kind: "tyres" } : { kind: "service", parts: [el.dataset.part] });
-  else if (act === "mark-paid") markPaidForm(state.vehicles.find((v) => v.id === el.dataset.id), el.dataset.kind);
+  else if (act === "log-part") {
+    const [b, pos] = el.dataset.part.split(":");
+    entryForm(null, b === "tyres" ? { kind: "tyres" } : { kind: "service", parts: [b], ...b === "lights" && pos ? { lightPos: [pos] } : {} });
+  } else if (act === "mark-paid") markPaidForm(state.vehicles.find((v) => v.id === el.dataset.id), el.dataset.kind);
   else if (act === "edit-entry") entryForm(state.entries.find((x) => x.id === el.dataset.id));
   else if (act === "go-log") {
     state.view = "log";
