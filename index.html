@@ -155,7 +155,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); ou
 .sync.offline { background: var(--muted); }
 main { max-width: 640px; margin: 0 auto; padding: 16px 16px calc(var(--tabs-h) + 90px + env(safe-area-inset-bottom)); display: grid; gap: 16px; }
 .tabs {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: grid; grid-template-columns: repeat(4, 1fr);
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 6; display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom);
 }
 .tabs button {
@@ -828,6 +828,301 @@ input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 0; }
 .scan-bar i { display: block; height: 100%; width: 5%; background: var(--fuel); border-radius: inherit; transition: width .3s ease; }
 input.scanned { animation: scanned 1.6s ease; }
 @keyframes scanned { 0%, 40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--fuel) 45%, transparent); border-color: var(--fuel); } 100% { box-shadow: none; } }
+
+/* ---------- Car tab ---------- */
+.car-grid { display: grid; gap: 16px; min-width: 0; }
+@media (min-width: 1024px) { .car-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); align-items: start; } .car-view { position: sticky; top: calc(var(--topbar-h, 60px) + 16px); } }
+.car-view { padding: 10px; display: grid; gap: 10px; }
+.car3d { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: 62vh; border-radius: 14px; overflow: hidden;
+  background: radial-gradient(120% 90% at 50% 35%, color-mix(in srgb, var(--accent) 16%, var(--surface)) 0%, var(--surface) 70%); }
+.car3d canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; }
+.car3d canvas:active { cursor: grabbing; }
+.car-hint { position: absolute; left: 12px; top: 10px; font-size: .74rem; color: var(--muted); pointer-events: none; z-index: 1; }
+.car-fail { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; color: var(--muted); font-size: .9rem; text-align: center; padding: 16px; }
+.car-key { display: flex; align-items: center; gap: 8px; font-size: .72rem; color: var(--muted); padding: 0 6px; }
+.car-key i { flex: 1; max-width: 160px; height: 6px; border-radius: 999px; background: linear-gradient(90deg, rgb(34,177,76), rgb(176,204,44), rgb(240,196,28), rgb(244,150,34), rgb(220,56,56)); }
+.ck-none { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.ck-none b { width: 10px; height: 10px; border-radius: 50%; background: #6b7682; }
+.part-detail { padding: 6px 8px 4px; display: grid; gap: 6px; }
+.part-detail.empty { color: var(--muted); font-size: .88rem; padding: 6px 8px 8px; }
+.pd-top { display: flex; align-items: center; gap: 10px; font: 600 1.05rem var(--font-display); }
+.pd-top .st { margin-left: auto; }
+.pd-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+.pd-main { font-size: .92rem; }
+.pd-sub { font-size: .8rem; color: var(--muted); }
+.pd-hist { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: .84rem; }
+.pd-hist li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: baseline; }
+.pd-hist li span:nth-child(2) { color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pd-hist .link { padding: 0; font-weight: 600; font-size: .84rem; }
+.pd-add { justify-self: start; margin-top: 4px; }
+.car-list { display: grid; gap: 2px; }
+.car-list h2 { margin-bottom: 6px; }
+.part-row { appearance: none; display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; border-radius: 12px; padding: 10px 8px; color: var(--text); font: inherit; cursor: pointer; transition: background-color .25s ease; }
+.part-row:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.part-row.on { background: color-mix(in srgb, var(--accent) 13%, transparent); }
+.pr-t { display: grid; flex: 1; min-width: 0; }
+.pr-n { font-weight: 600; }
+.pr-s { font-size: .78rem; color: var(--muted); }
+.pr-bar { width: 64px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--muted) 22%, transparent); overflow: hidden; flex: none; }
+.pr-bar i { display: block; height: 100%; border-radius: inherit; }
+.parts-more summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .88rem; padding: 10px 8px; list-style: none; }
+.parts-more summary::-webkit-details-marker { display: none; }
+.parts-pick .pill span { font-size: .8rem; }
+.tabs button { font-size: .7rem; }
+.part-tag { position: absolute; left: 0; top: 0; z-index: 2; pointer-events: none; padding: 5px 10px; border-radius: 999px; background: var(--text); color: var(--bg); font: 600 .78rem var(--font-display); white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,.3); animation: tag-in .35s var(--ease) both; }
+.part-tag::after { content: ""; position: absolute; left: 50%; bottom: -5px; width: 10px; height: 10px; background: inherit; transform: translateX(-50%) rotate(45deg); border-radius: 2px; z-index: -1; }
+@keyframes tag-in { from { opacity: 0; margin-top: 6px; } to { opacity: 1; margin-top: 0; } }
+
+/* Vehicle shape picker */
+.shape-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.shape-tile { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 4px 6px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; font-weight: 600; font-size: .78rem; color: var(--text-2); transition: border-color .2s, background-color .2s, color .2s; }
+.shape-tile input { position: absolute; opacity: 0; pointer-events: none; }
+.shape-tile svg { width: 100%; max-width: 104px; height: auto; }
+.shape-tile:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--text); }
+.sb { fill: color-mix(in srgb, var(--accent) 18%, transparent); stroke: var(--accent); stroke-width: 1.4; stroke-linejoin: round; }
+.ss { stroke: var(--accent); stroke-width: 1.2; opacity: .6; }
+.sw { fill: var(--text-2); stroke: var(--surface); stroke-width: 1.5; }
+.car-shape { position: absolute; right: 10px; top: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 6px; border-radius: 999px; border: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 85%, transparent); color: var(--text-2); font: 600 .74rem var(--font-body); cursor: pointer; }
+.car-shape svg { width: 38px; height: auto; }
+
+/* Panels: fixed in place, only scroll up and down inside */
+html.sheet-open, html.sheet-open body { overflow: hidden; }
+html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
+.sheet { overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; max-width: min(560px, 100vw); }
+.sheet form { max-width: 100%; overflow-x: hidden; }
+.sheet::backdrop { touch-action: none; }
+
+/* Rotation pattern picker: animated car, flick through */
+.rot-pick { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; gap: 6px; padding: 10px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); }
+.rot-mid { display: grid; justify-items: center; gap: 4px; text-align: center; min-width: 0; }
+.rot-mid.slide-l { animation: rot-l .35s var(--ease); } .rot-mid.slide-r { animation: rot-r .35s var(--ease); }
+@keyframes rot-l { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes rot-r { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+.rot-svg { width: 120px; height: auto; }
+.rot-body { fill: var(--surface-2, var(--bg)); stroke: var(--line); stroke-width: 1.5; }
+.rot-svg rect:not(.rot-body) { fill: var(--accent); }
+.rot-mv { transform-box: view-box; animation: rot-move 2.6s ease-in-out infinite; }
+@keyframes rot-move { 0%, 15% { transform: translate(0, 0); } 55%, 85% { transform: translate(var(--dx), var(--dy)); } 100% { transform: translate(0, 0); } }
+.rot-name { font: 600 1rem var(--font-display); }
+.rot-desc { font-size: .8rem; color: var(--muted); max-width: 30ch; }
+.rot-dots { display: flex; gap: 6px; margin-top: 2px; }
+.rot-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); transition: background-color .2s; }
+.rot-dots i.on { background: var(--accent); }
+.rot-nav { appearance: none; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--text-2); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+.rot-nav:active { transform: scale(.94); }
+@media (prefers-reduced-motion: reduce) { .rot-mv, .rot-mid.slide-l, .rot-mid.slide-r { animation: none; } }
+
+/* Tyre jobs: grouped tick boxes with a short explanation */
+.tyre-jobs { display: grid; gap: 10px; }
+.tj-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.tj-g { grid-column: 1 / -1; font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+.tj { position: relative; display: grid; gap: 1px; padding: 9px 10px 9px 34px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); cursor: pointer; transition: border-color .2s, background-color .2s; min-width: 0; }
+.tj input { position: absolute; opacity: 0; pointer-events: none; }
+.tj::before { content: ""; position: absolute; left: 10px; top: 11px; width: 16px; height: 16px; border-radius: 5px; border: 2px solid var(--line); transition: background-color .2s, border-color .2s; }
+.tj:has(input:checked) { border-color: var(--tyre); background: color-mix(in srgb, var(--tyre) 14%, var(--surface)); }
+.tj:has(input:checked)::before { background: var(--tyre); border-color: var(--tyre); box-shadow: inset 0 0 0 2px var(--surface); }
+.tj-n { font-weight: 600; font-size: .9rem; color: var(--text); }
+.tj-d { font-size: .74rem; color: var(--muted); line-height: 1.3; }
+.tj { align-content: start; }
+.tj-rot { grid-column: 1 / -1; } .tj-rot .reveal-in { display: grid; gap: 8px; padding-top: 4px; }
+
+/* Service type: two big buttons */
+.svc-type { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.svc-opt { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; transition: border-color .2s, background-color .2s; }
+.svc-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.svc-ic { grid-row: 1 / span 2; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--service) 18%, transparent); color: var(--service); transition: background-color .2s, color .2s; }
+.svc-ic svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.svc-n { font-weight: 700; font-size: .95rem; }
+.svc-d { font-size: .74rem; color: var(--muted); line-height: 1.25; }
+.svc-opt:has(input:checked) { border-color: var(--service); background: color-mix(in srgb, var(--service) 12%, var(--surface)); }
+.svc-opt:has(input:checked) .svc-ic { background: var(--service); color: #fff; }
+.svc-opt:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pill.flash span { animation: pill-flash .7s ease; }
+@keyframes pill-flash { 0% { transform: scale(1); } 40% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+/* Tyre jobs: compact rows of buttons */
+.tyre-jobs { gap: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.tj-group { display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 0 8px; align-items: center; padding: 7px 10px; border-top: 1px solid var(--line); }
+.tj-group:first-child { border-top: 0; }
+.tj-g { grid-column: auto; margin: 0; font-size: .64rem; }
+.tj-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.tj { padding: 6px 12px; border-radius: 999px; border-width: 1.5px; background: var(--bg); }
+.tj::before { display: none; }
+.tj-n { font-size: .84rem; white-space: nowrap; }
+.tj:has(input:checked) { background: var(--tyre); border-color: var(--tyre); }
+.tj:has(input:checked) .tj-n { color: #fff; }
+.tj-rot { grid-column: 1 / -1; }
+.tj-rot .reveal-in { padding-top: 8px; }
+/* Smaller position pickers and rotation car */
+#tyre-new-box .tyre-pick, #tyre-fix-box .tyre-pick { max-width: 300px; margin: 0 auto; grid-template-columns: 1fr 48px 1fr; gap: 6px; }
+#tyre-new-box .tp, #tyre-fix-box .tp { min-height: 40px; padding: 6px; font-size: .8rem; }
+#tyre-new-box .tp-car svg, #tyre-fix-box .tp-car svg { width: 30px; }
+.rot-svg { width: 84px; }
+.rot-pick { padding: 6px 4px; grid-template-columns: 40px minmax(0, 1fr) 40px; }
+.rot-nav { width: 40px; height: 40px; }
+.rot-name { font-size: .92rem; }
+.rot-desc { font-size: .76rem; }
+.tj:has(input:checked) { background: var(--accent); border-color: var(--accent); }
+.tj:has(input:checked) .tj-n { color: var(--accent-ink); }
+.tj-rot .field-label { font-size: .8rem; margin-bottom: 6px; }
+.tj-rot .tp-quick { justify-content: center; margin-top: 6px; }
+.tj-rot .hint { text-align: center; margin-top: 4px; }
+
+/* Tyre position picker: top-down car like the rotation picker */
+.tyre-pick2 { display: grid; justify-items: center; gap: 4px; padding: 6px 0 2px; }
+.tyre-pick2 .rot-svg { width: 104px; }
+.tp-nose { stroke: var(--muted); stroke-width: 2; stroke-linecap: round; opacity: .6; }
+.tp2 { cursor: pointer; outline: none; }
+.tp-hit { fill: transparent; }
+.tp-t { fill: none; stroke: var(--muted); stroke-width: 2; stroke-dasharray: 4 3; transition: fill .2s, stroke .2s; }
+.tp2:hover .tp-t, .tp2:focus-visible .tp-t { stroke: var(--accent); }
+.tp2.on .tp-t { fill: var(--accent); stroke: var(--accent); stroke-dasharray: none; }
+.tp-names { font-size: .82rem; font-weight: 600; color: var(--text-2); text-align: center; min-height: 1.2em; }
+.tyre-pick2 .rot-svg rect.tp-hit { fill: transparent; }
+.tyre-pick2 .rot-svg rect.tp-t { fill: none; }
+.tyre-pick2 .rot-svg .tp2.on rect.tp-t { fill: var(--accent); }
+
+/* Tyre swap animation: old tyre slides off, new one rolls on */
+.tyre-pick2 .rot-svg rect.tp-old { fill: color-mix(in srgb, var(--muted) 35%, transparent); stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.tyre-pick2 .rot-svg rect.tp-t { fill: var(--accent); stroke: none; }
+.tp-tread { stroke: color-mix(in srgb, var(--accent-ink) 55%, transparent); stroke-width: 1.6; stroke-linecap: round; }
+.tp-oldg, .tp-newg { transform-box: fill-box; transform-origin: center; }
+.tp2 .tp-newg { opacity: 0; transform: translateX(calc(var(--o) * 40px)); }
+.tp2.on .tp-newg { opacity: 1; transform: none; }
+.tp2.on .tp-oldg { opacity: 0; transform: translateX(calc(var(--o) * 40px)) rotate(calc(var(--o) * 25deg)); }
+.tp2.swap-on .tp-oldg { animation: tyre-off .45s cubic-bezier(.5, 0, .75, 0) var(--d, 0ms) both; }
+.tp2.swap-on .tp-newg { animation: tyre-on .6s cubic-bezier(.2, 1.4, .4, 1) calc(var(--d, 0ms) + .3s) both; }
+.tp2.swap-off .tp-newg { animation: tyre-off .4s cubic-bezier(.5, 0, .75, 0) var(--d, 0ms) both; }
+.tp2.swap-off .tp-oldg { animation: tyre-on .5s cubic-bezier(.2, 1.3, .4, 1) calc(var(--d, 0ms) + .25s) both; }
+@keyframes tyre-off {
+  0% { opacity: 1; transform: none; }
+  25% { transform: translateY(-3px); }
+  100% { opacity: 0; transform: translateX(calc(var(--o) * 40px)) rotate(calc(var(--o) * 25deg)); }
+}
+@keyframes tyre-on {
+  0% { opacity: 0; transform: translateX(calc(var(--o) * 40px)) rotate(calc(var(--o) * -90deg)); }
+  60% { opacity: 1; }
+  100% { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .tp2 .tp-oldg, .tp2 .tp-newg { animation: none !important; } }
+
+/* Tyres: when each job was last done */
+.tyre-events { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+.te { display: grid; gap: 1px; padding: 8px 9px; border-radius: 12px; background: var(--surface-2, var(--bg)); border: 1px solid var(--line); min-width: 0; }
+.te-k { font-size: .62rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.te-v { font: 600 .9rem var(--font-display); }
+.te-s { font-size: .72rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.te-v { white-space: nowrap; } .te-psi { color: var(--accent); font-weight: 600; }
+.tyre-events { grid-template-columns: 1fr; gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.te { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 9px 12px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: var(--surface-2, var(--bg)); }
+.te:first-child { border-top: 0; }
+.te-k { font-size: .7rem; flex: none; }
+.te-v { font: 600 .86rem var(--font-body); text-align: right; white-space: normal; }
+.te-s { font-weight: 500; color: var(--text-2); }
+.te-v { display: grid; justify-items: end; white-space: nowrap; } .te-s { font-size: .76rem; } .te { align-items: center; }
+
+/* Tyres card: pressure check row */
+.tyre-events { border: 0; border-radius: 0; overflow: visible; }
+.psi-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--surface-2, var(--bg)); border: 1px solid var(--line); }
+.psi-ic { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.psi-ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.psi-t { display: grid; gap: 1px; min-width: 0; flex: 1; }
+.psi-k { font-weight: 600; font-size: .9rem; }
+.psi-when { font-size: .78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.psi-vals { display: flex; align-items: flex-end; gap: 6px; flex: none; }
+.psi-box { display: grid; justify-items: center; line-height: 1.05; padding: 4px 8px; border-radius: 9px; background: var(--surface); border: 1px solid var(--line); min-width: 44px; }
+.psi-l { font-size: .58rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.psi-n { font: 700 1.05rem var(--font-display); color: var(--accent); }
+.psi-u { font-size: .7rem; color: var(--muted); padding-bottom: 4px; }
+.psi-k { white-space: nowrap; } .psi-box { min-width: 46px; padding: 4px 6px; } .psi-row { gap: 9px; padding: 10px; }
+
+/* Add your own part */
+.pill-add { appearance: none; border: 1.5px dashed var(--accent); background: transparent; color: var(--accent); border-radius: 999px; padding: .38rem .8rem; font: 600 .8rem var(--font-body); cursor: pointer; }
+.part-new { display: flex; gap: 8px; align-items: center; }
+.part-new input { flex: 1; }
+
+/* Washer fluid row */
+.rem-washer { background: #2fa7d8; }
+/* Collapsible parts list in the service form */
+.parts-toggle { appearance: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); font: 600 .9rem var(--font-body); text-align: left; cursor: pointer; }
+.pt-sum { font-weight: 500; font-size: .8rem; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.pt-chev { width: 9px; height: 9px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); transition: transform .3s var(--ease); }
+.parts-toggle.open .pt-chev { transform: rotate(-135deg) translateY(-2px); }
+.parts-reveal .reveal-in { padding-top: 8px; display: grid; gap: 8px; }
+
+/* Coming up: each item its own tile */
+.rem-tiles { display: grid; gap: 12px; }
+@media (min-width: 640px) and (max-width: 1023px) { .rem-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; } .rem-tiles .rem-tile:has(.rem-tyremap) { grid-column: 1 / -1; } }
+.rem-tile { padding: 14px 16px; }
+.rem-tile > .rem { border-top: 0; padding: 0; }
+
+/* Computer layout for the Dashboard: summary row on top, reminder tiles in a grid below */
+@media (min-width: 1024px) {
+  .dash-grid { grid-template-columns: 1fr; gap: 20px; }
+  .dash-main { grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 20px; align-items: stretch; }
+  .dash-main .hero { align-content: center; }
+  .dash-main .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); align-content: stretch; }
+  .dash-side { position: static; }
+  .rem-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row dense; align-items: start; gap: 16px; }
+  .rem-tiles .rem-tile:has(.rem-tyremap) { grid-row: span 3; }
+}
+@media (min-width: 1280px) {
+  .rem-tiles { grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 1fr)); }
+  .rem-tiles .rem-tile:has(.rem-tyremap) { grid-column: 1; grid-row: 1 / span 3; }
+}
+
+/* Charts page: group headings, half-size charts, driving calendar */
+.chart-group { margin: 6px 2px -6px; font: 700 .74rem var(--font-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.charts-grid > .chart-group:first-child { margin-top: 0; }
+.chart-card.half .chart-box { height: 310px; }
+.cal-scroll { overflow-x: auto; scrollbar-width: thin; padding-bottom: 4px; }
+.cal-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-template-columns: repeat(var(--weeks, 20), minmax(9px, 1fr)); gap: 3px; min-width: calc(var(--weeks, 20) * 12px); max-width: calc(var(--weeks, 20) * 24px); }
+.cal-grid i, .cal-key i { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--grid); }
+.cal-grid i.out { background: none; }
+.cal-grid i.l1, .cal-key i.l1 { background: var(--cal1); }
+.cal-grid i.l2, .cal-key i.l2 { background: var(--cal2); }
+.cal-grid i.l3, .cal-key i.l3 { background: var(--cal3); }
+.cal-grid i.l4, .cal-key i.l4 { background: var(--cal4); }
+:root { --cal1: #c7e9b4; --cal2: #5ec4b0; --cal3: #2273b5; --cal4: #0c1f6e; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --cal1: #24525c; --cal2: #1a9fb3; --cal3: #5fe0c4; --cal4: #f2f7a1; } }
+:root[data-theme="dark"] { --cal1: #24525c; --cal2: #1a9fb3; --cal3: #5fe0c4; --cal4: #f2f7a1; }
+.cal-key { display: flex; align-items: center; justify-content: flex-end; gap: 4px; margin-top: 10px; font-size: .78rem; color: var(--muted); }
+.cal-key i { width: 12px; }
+.cal-key i:first-child { margin-left: 4px; }
+.cal-key i:last-child { margin-right: 4px; }
+
+/* Garage: chart on/off switches */
+.cs-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.cs-btns { display: flex; gap: 6px; }
+.cs-list { display: grid; }
+.cs-group { margin: 12px 0 4px; font: 700 .72rem var(--font-body); letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.cs-group:first-child { margin-top: 0; }
+.cs-row { appearance: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 9px 2px; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--text); font: 500 .95rem var(--font-body); text-align: left; cursor: pointer; }
+.cs-row .muted { font-size: .8rem; }
+.sw { flex: none; position: relative; width: 44px; height: 26px; border-radius: 99px; background: var(--line); transition: background-color .25s; }
+.sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / .25); transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
+.sw.on { background: var(--accent); }
+.sw.on::after { transform: translateX(18px); }
+
+@media (min-width: 1024px) {
+  .charts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-group, .chart-card:not(.half), .chart-card.solo { grid-column: 1 / -1; }
+  .chart-card:not(.half) .chart-box { height: 300px; }
+  .chart-card.half .chart-box { height: 280px; }
+  .chart-settings { grid-column: 1 / -1; }
+  .cs-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .cs-group { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { .sw, .sw::after { transition: none; } }
+.charts-grid > * { min-width: 0; }
+
+/* Chart title row with the "Previous period" tick box */
+.chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.chart-head h2 { margin-bottom: .5rem; min-width: 0; }
+.prev-tog { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: .8rem; font-weight: 600; color: var(--text-2); cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent; transition: background-color .2s, border-color .2s; }
+.prev-tog[hidden] { display: none; }
+.prev-tog input { width: 16px; height: 16px; margin: 0; accent-color: #f0a04b; cursor: pointer; }
+.prev-tog:has(input:checked) { border-color: #f0a04b; background: color-mix(in srgb, #f0a04b 14%, var(--surface)); color: var(--text); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -872,6 +1167,7 @@ input.scanned { animation: scanned 1.6s ease; }
       <button data-view="home" class="active"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.8"/><rect x="13" y="4" width="7" height="7" rx="1.8"/><rect x="4" y="13" width="7" height="7" rx="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.8"/></svg>Dashboard</button>
       <button data-view="charts"><svg viewBox="0 0 24 24"><rect x="4" y="12" width="4" height="8" rx="1.5"/><rect x="10" y="5" width="4" height="15" rx="1.5"/><rect x="16" y="9" width="4" height="11" rx="1.5"/></svg>Charts</button>
       <button data-view="log"><svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>Log</button>
+      <button data-view="car"><svg viewBox="0 0 24 24"><path d="M3 16v-3.5L5.5 9h8l4 3.5H20a1 1 0 0 1 1 1V16"/><circle cx="7" cy="16.5" r="2"/><circle cx="17" cy="16.5" r="2"/><path d="M9 16.5h6"/></svg>Car</button>
       <button data-view="garage"><svg viewBox="0 0 24 24"><path d="M3 21V9l9-6 9 6v12"/><path d="M7 21v-9h10v9"/><path d="M7 15h10M7 18h10"/></svg>Garage</button>
     </nav>
   </div>
@@ -879,7 +1175,7 @@ input.scanned { animation: scanned 1.6s ease; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// carlog-src/firebase-config.js
+// firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -889,7 +1185,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// carlog-src/calc.js
+// calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -931,7 +1227,7 @@ function averageEconomy(points) {
 }
 var REGO_CATS = ["Registration", "Insurance"];
 var groupOf = (e) => e.type === "expense" && REGO_CATS.includes(e.category) ? "rego" : e.type;
-var isWiper = (e) => e.category === "Wiper blades" || /wiper/i.test(e.notes || "");
+var isWiper = (e) => e.category === "Wiper blades" || Array.isArray(e.parts) && e.parts.includes("wipers") || !(Array.isArray(e.parts) && e.parts.length) && /wiper(?!\s*fluid)/i.test(e.notes || "");
 function byCategory(entries) {
   const m = /* @__PURE__ */ new Map();
   for (const e of entries) {
@@ -993,10 +1289,8 @@ function periodRange(kind, now = /* @__PURE__ */ new Date(), firstDate = null) {
     return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `Q${q + 1} ${today2.getFullYear()} so far`, prevLabel: `same point in Q${pq} ${ps2.getFullYear()}` };
   }
   if (kind === "year") {
-    const s2 = new Date(today2.getFullYear(), 0, 1);
-    const ps2 = new Date(today2.getFullYear() - 1, 0, 1);
-    const pe2 = new Date(today2.getFullYear() - 1, today2.getMonth(), today2.getDate());
-    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: `${today2.getFullYear()} so far`, prevLabel: `same point in ${today2.getFullYear() - 1}` };
+    const s2 = addDays(today2, -364), pe2 = addDays(s2, -1), ps2 = addDays(pe2, -364);
+    return { start: iso(s2), end, prevStart: iso(ps2), prevEnd: iso(pe2), label: "Last 12 months", prevLabel: "the 12 months before" };
   }
   if (kind === "all") {
     return { start: firstDate || "1900-01-01", end, prevStart: null, prevEnd: null, label: "All time", prevLabel: null };
@@ -1077,7 +1371,7 @@ function yearBreakdown(entries, now = /* @__PURE__ */ new Date()) {
     return { year: y, current: end === todayIso, ...periodStats(entries, `${y}-01-01`, end) };
   });
 }
-var TYRE_CATEGORIES = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
+var TYRE_CATEGORIES = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 function tyreCount(e) {
   if (Array.isArray(e.newPositions) && e.newPositions.length) return e.newPositions.length;
   if (+e.tyreCount > 0) return +e.tyreCount;
@@ -1090,7 +1384,7 @@ function tyreCount(e) {
 }
 function tyreJob(e) {
   if (e.type !== "service" || !TYRE_CATEGORIES.includes(e.category)) return null;
-  if (e.category !== "Tyres") return { "Tyre rotation": "rotation", "Wheel alignment": "alignment", "Puncture repair": "puncture" }[e.category];
+  if (e.category !== "Tyres") return { "Tyre rotation": "rotation", "Wheel alignment": "alignment", "Wheel balance": "balance", "Puncture repair": "puncture", "Tyre repair": "puncture", "Tyre check": "check" }[e.category];
   const n = String(e.notes || "").toLowerCase();
   if (/rotat/.test(n)) return "rotation";
   if (/\bnew\b|\d+\s*(new\s*)?tyres?/.test(n)) return "new";
@@ -1232,10 +1526,10 @@ function tyreState(entries, now = /* @__PURE__ */ new Date()) {
       for (const p of TYRE_POS) next[map[p]] = { ...at[p], rotations: at[p].rotations + 1 };
       at = next;
     }
-    if (js.includes("new")) {
+    if (js.includes("new") || js.includes("spare")) {
       const pos = newPositionsOf(e);
       if (!pos.length) unplaced += +e.tyreCount || tyreCount(e) || 1;
-      for (const p of pos) at[p] = { fittedDate: e.date, fittedOdo: num(e.odo), place: e.place || "", rotations: 0 };
+      for (const p of pos) at[p] = { fittedDate: e.date, fittedOdo: num(e.odo), place: e.place || "", rotations: 0, used: !js.includes("new") };
     }
   }
   const days = (d) => Math.round((/* @__PURE__ */ new Date(iso(now) + "T00:00:00") - /* @__PURE__ */ new Date(d + "T00:00:00")) / 864e5);
@@ -1245,7 +1539,7 @@ function tyreState(entries, now = /* @__PURE__ */ new Date()) {
     t.daysSince = days(t.fittedDate);
     t.kmSince = t.fittedOdo != null && latestOdo ? latestOdo - t.fittedOdo : null;
   }
-  return { at, unplaced, any: jobs.some((e) => tyreJobsOf(e).includes("new")) };
+  return { at, unplaced, any: jobs.some((e) => tyreJobsOf(e).includes("new") || tyreJobsOf(e).includes("spare")) };
 }
 function parseDocket(rawText, today2 = /* @__PURE__ */ new Date()) {
   const text = String(rawText || "").replace(/[|]/g, " ").replace(/(\d)\s*[,]\s*(\d{2,3})(?!\d)/g, "$1.$2").replace(/(\d)\s+\.(\d)/g, "$1.$2").replace(/(\d)\.\s+(\d)/g, "$1.$2");
@@ -1313,8 +1607,69 @@ function parseDocket(rawText, today2 = /* @__PURE__ */ new Date()) {
   }
   return out;
 }
+var PARTS = [
+  { k: "oil", label: "General service", km: 1e4, mo: 12, re: /\boil\b|oil change|oil filter|air\s*filter|cabin\s*filter|pollen|fuel\s*filter|general service/i },
+  { k: "sparkplugs", label: "Spark / glow plugs", km: 6e4, mo: 72, re: /spark|glow\s*plug/i },
+  { k: "battery", label: "Battery", km: null, mo: 48, re: /batter/i },
+  { k: "brakesF", label: "Front brakes", km: 4e4, mo: 48, re: /(front\s*(brake|pad|rotor|disc))|((brake|pad|rotor|disc)s?\s*(front))/i },
+  { k: "brakesR", label: "Rear brakes", km: 6e4, mo: 60, re: /(rear\s*(brake|pad|rotor|disc|shoe|drum))|((brake|pad|rotor|disc)s?\s*(rear))/i },
+  { k: "tyres", label: "Tyres", km: 5e4, mo: 60, re: /\btyres?\b/i },
+  { k: "wipers", label: "Wiper blades", km: null, mo: 12, re: /wiper(?!\s*fluid)/i },
+  { k: "washer", label: "Washer fluid", km: null, mo: 3, re: /washer|wiper\s*fluid|windscreen\s*fluid/i },
+  { k: "coolant", label: "Radiator & coolant", km: 4e4, mo: 48, re: /radiator|coolant|water\s*pump|thermostat/i },
+  { k: "timing", label: "Timing belt / chain", km: 1e5, mo: 84, re: /timing/i },
+  { k: "belts", label: "Drive belts", km: 6e4, mo: 60, re: /(drive|fan|serpentine|aux\w*)\s*belt/i },
+  { k: "suspension", label: "Suspension", km: 8e4, mo: 96, re: /shock|strut|suspension|spring|bush|control arm|ball joint/i },
+  { k: "transmission", label: "Gearbox & clutch", km: 8e4, mo: 96, re: /clutch|gear\s*box|transmission|diff/i },
+  { k: "exhaust", label: "Exhaust", km: null, mo: 96, re: /exhaust|muffler|dpf/i },
+  { k: "alternator", label: "Alternator & starter", km: null, mo: 120, re: /alternator|starter/i },
+  { k: "aircon", label: "Air conditioning", km: null, mo: 24, re: /air\s*con|a\/c\b|regas/i },
+  { k: "lights", label: "Lights & globes", km: null, mo: 36, re: /globe|bulb|headlight|tail\s*light|light/i },
+  { k: "windscreen", label: "Windscreen", km: null, mo: null, re: /windscreen|windshield/i }
+];
+var CATEGORY_PARTS = { "Oil change": ["oil"], "Scheduled service": ["oil"], Battery: ["battery"], "Wiper blades": ["wipers"], Tyres: ["tyres"] };
+var FOLD = { airfilter: "oil", cabinfilter: "oil", fuelfilter: "oil" };
+function partsOf(e) {
+  if (Array.isArray(e.parts) && e.parts.some((x) => FOLD[x])) e = { ...e, parts: [...new Set(e.parts.map((x) => FOLD[x] || x))] };
+  if (Array.isArray(e.parts) && e.parts.length) return e.category === "Scheduled service" && !e.parts.includes("oil") ? [...e.parts, "oil"] : e.parts;
+  if (e.type === "fuel") return [];
+  const out = new Set(CATEGORY_PARTS[e.category] || []);
+  if (TYRE_CATEGORIES.includes(e.category)) {
+    out.delete("tyres");
+    const j = tyreJobsOf(e);
+    if (j.includes("new") || j.includes("spare")) out.add("tyres");
+  }
+  const n = String(e.notes || "");
+  if (e.category === "Brakes" && !/rear/i.test(n)) out.add("brakesF");
+  for (const p of PARTS) {
+    if (p.k === "tyres" || p.k === "oil") continue;
+    if (p.k === "lights" && /wiper|windscreen/i.test(n) && !/globe|bulb|headlight/i.test(n)) continue;
+    if (p.k === "belts" && /timing/i.test(n)) continue;
+    if (p.k === "windscreen" && /wiper/i.test(n) && !/windscreen\s*(replace|crack|chip|repair)|new windscreen(?!\s*wiper)/i.test(n)) continue;
+    if (p.re.test(n)) out.add(p.k);
+  }
+  if (/oil change|oil filter|engine oil|air\s*filter|cabin\s*filter|fuel\s*filter/i.test(n)) out.add("oil");
+  return [...out];
+}
+function partsStatus(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
+  const latestOdo = entries.reduce((m, e) => Math.max(m, num(e.odo) || 0), 0) || null;
+  const life = vehicle.partLife || {};
+  const custom = (vehicle.customParts || []).map((c) => ({ k: c.k, label: c.label, km: null, mo: null, re: null, custom: true }));
+  return [...PARTS, ...custom].map((p) => {
+    const hist = entries.filter((e) => partsOf(e).includes(p.k)).sort(byDateDesc);
+    const last = hist[0] || null;
+    const km = life[p.k]?.km ?? (p.k === "oil" && vehicle.svcKm ? vehicle.svcKm : p.km), mo = life[p.k]?.mo ?? (p.k === "oil" && vehicle.svcMonths ? vehicle.svcMonths : p.mo);
+    if (!last) return { ...p, km, mo, hist, last: null, wear: null };
+    const daysSince = -daysUntil(last.date, now);
+    const kmSince = num(last.odo) !== null && latestOdo ? Math.max(0, latestOdo - +last.odo) : null;
+    const fk = km && kmSince != null ? kmSince / km : null;
+    const fm = mo ? daysSince / (mo * 30.44) : null;
+    const wear = fk == null && fm == null ? null : Math.max(fk ?? 0, fm ?? 0);
+    return { ...p, km, mo, hist, last, daysSince, kmSince, wear };
+  });
+}
 
-// carlog-src/import.js
+// import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -1414,7 +1769,393 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// carlog-src/app.js
+// car3d.js
+var GREY = 7042690;
+var SHAPES = {
+  hatch: {
+    label: "Hatchback",
+    L: 4.1,
+    W: 1.76,
+    wheelbase: 2.55,
+    r: 0.31,
+    axleY: 0.31,
+    tailY: 0.95,
+    profile: [[-2.05, 0.36], [2, 0.36], [2.07, 0.64], [1.9, 0.84], [0.85, 0.98], [0.15, 1.45], [-1.55, 1.45], [-2, 1.2], [-2.08, 0.9], [-2.08, 0.46]],
+    screen: [[0.85, 0.98], [0.15, 1.45]],
+    engineX: 1.4,
+    engineY: 0.64,
+    dashX: 0.68
+  },
+  sedan: {
+    label: "Sedan",
+    L: 4.5,
+    W: 1.8,
+    wheelbase: 2.7,
+    r: 0.33,
+    axleY: 0.33,
+    tailY: 0.82,
+    profile: [[-2.25, 0.36], [2.2, 0.36], [2.28, 0.66], [2.1, 0.86], [0.9, 1], [0.2, 1.45], [-1.15, 1.45], [-1.95, 1.06], [-2.28, 0.98], [-2.28, 0.46]],
+    screen: [[0.9, 1], [0.2, 1.45]],
+    engineX: 1.5,
+    engineY: 0.66,
+    dashX: 0.72
+  },
+  wagon: {
+    label: "Wagon",
+    L: 4.75,
+    W: 1.8,
+    wheelbase: 2.75,
+    r: 0.33,
+    axleY: 0.33,
+    tailY: 0.98,
+    profile: [[-2.37, 0.36], [2.3, 0.36], [2.38, 0.66], [2.2, 0.86], [1, 1], [0.3, 1.47], [-2.15, 1.45], [-2.38, 1.2], [-2.4, 0.46]],
+    screen: [[1, 1], [0.3, 1.47]],
+    engineX: 1.6,
+    engineY: 0.66,
+    dashX: 0.8
+  },
+  suv: {
+    label: "SUV",
+    L: 4.7,
+    W: 1.9,
+    wheelbase: 2.8,
+    r: 0.38,
+    axleY: 0.38,
+    tailY: 1.15,
+    profile: [[-2.35, 0.45], [2.3, 0.45], [2.38, 0.85], [2.2, 1.08], [1.05, 1.2], [0.4, 1.78], [-2, 1.78], [-2.32, 1.5], [-2.38, 0.55]],
+    screen: [[1.05, 1.2], [0.4, 1.78]],
+    engineX: 1.6,
+    engineY: 0.85,
+    dashX: 0.9
+  },
+  ute: {
+    label: "Ute",
+    L: 5.3,
+    W: 1.85,
+    wheelbase: 3.1,
+    r: 0.38,
+    axleY: 0.38,
+    tailY: 1,
+    profile: [[-2.65, 0.48], [2.6, 0.48], [2.68, 0.86], [2.5, 1.1], [1.35, 1.22], [0.75, 1.82], [-0.7, 1.82], [-0.78, 1.25], [-2.65, 1.25]],
+    screen: [[1.35, 1.22], [0.75, 1.82]],
+    engineX: 1.9,
+    engineY: 0.86,
+    dashX: 1.2
+  },
+  van: {
+    label: "Van",
+    L: 5,
+    W: 1.95,
+    wheelbase: 3.1,
+    r: 0.36,
+    axleY: 0.36,
+    tailY: 1.35,
+    profile: [[-2.5, 0.38], [2.45, 0.38], [2.55, 0.72], [2.45, 0.98], [1.95, 1.1], [1.3, 2.05], [-2.42, 2.08], [-2.52, 1.95], [-2.52, 0.48]],
+    screen: [[1.95, 1.1], [1.3, 2.05]],
+    engineX: 1.95,
+    engineY: 0.72,
+    dashX: 1.25
+  }
+};
+var shapes = (body) => SHAPES[body] || SHAPES[body === "car" ? "sedan" : "sedan"];
+function shapeSVG(key) {
+  const S = shapes(key);
+  const X = (x) => (x + 2.8) * 20, Y = (y) => 46 - y * 20;
+  const pts = S.profile.map(([x, y]) => `${X(x).toFixed(1)},${Y(y).toFixed(1)}`).join(" ");
+  const [[a, b], [c, d]] = S.screen;
+  const wheel = (x) => `<circle cx="${X(x).toFixed(1)}" cy="${Y(S.axleY).toFixed(1)}" r="${(S.r * 20).toFixed(1)}" class="sw"/>`;
+  return `<svg viewBox="0 0 112 50" aria-hidden="true"><polygon points="${pts}" class="sb"/><line x1="${X(a)}" y1="${Y(b)}" x2="${X(c)}" y2="${Y(d)}" class="ss"/>${wheel(S.wheelbase / 2)}${wheel(-S.wheelbase / 2)}</svg>`;
+}
+function createCarScene(container, { body = "car", onSelect } = {}) {
+  const T = window.THREE;
+  const S = shapes(body);
+  const renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.outputEncoding = T.sRGBEncoding;
+  container.appendChild(renderer.domElement);
+  const scene = new T.Scene();
+  const camera = new T.PerspectiveCamera(30, 1, 0.1, 100);
+  const topY = Math.max(...S.profile.map((q) => q[1]));
+  let dist = S.L * 1.75 + topY * 0.6;
+  const target = new T.Vector3(0, topY * 0.45, 0);
+  scene.add(new T.HemisphereLight(16777215, 4478310, 0.9));
+  const sun = new T.DirectionalLight(16777215, 0.9);
+  sun.position.set(4, 8, 5);
+  scene.add(sun);
+  const fill = new T.DirectionalLight(10475775, 0.35);
+  fill.position.set(-5, 3, -4);
+  scene.add(fill);
+  const car = new T.Group();
+  scene.add(car);
+  const parts = {};
+  const decor = [];
+  const pickables = [];
+  const mat = () => new T.MeshStandardMaterial({ color: GREY, roughness: 0.55, metalness: 0.15, emissive: 0 });
+  const add = (key, geo, pos, rot) => {
+    const m = new T.Mesh(geo, mat());
+    m.position.set(...pos);
+    if (rot) m.rotation.set(...rot);
+    m.userData.part = key;
+    car.add(m);
+    (parts[key] || (parts[key] = [])).push(m);
+    pickables.push(m);
+    const halo = new T.Mesh(geo, new T.MeshBasicMaterial({ color: 16777215, side: T.BackSide, transparent: true, opacity: 0, depthWrite: false }));
+    halo.scale.setScalar(1.18);
+    halo.visible = false;
+    m.add(halo);
+    m.userData.halo = halo;
+    return m;
+  };
+  const sc = document.createElement("canvas");
+  sc.width = sc.height = 128;
+  const g = sc.getContext("2d");
+  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64);
+  grd.addColorStop(0, "rgba(0,0,0,0.45)");
+  grd.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = grd;
+  g.fillRect(0, 0, 128, 128);
+  const shadow = new T.Mesh(new T.PlaneGeometry(S.L * 1.25, S.W * 1.9), new T.MeshBasicMaterial({ map: new T.CanvasTexture(sc), transparent: true, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.y = 5e-3;
+  car.add(shadow);
+  const shape = new T.Shape();
+  S.profile.forEach(([x, y], i) => i ? shape.lineTo(x, y) : shape.moveTo(x, y));
+  shape.closePath();
+  const bodyGeo = new T.ExtrudeGeometry(shape, { depth: S.W - 0.12, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 3, curveSegments: 4 });
+  bodyGeo.translate(0, 0, -(S.W - 0.12) / 2);
+  const shell = new T.Mesh(bodyGeo, new T.MeshPhysicalMaterial({ color: 12375014, transparent: true, opacity: 0.13, roughness: 0.2, metalness: 0.1, depthWrite: false, side: T.DoubleSide }));
+  car.add(shell);
+  const shellMat = shell.material;
+  const edges = new T.LineSegments(new T.EdgesGeometry(bodyGeo, 25), new T.LineBasicMaterial({ color: 1491682, transparent: true, opacity: 0.55 }));
+  car.add(edges);
+  const [[sx0, sy0], [sx1, sy1]] = S.screen;
+  const sLen = Math.hypot(sx1 - sx0, sy1 - sy0), sAng = Math.atan2(sy1 - sy0, sx1 - sx0);
+  add("windscreen", new T.BoxGeometry(sLen * 0.92, 0.02, S.W * 0.86), [(sx0 + sx1) / 2 - 0.02, (sy0 + sy1) / 2 + 0.02, 0], [0, 0, sAng]);
+  parts.windscreen[0].material.transparent = true;
+  parts.windscreen[0].material.opacity = 0.3;
+  for (const z of [-0.32, 0.38]) add("wipers", new T.BoxGeometry(0.05, 0.035, 0.62), [sx0 - 0.08, sy0 + 0.08, z], [0, 0.35, 0]);
+  const hx = S.wheelbase / 2, wz = S.W / 2 - 0.02;
+  for (const [x, z] of [[hx, wz], [hx, -wz], [-hx, wz], [-hx, -wz]]) {
+    add("tyres", new T.TorusGeometry(S.r - 0.09, 0.1, 12, 28), [x, S.axleY, z]);
+    const rim = new T.Mesh(new T.CylinderGeometry(S.r - 0.13, S.r - 0.13, 0.16, 24), new T.MeshStandardMaterial({ color: 8950432, roughness: 0.4, metalness: 0.6 }));
+    rim.rotation.x = Math.PI / 2;
+    rim.position.set(x, S.axleY, z);
+    car.add(rim);
+    decor.push(rim);
+    add(x > 0 ? "brakesF" : "brakesR", new T.CylinderGeometry(S.r - 0.15, S.r - 0.15, 0.05, 24), [x, S.axleY, z - Math.sign(z) * 0.14], [Math.PI / 2, 0, 0]);
+    const helix = new T.CatmullRomCurve3(Array.from({ length: 41 }, (_, i) => {
+      const a = i / 40 * Math.PI * 9;
+      return new T.Vector3(Math.cos(a) * 0.09, i / 40 * 0.42, Math.sin(a) * 0.09);
+    }));
+    add("suspension", new T.TubeGeometry(helix, 120, 0.016, 6), [x, S.axleY + 0.05, z - Math.sign(z) * 0.32]);
+  }
+  const ex = S.engineX, ey = S.engineY;
+  add("oil", new T.BoxGeometry(0.62, 0.42, 0.66), [ex, ey, 0]);
+  for (let i = 0; i < 4; i++) add("sparkplugs", new T.CylinderGeometry(0.03, 0.03, 0.12, 8), [ex - 0.18 + i * 0.12, ey + 0.27, 0.05]);
+  add("oil", new T.CylinderGeometry(0.13, 0.13, 0.18, 18), [ex - 0.1, ey + 0.3, -0.42]);
+  add("washer", new T.BoxGeometry(0.16, 0.2, 0.14), [ex + 0.3, ey + 0.1, -S.W * 0.36]);
+  add("battery", new T.BoxGeometry(0.32, 0.22, 0.2), [ex - 0.05, ey + 0.05, 0.6]);
+  add("coolant", new T.BoxGeometry(0.05, 0.42, S.W * 0.7), [ex + 0.55, ey - 0.02, 0]);
+  add("aircon", new T.BoxGeometry(0.03, 0.36, S.W * 0.62), [ex + 0.62, ey - 0.02, 0]);
+  add("timing", new T.TorusGeometry(0.15, 0.025, 8, 24), [ex + 0.2, ey + 0.02, -0.38]);
+  add("belts", new T.TorusGeometry(0.1, 0.02, 8, 20), [ex + 0.32, ey - 0.12, -0.38]);
+  add("alternator", new T.CylinderGeometry(0.08, 0.08, 0.14, 16), [ex + 0.3, ey - 0.1, 0.38], [Math.PI / 2, 0, 0]);
+  add("transmission", new T.CylinderGeometry(0.14, 0.2, 0.55, 16), [ex - 0.58, ey - 0.12, 0], [0, 0, Math.PI / 2]);
+  add("oil", new T.BoxGeometry(0.2, 0.05, 0.28), [S.dashX, ey + 0.22, 0.3]);
+  const exPath = new T.CatmullRomCurve3([new T.Vector3(ex - 0.2, 0.42, -0.25), new T.Vector3(ex - 0.6, 0.3, -0.3), new T.Vector3(-S.L / 2 + 0.6, 0.28, -0.32), new T.Vector3(-S.L / 2 + 0.05, 0.3, -0.42)]);
+  add("exhaust", new T.TubeGeometry(exPath, 40, 0.035, 8), [0, 0, 0]);
+  add("exhaust", new T.CylinderGeometry(0.11, 0.11, 0.5, 16), [-S.L / 2 + 0.55, 0.3, -0.36], [0, 0, Math.PI / 2]);
+  add("oil", new T.CylinderGeometry(0.05, 0.05, 0.16, 12), [-0.2, 0.36, 0.32], [0, 0, Math.PI / 2]);
+  const front = S.profile[2][0] - 0.02, rear = S.profile[S.profile.length - 1][0] + 0.02;
+  for (const z of [S.W * 0.36, -S.W * 0.36]) {
+    add("lights", new T.BoxGeometry(0.06, 0.12, 0.32), [front, S.profile[2][1] + 0.06, z]);
+    add("lights", new T.BoxGeometry(0.06, 0.18, 0.16), [rear, S.tailY, z]);
+  }
+  let selected = null, colors = {};
+  const tmp = new T.Color();
+  function setStatus(map) {
+    colors = map || {};
+    for (const [k, ms] of Object.entries(parts)) {
+      const c = colors[k];
+      for (const m of ms) {
+        m.material.color.set(c || (k === "windscreen" ? 11126749 : GREY));
+        m.material.roughness = c ? 0.35 : 0.7;
+      }
+    }
+  }
+  const focus = new T.Vector3(), focusTo = new T.Vector3();
+  let zoom = 1, zoomTo = 1, fade = 0, fadeTo = 0, tag = null;
+  function select(key, label) {
+    selected = key || null;
+    fadeTo = selected ? 1 : 0;
+    zoomTo = selected ? 0.68 : 1;
+    for (const [k, ms] of Object.entries(parts)) for (const m of ms) {
+      m.material.emissive.set(0);
+      m.scale.setScalar(1);
+      m.userData.halo.visible = k === selected;
+      m.userData.halo.material.color.set(colors[k] || 1491682);
+    }
+    if (tag) {
+      tag.remove();
+      tag = null;
+    }
+    if (selected && label) {
+      tag = document.createElement("div");
+      tag.className = "part-tag";
+      tag.textContent = label;
+      container.appendChild(tag);
+    }
+    if (!selected) focusTo.set(0, 0, 0);
+    if (selected && parts[selected]) {
+      const c = new T.Vector3();
+      parts[selected].forEach((m) => c.add(m.position));
+      c.divideScalar(parts[selected].length);
+      const ang = Math.atan2(c.z, c.x || 1e-4);
+      const camAng = Math.atan2(camera.position.z, camera.position.x);
+      let want = -(camAng - ang);
+      while (want - yaw > Math.PI) want -= Math.PI * 2;
+      while (want - yaw < -Math.PI) want += Math.PI * 2;
+      yawTarget = Math.abs(c.z) < 0.2 && Math.abs(c.x) > 0.4 ? want + (c.x > 0 ? 0.55 : -0.55) : want;
+      focusTo.copy(c);
+      focusTo.y -= target.y * 0.5;
+    }
+    idleAt = performance.now();
+  }
+  let yaw = -0.75, yawTarget = null, pitch = 0.36, idleAt = 0, raf = 0, w = 0, h = 0;
+  function size() {
+    const r = container.getBoundingClientRect();
+    if (!r.width || r.width === w && r.height === h) return;
+    w = r.width;
+    h = r.height;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  const ro = window.ResizeObserver ? new ResizeObserver(size) : null;
+  ro?.observe(container);
+  const t0 = performance.now();
+  function frame(t) {
+    raf = requestAnimationFrame(frame);
+    size();
+    if (yawTarget != null) {
+      yaw += (yawTarget - yaw) * 0.08;
+      if (Math.abs(yawTarget - yaw) < 2e-3) yawTarget = null;
+    } else if (!dragging && !selected && t - idleAt > 2500) yaw += 35e-4;
+    const intro = Math.min(1, (t - t0) / 900), ease = 1 - Math.pow(1 - intro, 3);
+    zoom += (zoomTo - zoom) * 0.08;
+    fade += (fadeTo - fade) * 0.12;
+    focus.lerp(focusTo, 0.08);
+    const fw = focus.clone().applyAxisAngle(new T.Vector3(0, 1, 0), yaw);
+    const d = dist * (1.25 - 0.25 * ease) * zoom;
+    const look = new T.Vector3(fw.x, target.y + fw.y * 0.6, fw.z);
+    camera.position.set(look.x + Math.cos(pitch) * d, look.y + Math.sin(pitch) * d, look.z);
+    camera.lookAt(look);
+    car.rotation.y = yaw;
+    for (const r of decor) {
+      r.material.transparent = fade > 0.01;
+      r.material.opacity = 1 - 0.85 * fade;
+      r.material.depthWrite = fade < 0.5;
+    }
+    shellMat.opacity = 0.13 - 0.09 * fade;
+    edges.material.opacity = 0.55 - 0.4 * fade;
+    for (const [k, ms] of Object.entries(parts)) {
+      const on = k === selected;
+      for (const m of ms) {
+        const base = k === "windscreen" ? 0.3 : 1;
+        const op = on ? k === "windscreen" ? 0.85 : 1 : base * (1 - 0.86 * fade);
+        m.material.transparent = op < 1;
+        m.material.opacity = op;
+        m.material.depthWrite = op >= 1;
+      }
+    }
+    if (selected && parts[selected]) {
+      const s = Math.sin(t / 240);
+      const k = 0.45 + 0.4 * s;
+      for (const m of parts[selected]) {
+        tmp.set(colors[selected] || 1491682).multiplyScalar(k);
+        m.material.emissive.copy(tmp);
+        m.scale.setScalar(1.14 + 0.08 * s);
+        m.userData.halo.material.opacity = 0.35 + 0.25 * s;
+      }
+      if (tag) {
+        const c = new T.Vector3();
+        parts[selected].forEach((m) => c.add(m.getWorldPosition(new T.Vector3())));
+        c.divideScalar(parts[selected].length);
+        c.y += 0.25;
+        c.project(camera);
+        tag.style.transform = `translate(${(c.x + 1) / 2 * w}px, ${(1 - c.y) / 2 * h}px) translate(-50%, -100%)`;
+      }
+    }
+    renderer.render(scene, camera);
+  }
+  raf = requestAnimationFrame(frame);
+  const el = renderer.domElement;
+  el.style.touchAction = "pan-y";
+  let dragging = false, sx = 0, sy = 0, moved = 0;
+  const ray = new T.Raycaster(), pt = new T.Vector2();
+  const onDown = (e) => {
+    dragging = true;
+    sx = e.clientX;
+    sy = e.clientY;
+    moved = 0;
+    yawTarget = null;
+    el.setPointerCapture?.(e.pointerId);
+  };
+  const onMove = (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    sx = e.clientX;
+    sy = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    yaw += dx * 0.012;
+    if (e.pointerType === "mouse") pitch = Math.max(0.05, Math.min(1.1, pitch + dy * 6e-3));
+    idleAt = performance.now();
+  };
+  const onUp = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    idleAt = performance.now();
+    if (moved > 6) return;
+    const r = el.getBoundingClientRect();
+    pt.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(pt, camera);
+    const hit = ray.intersectObjects(pickables, false)[0];
+    const key = hit ? hit.object.userData.part : null;
+    onSelect?.(key && key === selected ? null : key);
+  };
+  const onCancel = () => {
+    dragging = false;
+  };
+  const onWheel = (e) => {
+    e.preventDefault();
+    dist = Math.max(7, Math.min(18, dist * (1 + e.deltaY * 1e-3)));
+  };
+  el.addEventListener("pointerdown", onDown);
+  el.addEventListener("pointermove", onMove);
+  el.addEventListener("pointerup", onUp);
+  el.addEventListener("pointercancel", onCancel);
+  el.addEventListener("wheel", onWheel, { passive: false });
+  return {
+    setStatus,
+    select,
+    body,
+    dispose() {
+      cancelAnimationFrame(raf);
+      ro?.disconnect();
+      scene.traverse((o) => {
+        o.geometry?.dispose();
+        if (o.material) [].concat(o.material).forEach((m) => {
+          m.map?.dispose();
+          m.dispose();
+        });
+      });
+      renderer.dispose();
+      el.remove();
+    }
+  };
+}
+
+// app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -1446,16 +2187,36 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "42";
-var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
-var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
-var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
-var TYRE_JOBS = [["new", "New tyres"], ["rotation", "Rotation"], ["alignment", "Alignment & balance"], ["puncture", "Puncture repair"]];
-var ROT_LABEL = { "front-back": "Front \u2194 back", cross: "Cross (X)", "rear-cross": "Fronts back, rears cross", "forward-cross": "Rears forward, fronts cross", "side-side": "Left \u2194 right" };
+var APP_VERSION = "45";
+var SERVICE_CATS = ["Scheduled service", "Repairs"];
+var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
+var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
+var TYRE_GROUPS = [
+  ["Fitted", [["new", "New tyres", "Brand-new tyres fitted"]]],
+  ["Moved", [["rotation", "Rotation", "Tyres swapped between corners"]]],
+  ["Other", [["check", "Pressure check", "Tyre pressures checked or adjusted"]]]
+];
+var TYRE_JOBS = TYRE_GROUPS.flatMap(([, js]) => js);
+var FITS = ["new", "spare"];
+var FIXES = ["puncture", "valve", "rim"];
+var ROT_LABEL = { "front-back": "Front \u2194 back", cross: "Cross (X)", "rear-cross": "Rearward cross", "forward-cross": "Forward cross", "side-side": "Left \u2194 right" };
+var ROT_DESC = { "front-back": "Fronts go straight back, rears go straight forward.", cross: "Every tyre moves to the opposite corner.", "rear-cross": "Fronts go straight back, rears cross to the front.", "forward-cross": "Rears come straight forward, fronts cross to the back.", "side-side": "Swap sides on each axle." };
+function rotDiagram(key) {
+  const P = { FL: [26, 38], FR: [94, 38], RL: [26, 132], RR: [94, 132] };
+  const map = ROTATIONS[key] || ROTATIONS["front-back"];
+  const tyres = Object.keys(P).map((p) => `<g class="rot-mv" style="--dx:${P[map[p]][0] - P[p][0]}px;--dy:${P[map[p]][1] - P[p][1]}px"><rect x="${P[p][0] - 7}" y="${P[p][1] - 16}" width="14" height="32" rx="4"/></g>`).join("");
+  return `<svg class="rot-svg" viewBox="0 0 120 170" aria-hidden="true"><rect class="rot-body" x="34" y="10" width="52" height="150" rx="22"/>${tyres}</svg>`;
+}
+var rotPicker = (cur) => {
+  const keys = Object.keys(ROT_LABEL), i = Math.max(0, keys.indexOf(cur));
+  return `<div class="rot-pick" id="rot-pick"><input type="hidden" name="tyre_rot" value="${keys[i]}">
+    <button type="button" class="rot-nav" data-d="-1" aria-label="Previous pattern">\u2039</button>
+    <div class="rot-mid">${rotDiagram(keys[i])}<span class="rot-name">${ROT_LABEL[keys[i]]}</span><span class="rot-desc">${ROT_DESC[keys[i]]}</span>
+      <span class="rot-dots">${keys.map((k, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</span></div>
+    <button type="button" class="rot-nav" data-d="1" aria-label="Next pattern">\u203A</button></div>`;
+};
 var POS_LABEL = { FL: "Front left", FR: "Front right", RL: "Rear left", RR: "Rear right" };
-var CAR_TOP = '<svg viewBox="0 0 60 110" aria-hidden="true"><path d="M14 18c0-9 7-14 16-14s16 5 16 14v74c0 9-7 14-16 14s-16-5-16-14z"/><path d="M18 34c3-4 21-4 24 0l-2 12H20zM20 78h20l2 10c-3 3-21 3-24 0z"/><path d="M30 6v8"/></svg>';
-var JOB_CATEGORY = { new: "Tyres", rotation: "Tyre rotation", alignment: "Wheel alignment", puncture: "Puncture repair" };
-var REGO_CATS2 = REGO_CATS;
+var JOB_CATEGORY = { new: "Tyres", spare: "Tyres", rotation: "Tyre rotation", alignment: "Wheel alignment", balance: "Wheel balance", puncture: "Puncture repair", valve: "Tyre repair", rim: "Tyre repair", check: "Tyre check" };
 var EXPENSE_CATS = ["Tolls", "Parking", "Car wash", "Accessories", "Fines", "Roadside assist", "Other"];
 var TYPE_LABEL = { fuel: "Fuel", service: "Service", rego: "Rego & insurance", expense: "Expense" };
 var FILTER_LABEL = { all: "All", fuel: "Fuel", service: "Service", rego: "Rego & ins.", expense: "Other" };
@@ -1469,7 +2230,7 @@ var ICONS = {
 var KINDS = [
   { k: "fuel", label: "Fuel", desc: "Fill-up at the servo" },
   { k: "service", label: "Service", desc: "Servicing and repairs" },
-  { k: "tyres", label: "Tyres", desc: "New tyres, rotation, alignment" },
+  { k: "tyres", label: "Tyres", desc: "New, rotation, alignment, repairs" },
   { k: "rego", label: "Rego & insurance", short: "Rego & ins.", desc: "Registration and insurance" },
   { k: "expense", label: "Other expense", short: "Other", desc: "Tolls, parking, car wash and more" }
 ];
@@ -1753,6 +2514,98 @@ function tweenText(el, from, to, ms = 650) {
   el.textContent = pre + fmt.format(a) + post;
   requestAnimationFrame(step);
 }
+var bodyOf = (v) => {
+  if (v && SHAPES[v.body]) return v.body;
+  if (v && v.body === "car") return "sedan";
+  const t = `${v?.name || ""} ${v?.make || ""} ${v?.model || ""}`;
+  if (/\bvan\b|hiace|transit|sprinter|trafic|vito|express|staria|carnival/i.test(t)) return "van";
+  if (/\bute\b|hilux|ranger|triton|navara|d-?max|bt-?50|amarok|colorado/i.test(t)) return "ute";
+  if (/suv|4wd|prado|landcruiser|pajero|rav4|x-?trail|cx-?5|outlander|everest|fortuner/i.test(t)) return "suv";
+  if (/wagon|estate/i.test(t)) return "wagon";
+  if (/hatch|corolla|i30|mazda3|yaris|swift|golf|polo/i.test(t)) return "hatch";
+  return "sedan";
+};
+var shapeTiles = (cur, name = "body") => `<div class="shape-pick">${Object.entries(SHAPES).map(([k, x]) => `<label class="shape-tile"><input type="radio" name="${name}" value="${k}" ${cur === k ? "checked" : ""}>${shapeSVG(k)}<span>${x.label}</span></label>`).join("")}</div>`;
+function shapeForm(v) {
+  openSheet(
+    `${sheetHead("Pick the closest shape")}
+    <p class="muted" style="margin:0">${esc(v.name)} on the Car tab.</p>
+    ${shapeTiles(bodyOf(v), "shape")}
+    <button class="btn primary" value="save">Use this shape</button>`,
+    async () => {
+      const k = (sheetForm.querySelector("[name=shape]:checked") || {}).value;
+      if (k) updateDoc(userDoc("vehicles", v.id), { body: k }).catch((err) => toast("Sync problem: " + err.message));
+    }
+  );
+}
+function carParts() {
+  const v = currentVehicle(), list = vehicleEntries();
+  const r = reminders(list, v);
+  return partsStatus(list, { ...v, svcKm: r.service.intervalKm, svcMonths: r.service.months }).map((p) => ({ ...p, color: p.wear != null ? wearColor(p.wear) : null }));
+}
+function partDetailHTML(p) {
+  if (!p) return `<div class="part-detail empty"><span>Tap a part on the car, or one in the list, to see its history.</span></div>`;
+  const st = p.wear == null ? p.last ? "ok" : "unknown" : p.wear >= 1 ? "due" : p.wear >= 0.85 ? "soon" : "ok";
+  const life = [p.km ? `${n0.format(p.km)} km` : "", p.mo ? `${p.mo >= 12 && p.mo % 12 === 0 ? p.mo / 12 + " year" + (p.mo > 12 ? "s" : "") : p.mo + " months"}` : ""].filter(Boolean).join(" or ");
+  return `<div class="part-detail">
+    <div class="pd-top"><span class="pd-dot" style="background:${p.color || "var(--muted)"}"></span><strong>${esc(p.label)}</strong>${statusChip(st, st === "due")}</div>
+    ${p.last ? `<div class="pd-main">Last done <strong>${fmtDate(p.last.date)}</strong> \xB7 ${ago(p.daysSince)} ago${p.kmSince != null ? ` \xB7 <span class="num">${n0.format(p.kmSince)}</span> km` : ""}</div>
+      ${p.wear != null ? wearBar(p.wear) : ""}
+      ${life ? `<div class="pd-sub">Usually lasts about ${life}</div>` : ""}
+      <ul class="pd-hist">${p.hist.slice(0, 6).map((e) => `<li><button type="button" class="link" data-act="edit-entry" data-id="${e.id}">${fmtDate(e.date)}</button><span>${esc(e.notes || e.category || "")}</span><span class="num">${e.cost ? money.format(+e.cost) : ""}</span></li>`).join("")}</ul>` : `<div class="pd-main muted">Nothing logged for this part yet.</div>`}
+    <button type="button" class="btn small pd-add" data-act="log-part" data-part="${p.k}">Log ${esc(p.label.toLowerCase())}</button>
+  </div>`;
+}
+function carHTML() {
+  const ps = carParts();
+  const sel = ps.find((p) => p.k === state.carPart) || null;
+  const done = ps.filter((p) => p.last).sort((a, b) => (b.wear ?? -1) - (a.wear ?? -1));
+  const rest = ps.filter((p) => !p.last);
+  const row = (p) => `<button type="button" class="part-row ${p.k === state.carPart ? "on" : ""}" data-act="pick-part" data-part="${p.k}">
+      <span class="pd-dot" style="background:${p.color || "transparent"};${p.color ? "" : "border:2px solid var(--line)"}"></span>
+      <span class="pr-t"><span class="pr-n">${esc(p.label)}</span><span class="pr-s">${p.last ? `${fmtDate(p.last.date)} \xB7 ${ago(p.daysSince)} ago` : "Not logged"}</span></span>
+      ${p.wear != null ? `<span class="pr-bar"><i style="width:${Math.min(100, Math.max(4, p.wear * 100)).toFixed(0)}%;background:${p.color}"></i></span>` : ""}
+    </button>`;
+  return `<div class="car-grid">
+    <section class="card car-view">
+      <div class="car3d" id="car3d"><span class="car-hint">Drag to turn \xB7 tap a part</span>
+        <button type="button" class="car-shape" data-act="pick-shape">${shapeSVG(bodyOf(currentVehicle()))}${SHAPES[bodyOf(currentVehicle())].label}</button></div>
+      <div class="car-key"><span>New</span><i></i><span>Due</span><span class="ck-none"><b></b>Not logged</span></div>
+      <div id="part-detail">${partDetailHTML(sel)}</div>
+    </section>
+    <section class="card car-list"><h2>Parts</h2>
+      ${done.map(row).join("") || '<p class="muted small">No parts logged yet. Add a service and tick the parts that were done.</p>'}
+      ${rest.length ? `<details class="parts-more"><summary>${rest.length} parts not logged yet</summary>${rest.map(row).join("")}</details>` : ""}
+    </section>
+  </div>`;
+}
+function updateCar() {
+  if (!state.car3d) return;
+  const ps = carParts();
+  state.car3d.setStatus(Object.fromEntries(ps.filter((p) => p.color).map((p) => [p.k, p.color])));
+  state.car3d.select(PARTS.some((x) => x.k === state.carPart) ? state.carPart : null, PARTS.find((x) => x.k === state.carPart)?.label);
+}
+function pickPart(key) {
+  state.carPart = key;
+  state.car3d?.select(PARTS.some((x) => x.k === key) ? key : null, PARTS.find((x) => x.k === key)?.label);
+  const ps = carParts();
+  const d = $("#part-detail");
+  if (d) d.innerHTML = partDetailHTML(ps.find((p) => p.k === key));
+  document.querySelectorAll(".part-row").forEach((b) => b.classList.toggle("on", b.dataset.part === key));
+}
+async function mountCar() {
+  const box = $("#car3d");
+  if (!box) return;
+  try {
+    if (!window.THREE) await loadScript("https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js");
+  } catch {
+    box.insertAdjacentHTML("beforeend", '<p class="car-fail">The 3D car needs internet the first time it loads.</p>');
+    return;
+  }
+  if (state.view !== "car" || !box.isConnected) return;
+  state.car3d = createCarScene(box, { body: bodyOf(currentVehicle()), onSelect: (k) => pickPart(k) });
+  updateCar();
+}
 var PIE_KEYS = [["fuel", "Fuel"], ["service", "Service"], ["rego", "Rego & insurance"], ["expense", "Other"]];
 function piePaths(fracs) {
   const R = 50, cx = 50, cy = 50;
@@ -1854,16 +2707,21 @@ function render() {
   const main = $("#main");
   const prev = state.lastRender || {};
   const mode = !prev.view ? "enter" : prev.view !== state.view ? "view" : prev.vehicleId !== state.vehicleId ? "vehicle" : prev.logFilter !== state.logFilter || prev.placeTab !== state.placeTab ? "soft" : "same";
-  if (state.view === "charts" && prev.view === "charts" && mode !== "view" && window.Chart && state.charts.length && $("#c-month") && vehicleEntries().length && !state.loadError) {
+  if (state.view === "charts" && prev.view === "charts" && mode !== "view" && window.Chart && $(".charts-grid") && vehicleEntries().length && !state.loadError) {
     renderChrome();
     main.querySelectorAll(".chips.period .chip").forEach((b) => {
       const on = b.dataset.p === state.period;
       b.classList.toggle("on", on);
       b.setAttribute("aria-selected", on);
     });
-    const weekly = state.period === "month" || state.period === "3m";
-    $("#h-month").textContent = `Spending by ${weekly ? "week" : "month"}`;
-    $("#h-km").textContent = `Km driven by ${weekly ? "week" : "month"}`;
+    const w = chartWords();
+    main.querySelectorAll(".prev-tog").forEach((t) => {
+      t.hidden = state.period === "all";
+    });
+    main.querySelectorAll("[data-tt]").forEach((h) => {
+      const c = CHART_LIST.find((x) => x[1] === h.dataset.tt);
+      if (c) h.textContent = c[3](w);
+    });
     state.animCharts = true;
     drawCharts();
     state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
@@ -1878,6 +2736,19 @@ function render() {
     patchChildren(main, tmp);
     state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
     morphNums(main, before2);
+    placeIndicators();
+    return;
+  }
+  if (state.view === "car" && prev.view === "car" && (mode === "same" || mode === "vehicle") && state.car3d && state.car3d.body === bodyOf(currentVehicle())) {
+    renderChrome();
+    const tmp = document.createElement("div");
+    tmp.innerHTML = carHTML();
+    const keep = $("#car3d");
+    const fresh = tmp.querySelector("#car3d");
+    fresh.replaceWith(keep);
+    patchChildren(main, tmp);
+    updateCar();
+    state.lastRender = { view: state.view, vehicleId: state.vehicleId, logFilter: state.logFilter, placeTab: state.placeTab };
     placeIndicators();
     return;
   }
@@ -1958,6 +2829,10 @@ function renderInner() {
   renderChrome();
   state.charts.forEach((c) => c.destroy());
   state.charts = [];
+  if (state.car3d) {
+    state.car3d.dispose();
+    state.car3d = null;
+  }
   const main = $("#main");
   if (state.loadError && state.view !== "garage") {
     main.innerHTML = loadErrorHTML();
@@ -1972,6 +2847,9 @@ function renderInner() {
   else if (state.view === "charts") {
     main.innerHTML = chartsHTML();
     drawCharts();
+  } else if (state.view === "car") {
+    main.innerHTML = carHTML();
+    mountCar();
   } else main.innerHTML = garageHTML();
 }
 function loadErrorHTML() {
@@ -1998,7 +2876,8 @@ function welcomeHTML() {
 }
 function tyreTitle(e) {
   const n = tyreCount(e);
-  return tyreJobsOf(e).map((j) => TYRE_JOB_LABEL[j] + (j === "new" && n ? ` \xD7${n}` : "")).join(" + ") || "Tyres";
+  const psi = e.pressures ? [e.pressures.front, e.pressures.rear].filter((x) => x != null) : [];
+  return tyreJobsOf(e).map((j) => TYRE_JOB_LABEL[j] + (j === "new" && n ? ` \xD7${n}` : "") + (j === "check" && psi.length ? ` ${psi.join("/")} psi` : "")).join(" + ") || "Tyres";
 }
 function partTitle(e) {
   if (e.type === "fuel") return e.litres ? `${n2.format(e.litres)} L` : "Fuel";
@@ -2118,6 +2997,7 @@ var RICONS = {
   tyres: ICONS.tyres,
   rego: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M7 12h2M11 12h2M15 12h2"/></svg>',
   wipers: '<svg viewBox="0 0 24 24"><path d="M3.5 7.5h17l-2.2 10.5H5.7z"/><path d="M12 17.5L7.5 10"/></svg>',
+  washer: '<svg viewBox="0 0 24 24"><path d="M12 3.5c3 4 5.5 7 5.5 10a5.5 5.5 0 0 1-11 0c0-3 2.5-6 5.5-10z"/><path d="M9.5 14a2.5 2.5 0 0 0 2.5 2.5"/></svg>',
   insurance: '<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>'
 };
 function remindersHTML(v, list) {
@@ -2144,6 +3024,23 @@ function remindersHTML(v, list) {
   } else rows.push(row("service", "Next service", statusChip("unknown"), "No service logged yet", "Add one with + \u2192 Service to start tracking."));
   const t = r.rotation;
   const ts = r.tyres;
+  const lastJob = (j) => list.filter((e) => tyreJobsOf(e).includes(j)).sort((a, b) => String(b.date).localeCompare(String(a.date)) || (+b.odo || 0) - (+a.odo || 0))[0] || null;
+  const since = (e) => {
+    const days = Math.max(0, Math.round((Date.now() - /* @__PURE__ */ new Date(e.date + "T00:00:00")) / 864e5));
+    const km = +e.odo > 0 && r.latestOdo ? Math.max(0, r.latestOdo - +e.odo) : null;
+    return { days, km };
+  };
+  const tyreEvents = (() => {
+    const e = lastJob("check");
+    const gauge = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 17a8.5 8.5 0 1 1 15 0"/><path d="M12 14.5l4-4.5"/><circle cx="12" cy="15" r="1.4"/></svg>';
+    if (!e) return `<div class="psi-row"><span class="psi-ic">${gauge}</span><div class="psi-t"><span class="psi-k">Pressure check</span><span class="psi-when">Not logged yet</span></div></div>`;
+    const x = since(e);
+    const p = e.pressures || {};
+    const box = (lab, val) => `<span class="psi-box"><span class="psi-l">${lab}</span><span class="psi-n num">${val ?? "\u2013"}</span><span class="psi-l">psi</span></span>`;
+    return `<div class="psi-row"><span class="psi-ic">${gauge}</span>
+      <div class="psi-t"><span class="psi-k">Pressure check</span><span class="psi-when">${x.days === 0 ? "Today" : `${ago(x.days)} ago`}</span>${x.km != null ? `<span class="psi-when"><span class="num">${n0.format(x.km)}</span> km since</span>` : ""}</div>
+      ${p.front != null || p.rear != null ? `<div class="psi-vals">${box("Front", p.front)}${box("Rear", p.rear)}</div>` : ""}</div>`;
+  })();
   if (!ts.any) {
     if (t.last) rows.push(row(
       "rotation",
@@ -2154,6 +3051,7 @@ function remindersHTML(v, list) {
       src(t)
     ));
     else rows.push(row("rotation", "Tyre rotation", statusChip("unknown"), "No rotation logged yet", "Add one with + \u2192 Tyres \u2192 Rotation."));
+    rows.push(`<div class="rem rem-tyremap"><span class="rem-ic rem-tyres">${RICONS.tyres}</span><div class="rem-body"><div class="rem-top"><span class="rem-title">Tyres</span></div><div class="tyre-events">${tyreEvents}</div></div></div>`);
   } else {
     const { info, worst } = tyreWear(v, r);
     const rotF = t.last && t.kmSince != null && t.intervalKm ? t.kmSince / t.intervalKm : null;
@@ -2185,6 +3083,7 @@ function remindersHTML(v, list) {
         ${rot}
         <div class="tyrecar">${ringCell("FL", "left")}${car}${ringCell("FR", "right")}${ringCell("RL", "left")}${ringCell("RR", "right")}</div>
         <div class="ring-key"><span><i class="k-outer"></i>Outer: rotation</span><span><i class="k-inner"></i>Inner: tyre life</span></div>
+        <div class="tyre-events">${tyreEvents}</div>
       </div></div>`);
   }
   const w = r.wipers;
@@ -2197,7 +3096,18 @@ function remindersHTML(v, list) {
       [w.kmSince != null ? `<span class="num">${n0.format(w.kmSince)}</span> km since` : "", w.last.cost ? money.format(+w.last.cost) : "", w.last.place ? esc(w.last.place) : ""].filter(Boolean).join(" \xB7 "),
       w.days >= 0 ? `Next change around ${fmtDate(w.due)}` : `Due ${ago(-w.days)} ago, every ${w.months} months`
     ));
-  } else rows.push(row("wipers", "Wiper blades", statusChip("unknown"), "No change logged yet", "Add one with + \u2192 Service \u2192 Wiper blades."));
+  } else rows.push(row("wipers", "Wiper blades", statusChip("unknown"), "No change logged yet", "Add one with + \u2192 Service, then tap Wiper blades."));
+  const wf = partsStatus(list, v).find((p) => p.k === "washer");
+  if (wf && wf.last) {
+    const st = wf.wear >= 1 ? "due" : wf.wear >= 0.8 ? "soon" : "ok";
+    rows.push(row(
+      "washer",
+      "Washer fluid",
+      statusChip(st, st === "due"),
+      `Topped up <strong>${fmtDate(wf.last.date)}</strong> \xB7 ${wf.daysSince === 0 ? "today" : `${ago(wf.daysSince)} ago`}${wearBar(wf.wear ?? 0)}`,
+      wf.kmSince != null ? `<span class="num">${n0.format(wf.kmSince)}</span> km since` : ""
+    ));
+  } else rows.push(row("washer", "Washer fluid", statusChip("unknown"), "No top-up logged yet", "Add one with + \u2192 Service, then tap Washer fluid."));
   const setLink = (label) => `<button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">${label}</button>`;
   for (const [key, title, cat, it] of [["rego", "Rego", "Registration", r.rego], ["insurance", "Insurance", "Insurance", r.insurance]]) {
     if (!it.due) {
@@ -2225,8 +3135,7 @@ function remindersHTML(v, list) {
       `<span class="pay-row">${payBtn}<span>Renews ${months} \xB7 ${setLink("Change")}</span></span>`
     ));
   }
-  return `<section class="card rems"><h2>Coming up</h2>${rows.join("")}
-    ${r.kmPerDay ? `<p class="rem-note">Dates are estimates from your recent driving, about ${n0.format(r.kmPerDay * 7)} km a week.</p>` : ""}</section>`;
+  return `<div class="rem-tiles">${rows.map((x) => `<section class="card rem-tile">${x}</section>`).join("")}</div>`;
 }
 function homeHTML() {
   const list = vehicleEntries();
@@ -2275,14 +3184,7 @@ function homeHTML() {
       ${tile(odo ? n0.format(+odo.odo) + " km" : "\u2013", "Odometer", "", odo ? `as of ${fmtDate(odo.date)}` : "", "wide")}
     </section>
     </div><div class="dash-side">${comingUp}</div></div>
-    <div class="dash-tables">
-    <section class="card"><h2>${year} by quarter</h2>
-      <div class="tbl-wrap"><table class="tbl">${head}<tbody>${quarters.map((q) => row(`Q${q.q}`, q)).join("")}</tbody></table></div>
-    </section>
-    <section class="card"><h2>Year by year</h2>
-      <div class="tbl-wrap"><table class="tbl">${head}<tbody>${years.map((y) => row(y.year, y)).join("")}</tbody></table></div>
-    </section>
-    </div>`;
+`;
 }
 function logHTML() {
   const f = state.logFilter;
@@ -2314,19 +3216,102 @@ function chartRange() {
   return { list, p, inP, listP: list.filter((e) => inP(e.date)), econ: fuelEconomy(list).filter((x) => inP(x.date)) };
 }
 var periodChips = (cls = "") => `<div class="chips period ${cls}" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>`;
+var CHART_LIST = [
+  ["Spending", "month", "Spending by month", ({ u }) => `Spending by ${u}`],
+  ["Spending", "cat", "Where the money goes", ({ P }) => `Where the money goes \xB7 ${P}`, "half"],
+  ["Spending", "cumul", "Running total", ({ P }) => `Running total \xB7 ${P}`],
+  ["Spending", "vsLast", "This period vs last period", ({ vs }) => vs],
+  ["Spending", "costKm", "Running cost per km", ({ u }) => `Running cost per km by ${u} (c/km)`],
+  ["Spending", "svc", "Service and repairs", ({ P }) => `Service and repairs \xB7 ${P}`, "half"],
+  ["Spending", "biggest", "Biggest expenses", ({ P }) => `Biggest expenses \xB7 ${P}`],
+  ["Fuel", "econ", "Fuel economy", () => "Fuel economy per tank (L/100km)"],
+  ["Fuel", "ppl", "Fuel price paid", () => "Fuel price per fill-up (c/L)"],
+  ["Fuel", "fuelSpend", "Fuel spend by month", ({ u }) => `Fuel spend by ${u}`],
+  ["Fuel", "litres", "Litres by month", ({ u }) => `Litres by ${u}`],
+  ["Fuel", "fillCost", "Cost of each fill-up", () => "Cost of each fill-up"],
+  ["Fuel", "kmFill", "Km between fill-ups", () => "Km between fill-ups"],
+  ["Fuel", "station", "Price by service station", ({ P }) => `Average price by servo (c/L) \xB7 ${P}`],
+  ["Fuel", "stationUse", "Where you fill up", ({ P }) => `Where you fill up \xB7 ${P}`],
+  ["Fuel", "weekday", "Day you fill up", ({ P }) => `Day you fill up \xB7 ${P}`, "half"],
+  ["Driving", "km", "Km driven by month", ({ u }) => `Km driven by ${u}`],
+  ["Driving", "odo", "Odometer", () => "Odometer (km)"],
+  ["Driving", "kmDay", "Average km per day", ({ u }) => `Average km per day, by ${u}`],
+  ["Driving", "kmYear", "Km by year", () => "Km by year \xB7 All time"],
+  ["Driving", "calendar", "Driving calendar", ({ P, period }) => `Driving calendar \xB7 ${period === "all" ? "Last 12 months" : P}`],
+  ["All vehicles", "bothSpend", "Spending by vehicle", ({ P }) => `Spending by vehicle \xB7 ${P}`, "half", true],
+  ["All vehicles", "bothKm", "Km driven by vehicle", ({ P }) => `Km driven by vehicle \xB7 ${P}`, "half", true],
+  ["All vehicles", "bothEcon", "Fuel economy by vehicle", ({ u }) => `Fuel economy by vehicle, by ${u} (L/100km)`, null, true],
+  ["Summary", "quarter", "This year by quarter", () => `Spending by quarter \xB7 ${(/* @__PURE__ */ new Date()).getFullYear()}`],
+  ["Summary", "year", "Year by year", () => "Spending by year \xB7 All time"]
+];
+function chartWords() {
+  const period = state.period, y = (/* @__PURE__ */ new Date()).getFullYear();
+  const P = { month: "Last 30 days", "3m": "Last 3 months", "6m": "Last 6 months", year: "Last 12 months", all: "All time" }[period] || "Last 3 months";
+  const vs = { month: "Last 30 days vs the 30 before", "3m": "Last 3 months vs the 3 before", "6m": "Last 6 months vs the 6 before", year: "Last 12 months vs the 12 before", all: `${y} vs ${y - 1}` }[period] || "This period vs last period";
+  return { u: chartUnit(), P, vs, period };
+}
+var PREV_OK = /* @__PURE__ */ new Set(["month", "cumul", "costKm", "econ", "ppl", "fuelSpend", "litres", "fillCost", "kmFill", "station", "km", "kmDay", "bothEcon"]);
+var chartsPrev = () => {
+  try {
+    return new Set(JSON.parse(store.get("carlog.chartsPrev") || "[]"));
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+};
+var chartsOff = () => {
+  try {
+    return new Set(JSON.parse(store.get("carlog.chartsOff") || "[]"));
+  } catch {
+    return /* @__PURE__ */ new Set();
+  }
+};
+var chartUnit = () => state.period === "month" || state.period === "3m" ? "week" : "month";
+var chartsShown = () => {
+  const off = chartsOff();
+  return CHART_LIST.filter(([, k, , , , multi]) => !off.has(k) && (!multi || state.vehicles.length > 1));
+};
 function chartsHTML() {
   const { list } = chartRange();
   if (!list.length) return '<p class="card empty">Log a few entries and your charts will appear here.</p>';
-  const weekly = state.period === "month" || state.period === "3m";
-  const box = (id, extra = "") => `<div class="chart-box" ${extra}><canvas id="${id}"></canvas><p class="chart-empty" hidden></p></div>`;
-  return `${periodChips("sticky-period")}<div class="charts-grid">
-    <section class="card"><h2 id="h-month">Spending by ${weekly ? "week" : "month"}</h2>${box("c-month")}</section>
-    <section class="card"><h2>Where the money goes</h2>${box("c-cat", 'id="cat-box"')}</section>
-    <section class="card"><h2>Fuel economy (L/100km)</h2>${box("c-econ")}</section>
-    <section class="card"><h2>Fuel price paid (c/L)</h2>${box("c-ppl")}</section>
-    <section class="card"><h2 id="h-km">Km driven by ${weekly ? "week" : "month"}</h2>${box("c-km")}</section>
-    <section class="card"><h2>Odometer (km)</h2>${box("c-odo")}</section>
-  </div>`;
+  const shown = chartsShown();
+  if (!shown.length) return `${periodChips("sticky-period")}<p class="card empty">All charts are switched off. Turn them back on in Garage \u2192 Charts.</p>`;
+  const w = chartWords();
+  const prevSet = chartsPrev();
+  const tick = (k) => PREV_OK.has(k) ? `<label class="prev-tog" ${state.period === "all" ? "hidden" : ""}><input type="checkbox" data-act="chart-prev" data-k="${k}" ${prevSet.has(k) ? "checked" : ""}><span>Previous period</span></label>` : "";
+  const card = ([, k, , title, size]) => `<section class="card chart-card ${size === "half" ? "half" : ""}" data-chart="${k}">
+      <div class="chart-head"><h2 data-tt="${k}">${title(w)}</h2>${tick(k)}</div>
+      ${k === "calendar" ? '<div class="cal-box" id="c-calendar"></div>' : `<div class="chart-box" id="box-${k}"><canvas id="c-${k}"></canvas><p class="chart-empty" hidden></p></div>`}
+    </section>`;
+  let html = "";
+  for (const g of [...new Set(shown.map((c) => c[0]))]) {
+    const items = shown.filter((c) => c[0] === g), out = [];
+    while (items.length) {
+      const c = items.shift();
+      if (c[4] === "half") {
+        const j = items.findIndex((x) => x[4] === "half");
+        if (j > -1) out.push(card(c), card(items.splice(j, 1)[0]));
+        else out.push(card(c).replace("chart-card half", "chart-card half solo"));
+      } else out.push(card(c));
+    }
+    html += `<h3 class="chart-group">${g}</h3>${out.join("")}`;
+  }
+  return `${periodChips("sticky-period")}<div class="charts-grid">${html}</div>`;
+}
+function chartSettingsHTML() {
+  const off = chartsOff();
+  let g = null, html = "";
+  for (const [grp, k, name, , , multi] of CHART_LIST) {
+    if (grp !== g) {
+      g = grp;
+      html += `<h3 class="cs-group">${grp}</h3>`;
+    }
+    const on = !off.has(k);
+    html += `<button type="button" class="cs-row" data-act="chart-toggle" data-k="${k}" role="switch" aria-checked="${on}">
+      <span>${name}${multi && state.vehicles.length < 2 ? ' <span class="muted">(needs 2 vehicles)</span>' : ""}</span><span class="sw ${on ? "on" : ""}"></span></button>`;
+  }
+  return `<section class="card stack chart-settings"><div class="cs-head"><h2 style="margin:0">Charts</h2>
+      <span class="cs-btns"><button type="button" class="btn small" data-act="charts-all" data-on="1">All on</button><button type="button" class="btn small" data-act="charts-all" data-on="0">All off</button></span></div>
+      <div class="cs-list">${html}</div></section>`;
 }
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -2353,15 +3338,30 @@ function upsertChart(sel, cfg, emptyMsg) {
   ex.options = cfg.options;
   ex.update();
 }
+function mixHex(a, b, t) {
+  const p = (h) => {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h.split("").map((x) => x + x).join("");
+    return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  };
+  try {
+    const x = p(a), y = p(b);
+    return "#" + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, "0")).join("");
+  } catch {
+    return a;
+  }
+}
 function drawCharts() {
   if (!window.Chart) {
     setTimeout(() => state.view === "charts" && render(), 300);
     return;
   }
+  if (!$(".charts-grid")) return;
   const { list: all, listP: list, p: range, econ } = chartRange();
   const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), rego: cssVar("--rego"), expense: cssVar("--expense"), tyre: cssVar("--tyre"), accent: cssVar("--accent") };
   Chart.defaults.color = C.text;
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  const has = (k) => !!$("#c-" + k);
   const base = {
     responsive: true,
     maintainAspectRatio: false,
@@ -2373,9 +3373,85 @@ function drawCharts() {
       y: { grid: { color: C.grid }, border: { display: false } }
     }
   };
+  const legendTop = { display: true, position: "top", align: "start", labels: {
+    boxWidth: 10,
+    boxHeight: 10,
+    useBorderRadius: true,
+    borderRadius: 3,
+    generateLabels: (ch) => Chart.defaults.plugins.legend.labels.generateLabels(ch).map((l) => ({ ...l, lineDash: [], pointStyle: ch.data.datasets[l.datasetIndex]?.borderDash?.length ? "line" : void 0, fillStyle: ch.data.datasets[l.datasetIndex]?.borderDash?.length ? ch.data.datasets[l.datasetIndex].borderColor : l.fillStyle }))
+  } };
+  const yTicks = (fmt) => ({ ...base.scales.y, ticks: { callback: fmt } });
+  const tip = (fmt) => ({ ...base.plugins, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y, ctx) } } });
   const shortDate = (d) => (/* @__PURE__ */ new Date(d + "T00:00:00")).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
   const line = (color, n = 0) => ({ borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: n > 40 ? 0 : 3, pointHitRadius: 8, pointHoverRadius: 5, tension: 0.25 });
-  const weekly = state.period === "month" || state.period === "3m";
+  const area = (color, n = 0) => ({ ...line(color, n), fill: "origin", backgroundColor: mixHex(color, C.surface, 0.8) });
+  const bars = (color) => ({ backgroundColor: color, borderRadius: 4, barPercentage: 0.75 });
+  const fmtC1 = (v) => `${n1.format(v)}c`;
+  const pie = (k, labels2, values, colors, fmt) => {
+    const wide = ($("#box-" + k)?.clientWidth || 0) >= 420;
+    const total = values.reduce((s, v) => s + v, 0);
+    return {
+      type: "doughnut",
+      data: { labels: labels2, datasets: [{ data: values, backgroundColor: colors, borderColor: C.surface, borderWidth: 2, hoverOffset: 6 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "58%",
+        animation: base.animation,
+        plugins: {
+          legend: { display: true, position: wide ? "right" : "bottom", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3, padding: 10 } },
+          tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)} \xB7 ${total ? Math.round(ctx.parsed / total * 100) : 0}%` } }
+        }
+      }
+    };
+  };
+  const PAL = ["#0b98b8", "#e8871e", "#7b5ce0", "#2f9e5a", "#d64545", "#e0b31b", "#3b6fd8", "#d0457a", "#8a5a2b", "#5d6b7c", "#16b0a0", "#a3a83a"];
+  const CAT_COL = {
+    Fuel: "#0b98b8",
+    "Scheduled service": "#e8871e",
+    Service: "#e8871e",
+    "Oil change": "#8a5a2b",
+    Repairs: "#d64545",
+    Brakes: "#7b5ce0",
+    Battery: "#e0b31b",
+    "Wiper blades": "#3b6fd8",
+    Tyres: "#5d6b7c",
+    "Tyre rotation": "#16b0a0",
+    Registration: "#d0457a",
+    Insurance: "#a3a83a",
+    Other: "#2f9e5a"
+  };
+  const colourMap = (names, fixed = {}) => {
+    const used = /* @__PURE__ */ new Set(), out = {};
+    for (const n of names) if (fixed[n] && !used.has(fixed[n])) {
+      out[n] = fixed[n];
+      used.add(fixed[n]);
+    }
+    let i = 0;
+    for (const n of names) if (!out[n]) {
+      while (used.has(PAL[i % PAL.length]) && i < PAL.length) i++;
+      out[n] = PAL[i % PAL.length];
+      used.add(out[n]);
+      i++;
+    }
+    return out;
+  };
+  const setHeight = (k, rows) => {
+    const b = $("#box-" + k);
+    if (b) b.style.height = Math.max(150, rows * 34 + 30) + "px";
+  };
+  const hbar = (labels2, values, colors, fmt) => ({
+    type: "bar",
+    data: { labels: labels2, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
+    options: {
+      ...base,
+      indexAxis: "y",
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.x) } } },
+      scales: { x: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: (v) => fmt(v) } }, y: { grid: { display: false }, border: { color: C.grid } } }
+    }
+  });
+  const weekly = chartUnit() === "week";
   const buckets = [];
   const sd = /* @__PURE__ */ new Date(range.start + "T00:00:00"), ed = /* @__PURE__ */ new Date(range.end + "T00:00:00");
   const isoD = (d) => d.toLocaleDateString("en-CA");
@@ -2385,100 +3461,487 @@ function drawCharts() {
     while (d <= ed) {
       const e = new Date(d);
       e.setDate(e.getDate() + 6);
-      buckets.push({ start: isoD(d), end: isoD(e), label: d.toLocaleDateString("en-AU", { day: "numeric", month: "short" }), fuel: 0, service: 0, rego: 0, expense: 0 });
+      buckets.push({ start: isoD(d), end: isoD(e), label: d.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) });
       d.setDate(d.getDate() + 7);
     }
   } else {
-    const d = new Date(sd.getFullYear(), sd.getMonth(), 1), long = (ed - sd) / 864e5 > 400;
+    const d = new Date(sd.getFullYear(), sd.getMonth(), 1), long = (ed - sd) / 864e5 > 300;
     while (d <= ed) {
-      buckets.push({ start: isoD(d), end: isoD(new Date(d.getFullYear(), d.getMonth() + 1, 0)), label: d.toLocaleDateString("en-AU", long ? { month: "short", year: "2-digit" } : { month: "short" }), fuel: 0, service: 0, rego: 0, expense: 0 });
+      buckets.push({ start: isoD(d), end: isoD(new Date(d.getFullYear(), d.getMonth() + 1, 0)), label: d.toLocaleDateString("en-AU", long ? { month: "short", year: "2-digit" } : { month: "short" }) });
       d.setMonth(d.getMonth() + 1);
     }
   }
-  for (const e of list) {
-    const k = String(e.date), m = buckets.find((x) => k >= x.start && k <= x.end), g = groupOf(e);
-    if (m && m[g] !== void 0) m[g] += +e.cost || 0;
+  const labels = buckets.map((b) => b.label);
+  for (const b of buckets) {
+    const s = b.start < range.start ? range.start : b.start, e = b.end > range.end ? range.end : b.end;
+    b.s = s;
+    b.e = e;
+    b.days = Math.max(1, Math.round((/* @__PURE__ */ new Date(e + "T00:00:00") - /* @__PURE__ */ new Date(s + "T00:00:00")) / 864e5) + 1);
+    b.fuel = 0;
+    b.service = 0;
+    b.rego = 0;
+    b.expense = 0;
+    b.litres = 0;
   }
-  const bar = (label, key, color) => ({ label, data: buckets.map((m) => +m[key].toFixed(2)), backgroundColor: color, borderColor: C.surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 4, barPercentage: 0.75 });
-  upsertChart("#c-month", {
-    type: "bar",
-    data: { labels: buckets.map((m) => m.label), datasets: [bar("Fuel", "fuel", C.fuel), bar("Service", "service", C.service), bar("Rego & insurance", "rego", C.rego), bar("Other", "expense", C.expense)] },
-    options: {
-      ...base,
-      plugins: {
-        legend: { display: true, position: "top", align: "start", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3 } },
-        tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}`, footer: (items) => `Total: ${money.format(items.reduce((s, i) => s + i.parsed.y, 0))}` } }
-      },
-      scales: { x: { ...base.scales.x, stacked: true }, y: { ...base.scales.y, stacked: true, ticks: { callback: (v) => money0.format(v) } } }
-    }
-  }, list.some((e) => +e.cost > 0) ? "" : "Nothing spent in this period.");
-  const cats = byCategory(list).filter((c) => c.total > 0);
-  $("#cat-box").style.height = Math.max(150, cats.length * 34 + 30) + "px";
-  const catColor = (name) => name === "Fuel" ? C.fuel : REGO_CATS2.includes(name) ? C.rego : SERVICE_CATS.includes(name) || TYRE_CATS.includes(name) ? C.service : C.expense;
-  upsertChart("#c-cat", {
-    type: "bar",
-    data: { labels: cats.map((c) => c.category), datasets: [{ data: cats.map((c) => +c.total.toFixed(2)), backgroundColor: cats.map((c) => catColor(c.category)), borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
-    options: {
-      ...base,
-      indexAxis: "y",
-      interaction: { mode: "nearest", axis: "y", intersect: false },
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => money.format(ctx.parsed.x) } } },
-      scales: { x: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: (v) => money0.format(v) } }, y: { grid: { display: false }, border: { color: C.grid } } }
-    }
-  }, cats.length ? "" : "Nothing spent in this period.");
-  upsertChart("#c-econ", {
-    type: "line",
-    data: { labels: econ.map((p) => shortDate(p.date)), datasets: [{ label: "L/100km", data: econ.map((p) => +p.l100.toFixed(2)), ...line(C.fuel, econ.length) }] },
-    options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: {
-      label: (ctx) => `${n1.format(ctx.parsed.y)} L/100km`,
-      afterLabel: (ctx) => econ[ctx.dataIndex] ? `${n0.format(econ[ctx.dataIndex].distance)} km on ${n1.format(econ[ctx.dataIndex].litres)} L` : ""
-    } } } }
-  }, econ.length > 1 ? "" : econ.length ? `One tank in this period: ${n1.format(econ[0].l100)} L/100km.` : "No full-tank fill-ups in this period.");
-  const ppl = pricePerLitre(list);
-  upsertChart("#c-ppl", {
-    type: "line",
-    data: { labels: ppl.map((p) => shortDate(p.date)), datasets: [{ label: "c/L", data: ppl.map((p) => +(p.ppl * 100).toFixed(1)), ...line(C.fuel, ppl.length) }] },
-    options: { ...base, plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n1.format(ctx.parsed.y)} c/L` } } } }
-  }, ppl.length ? "" : "No fill-ups with litres in this period.");
-  const odoList = all.filter((e) => +e.odo > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const firstFill = odoList.find((e) => e.type === "fuel");
-  const odoAt = (d) => {
-    let m = null;
-    for (const e of odoList) {
-      if (String(e.date) > d) break;
-      m = Math.max(m ?? 0, +e.odo);
-    }
-    return m;
-  };
-  const dayBefore = (d) => {
+  const bucketOf = (d) => buckets.find((x) => String(d) >= x.start && String(d) <= x.end);
+  for (const e of list) {
+    const b = bucketOf(e.date), g = groupOf(e);
+    if (!b) continue;
+    if (b[g] !== void 0) b[g] += +e.cost || 0;
+    if (e.type === "fuel") b.litres += +e.litres || 0;
+  }
+  const kmOf = (entries, s, e) => periodStats(entries, s, e).km || 0;
+  const kms = buckets.map((b) => kmOf(all, b.s, b.e));
+  const totalOf = (b) => b.fuel + b.service + b.rego + b.expense;
+  const prevSet = chartsPrev();
+  const prevOn = (k) => state.period !== "all" && !!range.prevStart && prevSet.has(k);
+  const PREVC = "#f0a04b";
+  const shiftD = (d, n) => {
     const x = /* @__PURE__ */ new Date(d + "T00:00:00");
-    x.setDate(x.getDate() - 1);
+    x.setDate(x.getDate() + n);
     return isoD(x);
   };
-  const kms = buckets.map((b) => {
-    if (!firstFill || b.end < firstFill.date) return 0;
-    const endO = odoAt(b.end > range.end ? range.end : b.end), startO = b.start <= firstFill.date ? +firstFill.odo : odoAt(dayBefore(b.start));
-    return endO != null && startO != null && endO > startO ? endO - startO : 0;
-  });
-  upsertChart("#c-km", {
+  const dayIdx = (d, from) => Math.round((/* @__PURE__ */ new Date(d + "T00:00:00") - /* @__PURE__ */ new Date(from + "T00:00:00")) / 864e5);
+  const off = range.prevStart ? dayIdx(range.start, range.prevStart) : 0;
+  const pbuckets = range.prevStart ? buckets.map((b) => {
+    const s = shiftD(b.s, -off), e0 = shiftD(b.e, -off), e = e0 > range.prevEnd ? range.prevEnd : e0;
+    const x = { s, e, days: b.days, fuel: 0, service: 0, rego: 0, expense: 0, litres: 0 };
+    for (const en of all) {
+      if (String(en.date) < s || String(en.date) > e) continue;
+      const g = groupOf(en);
+      if (x[g] !== void 0) x[g] += +en.cost || 0;
+      if (en.type === "fuel") x.litres += +en.litres || 0;
+    }
+    return x;
+  }) : [];
+  const pkms = pbuckets.map((b) => b.e >= b.s ? kmOf(all, b.s, b.e) : 0);
+  const inPrev = (d) => !!range.prevStart && String(d) >= range.prevStart && String(d) <= range.prevEnd;
+  const prevLine = (data, extra = {}) => ({ label: "Previous period", pointStyle: "line", data, borderColor: PREVC, backgroundColor: PREVC, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 8, tension: 0.25, fill: false, spanGaps: true, ...extra });
+  const prevBars = (data, extra = {}) => ({ label: "Previous period", data, backgroundColor: PREVC, borderRadius: 4, barPercentage: 0.75, ...extra });
+  const withPrev = (k, cfg, ds) => {
+    if (!prevOn(k)) return cfg;
+    if (cfg.data.datasets.length === 1) cfg.data.datasets[0].label = "This period";
+    cfg.data.datasets.push(...[].concat(ds));
+    const pl = cfg.options.plugins || {};
+    const cb = pl.tooltip && pl.tooltip.callbacks || {};
+    const lab = cb.label;
+    cfg.options.plugins = { ...pl, legend: legendTop, tooltip: { ...pl.tooltip || {}, callbacks: { ...cb, ...lab && !cfg.labelled ? { label: (ctx) => `${ctx.dataset.label}: ${lab(ctx)}` } : {} } } };
+    return cfg;
+  };
+  const span = Math.max(1, dayIdx(range.end, range.start));
+  const timeChart = (k, type, cur, prev, color, fmtY, extra, tickY) => {
+    const show = prevOn(k);
+    const mk = (pts, from) => pts.map((p) => ({ x: dayIdx(p.d, from), y: p.y, p }));
+    const plotW = Math.max(200, ($("#box-" + k)?.clientWidth || 600) - 70);
+    const barW = Math.max(2, Math.min(12, Math.floor(plotW / Math.max(1, (cur.length + (show ? prev.length : 0)) * 1.8))));
+    const ds = [{ label: show ? "This period" : "Value", data: mk(cur, range.start), ...type === "bar" ? { ...bars(color), barThickness: barW } : line(color, cur.length) }];
+    if (show) ds.push(type === "bar" ? prevBars(mk(prev, range.prevStart), { barThickness: barW }) : prevLine(mk(prev, range.prevStart), { pointRadius: prev.length > 40 ? 0 : 2 }));
+    return {
+      type,
+      data: { datasets: ds },
+      options: {
+        ...base,
+        interaction: { mode: "nearest", axis: "x", intersect: false },
+        plugins: { legend: show ? legendTop : { display: false }, tooltip: { callbacks: {
+          title: (it) => it[0] ? fmtDate(it[0].raw.p.d) : "",
+          label: (ctx) => `${show ? ctx.dataset.label + ": " : ""}${fmtY(ctx.parsed.y)}`,
+          afterLabel: (ctx) => extra ? extra(ctx.raw.p) : ""
+        } } },
+        scales: {
+          x: {
+            type: "linear",
+            min: 0,
+            max: span,
+            offset: type === "bar",
+            grid: { display: false },
+            border: { color: C.grid },
+            ticks: { maxRotation: 0, autoSkipPadding: 16, maxTicksLimit: 7, callback: (v) => shortDate(shiftD(range.start, Math.round(v))) }
+          },
+          y: tickY ? yTicks(tickY) : base.scales.y
+        }
+      }
+    };
+  };
+  const r2 = (v) => +v.toFixed(2);
+  const spentAny = list.some((e) => +e.cost > 0);
+  const fillsP = list.filter((e) => e.type === "fuel").sort((a, b) => String(a.date).localeCompare(String(b.date)) || (+a.odo || 0) - (+b.odo || 0));
+  const NONE = "Nothing logged in this period.";
+  if (has("month")) upsertChart("#c-month", withPrev("month", {
     type: "bar",
-    data: { labels: buckets.map((b) => b.label), datasets: [{ label: "Km", data: kms, backgroundColor: C.tyre, borderRadius: 4, barPercentage: 0.75 }] },
+    data: { labels, datasets: [["Fuel", "fuel", C.fuel], ["Service", "service", C.service], ["Rego & insurance", "rego", C.rego], ["Other", "expense", C.expense]].map(([label, key, color]) => ({ label, data: buckets.map((b) => r2(b[key])), backgroundColor: color, borderColor: C.surface, borderWidth: { top: 2 }, borderSkipped: "bottom", borderRadius: 4, barPercentage: 0.75 })) },
     options: {
       ...base,
-      plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n0.format(ctx.parsed.y)} km` } } },
-      scales: { ...base.scales, y: { ...base.scales.y, ticks: { callback: (v) => n0.format(v) } } }
+      plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}`, footer: (items) => `This period: ${money.format(items.filter((i) => i.dataset.stack !== "prev").reduce((s, i) => s + i.parsed.y, 0))}` } } },
+      scales: { x: { ...base.scales.x, stacked: true }, y: { ...yTicks((v) => money0.format(v)), stacked: true } }
+    },
+    labelled: true
+  }, prevBars(pbuckets.map((b) => r2(totalOf(b))), { stack: "prev" })), spentAny ? "" : "Nothing spent in this period.");
+  if (has("cat")) {
+    const cats = byCategory(list).filter((c) => c.total > 0);
+    const cm = colourMap(cats.map((c) => c.category), CAT_COL);
+    const colors = cats.map((c) => cm[c.category]);
+    upsertChart("#c-cat", pie("cat", cats.map((c) => c.category), cats.map((c) => r2(c.total)), colors, (v) => money.format(v)), cats.length ? "" : "Nothing spent in this period.");
+  }
+  if (has("cumul")) {
+    let run = 0;
+    const cum = buckets.map((b) => r2(run += totalOf(b)));
+    let prun = 0;
+    const pcum = pbuckets.map((b) => r2(prun += totalOf(b)));
+    upsertChart("#c-cumul", withPrev("cumul", {
+      type: "line",
+      data: { labels, datasets: [{ label: "Spent", data: cum, ...area(C.accent, cum.length) }] },
+      options: { ...base, plugins: tip((v) => money.format(v)), scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } } }
+    }, prevLine(pcum)), spentAny ? "" : "Nothing spent in this period.");
+  }
+  if (has("vsLast")) {
+    const spentIn = (s0, e0) => all.reduce((t, e) => t + (String(e.date) >= s0 && String(e.date) <= e0 ? +e.cost || 0 : 0), 0);
+    const shift = (d, n) => {
+      const x = /* @__PURE__ */ new Date(d + "T00:00:00");
+      x.setDate(x.getDate() + n);
+      return isoD(x);
+    };
+    let lab, cur, prev, names;
+    if (state.period === "all") {
+      const y = (/* @__PURE__ */ new Date()).getFullYear(), m = (/* @__PURE__ */ new Date()).getMonth();
+      lab = Array.from({ length: 12 }, (_, i) => new Date(y, i, 1).toLocaleDateString("en-AU", { month: "short" }));
+      const run = (yr, upto) => {
+        let t = 0;
+        return lab.map((_, i) => i > upto ? null : r2(t += spentIn(`${yr}-${String(i + 1).padStart(2, "0")}-01`, `${yr}-${String(i + 1).padStart(2, "0")}-31`)));
+      };
+      cur = run(y, m);
+      prev = run(y - 1, 11);
+      names = [String(y), String(y - 1)];
+    } else {
+      const off2 = Math.round((/* @__PURE__ */ new Date(range.start + "T00:00:00") - /* @__PURE__ */ new Date(range.prevStart + "T00:00:00")) / 864e5);
+      lab = labels;
+      let a = 0, b = 0;
+      cur = buckets.map((bk) => r2(a += spentIn(bk.s, bk.e)));
+      prev = buckets.map((bk) => {
+        const pe = shift(bk.e, -off2);
+        return r2(b += spentIn(shift(bk.s, -off2), pe > range.prevEnd ? range.prevEnd : pe));
+      });
+      names = ["This period", "Period before"];
     }
-  }, kms.some((k) => k > 0) ? "" : "No odometer readings in this period.");
-  const odoP = odoList.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
-  upsertChart("#c-odo", {
+    upsertChart(
+      "#c-vsLast",
+      { type: "line", data: { labels: lab, datasets: [
+        { label: names[0], data: cur, ...line(C.accent, lab.length) },
+        { label: names[1], data: prev, ...line(C.tyre, lab.length), borderDash: [6, 4], pointRadius: 0 }
+      ] }, options: {
+        ...base,
+        plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}` } } },
+        scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } }
+      } },
+      cur.some((v) => v > 0) || prev.some((v) => v > 0) ? "" : "Nothing spent in either period."
+    );
+  }
+  if (has("costKm")) {
+    const ck = buckets.map((b, i) => kms[i] > 0 ? +(totalOf(b) / kms[i] * 100).toFixed(1) : null);
+    const pck = pbuckets.map((b, i) => pkms[i] > 0 ? +(totalOf(b) / pkms[i] * 100).toFixed(1) : null);
+    upsertChart("#c-costKm", withPrev("costKm", {
+      type: "line",
+      data: { labels, datasets: [{ label: "c/km", data: ck, ...line(C.accent, ck.length), spanGaps: true }] },
+      options: { ...base, plugins: tip(fmtC1), scales: { ...base.scales, y: yTicks((v) => `${v}c`) } }
+    }, prevLine(pck)), ck.some((v) => v != null) ? "" : "Needs odometer readings in this period.");
+  }
+  if (has("svc")) {
+    const sv = { "Scheduled service": 0, Repairs: 0, Tyres: 0 };
+    for (const e of list) {
+      if (e.type !== "service") continue;
+      const c = e.category || "";
+      const k = TYRE_CATS.includes(c) ? "Tyres" : c === "Scheduled service" || /service|oil/i.test(c) && c !== "Other service" ? "Scheduled service" : "Repairs";
+      sv[k] += +e.cost || 0;
+    }
+    const keys = Object.keys(sv).filter((k) => sv[k] > 0);
+    const col = { "Scheduled service": CAT_COL["Scheduled service"], Repairs: CAT_COL.Repairs, Tyres: CAT_COL.Tyres };
+    upsertChart("#c-svc", pie("svc", keys, keys.map((k) => r2(sv[k])), keys.map((k) => col[k]), (v) => money.format(v)), keys.length ? "" : "No services or repairs in this period.");
+  }
+  if (has("biggest")) {
+    const groups = /* @__PURE__ */ new Map();
+    for (const e of list) {
+      if (e.type === "fuel" || !(+e.cost > 0)) continue;
+      const id = e.visitId || e.id, g = groups.get(id) || { cost: 0, cats: [], date: e.date, place: e.place };
+      g.cost += +e.cost;
+      if (e.category && !g.cats.includes(e.category)) g.cats.push(e.category);
+      groups.set(id, g);
+    }
+    const top = [...groups.values()].sort((a, b) => b.cost - a.cost).slice(0, 8);
+    const lab = (g) => {
+      const s = g.cats.length > 1 ? `${g.cats[0]} + ${g.cats.length - 1} more` : g.cats[0] || "Expense";
+      return s.length > 26 ? s.slice(0, 25) + "\u2026" : s;
+    };
+    setHeight("biggest", top.length);
+    const cfg = hbar(top.map(lab), top.map((g) => r2(g.cost)), (() => {
+      const cm = colourMap(top.map((g) => g.cats[0] || "Other"), CAT_COL);
+      return top.map((g) => cm[g.cats[0] || "Other"]);
+    })(), (v) => money0.format(v));
+    cfg.options.plugins.tooltip.callbacks = {
+      title: (it) => {
+        const g = top[it[0].dataIndex];
+        return g ? `${g.cats.join(", ") || "Expense"}` : "";
+      },
+      label: (ctx) => money.format(ctx.parsed.x),
+      afterLabel: (ctx) => {
+        const g = top[ctx.dataIndex];
+        return g ? [fmtDate(g.date), g.place].filter(Boolean).join(" \xB7 ") : "";
+      }
+    };
+    upsertChart("#c-biggest", cfg, top.length ? "" : "No expenses other than fuel in this period.");
+  }
+  if (has("econ")) {
+    const allEcon = fuelEconomy(all);
+    const pt = (q) => ({ d: q.date, y: +q.l100.toFixed(2), distance: q.distance, litres: q.litres });
+    upsertChart(
+      "#c-econ",
+      timeChart(
+        "econ",
+        "line",
+        econ.map(pt),
+        allEcon.filter((q) => inPrev(q.date)).map(pt),
+        C.fuel,
+        (v) => `${n1.format(v)} L/100km`,
+        (p) => `${n0.format(p.distance)} km on ${n1.format(p.litres)} L`
+      ),
+      econ.length > 1 ? "" : econ.length ? `One tank in this period: ${n1.format(econ[0].l100)} L/100km.` : "No full-tank fill-ups in this period."
+    );
+  }
+  if (has("ppl")) {
+    const ppl = pricePerLitre(list);
+    const pt = (q) => ({ d: q.date, y: +(q.ppl * 100).toFixed(1) });
+    upsertChart("#c-ppl", timeChart("ppl", "line", ppl.map(pt), pricePerLitre(all).filter((q) => inPrev(q.date)).map(pt), C.fuel, (v) => `${n1.format(v)} c/L`), ppl.length ? "" : "No fill-ups with litres in this period.");
+  }
+  if (has("fuelSpend")) upsertChart("#c-fuelSpend", withPrev("fuelSpend", {
     type: "line",
-    data: { labels: odoP.map((e) => shortDate(e.date)), datasets: [{ label: "Odometer", data: odoP.map((e) => +e.odo), ...line(C.accent, odoP.length), tension: 0.1, fill: false }] },
-    options: {
-      ...base,
-      plugins: { ...base.plugins, tooltip: { callbacks: { label: (ctx) => `${n0.format(ctx.parsed.y)} km` } } },
-      scales: { ...base.scales, y: { ...base.scales.y, ticks: { callback: (v) => n0.format(v) } } }
+    data: { labels, datasets: [{ label: "Fuel", data: buckets.map((b) => r2(b.fuel)), ...area(C.fuel, buckets.length) }] },
+    options: { ...base, plugins: tip((v) => money.format(v)), scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } } }
+  }, prevLine(pbuckets.map((b) => r2(b.fuel)))), fillsP.length ? "" : "No fill-ups in this period.");
+  if (has("litres")) upsertChart("#c-litres", withPrev("litres", {
+    type: "line",
+    data: { labels, datasets: [{ label: "Litres", data: buckets.map((b) => +b.litres.toFixed(1)), ...line(C.fuel, buckets.length) }] },
+    options: { ...base, plugins: tip((v) => `${n1.format(v)} L`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
+  }, prevLine(pbuckets.map((b) => +b.litres.toFixed(1)))), fillsP.some((e) => +e.litres > 0) ? "" : "No fill-ups with litres in this period.");
+  if (has("fillCost")) {
+    const f = fillsP.filter((e) => +e.cost > 0);
+    const pt = (e) => ({ d: e.date, y: r2(+e.cost), litres: +e.litres || 0, place: e.place });
+    const pf = all.filter((e) => e.type === "fuel" && +e.cost > 0 && inPrev(e.date));
+    upsertChart("#c-fillCost", timeChart(
+      "fillCost",
+      "bar",
+      f.map(pt),
+      pf.map(pt),
+      C.fuel,
+      (v) => money.format(v),
+      (p) => [p.litres ? `${n1.format(p.litres)} L` : "", p.place].filter(Boolean).join(" \xB7 "),
+      (v) => money0.format(v)
+    ), f.length ? "" : "No fill-ups in this period.");
+  }
+  if (has("kmFill")) {
+    const byOdo = all.filter((e) => e.type === "fuel" && +e.odo > 0).sort((a, b) => +a.odo - +b.odo);
+    const gaps = [], pgaps = [];
+    byOdo.forEach((e, i) => {
+      if (!i || +e.odo <= +byOdo[i - 1].odo) return;
+      const g = { d: e.date, y: +e.odo - +byOdo[i - 1].odo };
+      if (String(e.date) >= range.start && String(e.date) <= range.end) gaps.push(g);
+      else if (inPrev(e.date)) pgaps.push(g);
+    });
+    upsertChart("#c-kmFill", timeChart("kmFill", "bar", gaps, pgaps, C.tyre, (v) => `${n0.format(v)} km`, null, (v) => n0.format(v)), gaps.length ? "" : "Needs two fill-ups with odometer readings.");
+  }
+  const places = /* @__PURE__ */ new Map();
+  for (const e of fillsP) {
+    const name = String(e.place || "").trim();
+    if (!name) continue;
+    const p = places.get(name) || { name, count: 0, cost: 0, litres: 0 };
+    p.count++;
+    if (+e.litres > 0 && +e.cost > 0) {
+      p.cost += +e.cost;
+      p.litres += +e.litres;
     }
-  }, odoP.length ? "" : "No odometer readings in this period.");
+    places.set(name, p);
+  }
+  const placeCol = colourMap([...places.values()].sort((a, b) => b.count - a.count).map((p) => p.name));
+  if (has("station")) {
+    const st = [...places.values()].filter((p) => p.litres > 0).map((p) => ({ ...p, ppl: p.cost / p.litres * 100 })).sort((a, b) => a.ppl - b.ppl).slice(0, 10);
+    setHeight("station", st.length);
+    const cfg = hbar(st.map((p) => p.name.length > 24 ? p.name.slice(0, 23) + "\u2026" : p.name), st.map((p) => +p.ppl.toFixed(1)), st.map((p) => placeCol[p.name]), (v) => `${n1.format(v)}c`);
+    cfg.options.scales.x.beginAtZero = false;
+    if (prevOn("station")) {
+      const pp = /* @__PURE__ */ new Map();
+      for (const e of all) if (e.type === "fuel" && inPrev(e.date) && +e.litres > 0 && +e.cost > 0) {
+        const n = String(e.place || "").trim(), x = pp.get(n) || { c: 0, l: 0 };
+        x.c += +e.cost;
+        x.l += +e.litres;
+        pp.set(n, x);
+      }
+      cfg.data.datasets.push(prevBars(st.map((p) => {
+        const x = pp.get(p.name);
+        return x ? +(x.c / x.l * 100).toFixed(1) : null;
+      }), { barPercentage: 0.7, borderSkipped: "start" }));
+      cfg.data.datasets[0].label = "This period";
+      cfg.options.plugins.legend = legendTop;
+      cfg.options.plugins.tooltip.callbacks.label = (ctx) => `${ctx.dataset.label}: ${n1.format(ctx.parsed.x)}c`;
+      setHeight("station", st.length * 1.6);
+    }
+    {
+      const vals = cfg.data.datasets.flatMap((d) => d.data).filter((v) => v != null);
+      if (vals.length) cfg.options.scales.x.min = Math.floor(Math.min(...vals) * 0.96 / 5) * 5;
+    }
+    cfg.options.plugins.tooltip.callbacks.afterLabel = (ctx) => {
+      const p = st[ctx.dataIndex];
+      return p ? `${p.count} fill-up${p.count === 1 ? "" : "s"}` : "";
+    };
+    upsertChart("#c-station", cfg, st.length ? "" : "No fill-ups with a service station in this period.");
+  }
+  if (has("stationUse")) {
+    const pl = [...places.values()].sort((a, b) => b.count - a.count);
+    const top = pl.slice(0, 6), rest = pl.slice(6).reduce((s, p) => s + p.count, 0);
+    const lbl = [...top.map((p) => p.name), ...rest ? ["Other"] : []], vals = [...top.map((p) => p.count), ...rest ? [rest] : []];
+    upsertChart("#c-stationUse", pie("stationUse", lbl, vals, lbl.map((n) => placeCol[n] || "#9aa5b1"), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), lbl.length ? "" : "No fill-ups with a service station in this period.");
+  }
+  if (has("weekday")) {
+    const names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], cnt = [0, 0, 0, 0, 0, 0, 0];
+    for (const e of fillsP) cnt[((/* @__PURE__ */ new Date(e.date + "T00:00:00")).getDay() + 6) % 7]++;
+    const idx = names.map((_, i) => i).filter((i) => cnt[i] > 0);
+    const pal = ["#0b98b8", "#e8871e", "#7b5ce0", "#2f9e5a", "#d64545", "#e0b31b", "#3b6fd8"];
+    upsertChart("#c-weekday", pie("weekday", idx.map((i) => names[i]), idx.map((i) => cnt[i]), idx.map((i) => pal[i]), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), idx.length ? "" : "No fill-ups in this period.");
+  }
+  const anyKm = kms.some((k) => k > 0);
+  if (has("km")) upsertChart("#c-km", withPrev("km", {
+    type: "line",
+    data: { labels, datasets: [{ label: "Km", data: kms, ...area(C.tyre, kms.length) }] },
+    options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
+  }, prevLine(pkms)), anyKm ? "" : "No odometer readings in this period.");
+  const odoList = all.filter((e) => +e.odo > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (has("odo")) {
+    const odoP = odoList.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
+    upsertChart("#c-odo", {
+      type: "line",
+      data: { labels: odoP.map((e) => shortDate(e.date)), datasets: [{ label: "Odometer", data: odoP.map((e) => +e.odo), ...line(C.accent, odoP.length), tension: 0.1, fill: false }] },
+      options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: yTicks((v) => n0.format(v)) } }
+    }, odoP.length ? "" : "No odometer readings in this period.");
+  }
+  if (has("kmDay")) {
+    const kd = buckets.map((b, i) => kms[i] > 0 ? Math.round(kms[i] / b.days) : 0);
+    const pkd = pbuckets.map((b, i) => pkms[i] > 0 ? Math.round(pkms[i] / b.days) : 0);
+    upsertChart("#c-kmDay", withPrev("kmDay", {
+      type: "line",
+      data: { labels, datasets: [{ label: "Km per day", data: kd, ...line(C.tyre, kd.length) }] },
+      options: { ...base, plugins: tip((v) => `${n0.format(v)} km a day`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
+    }, prevLine(pkd)), anyKm ? "" : "No odometer readings in this period.");
+  }
+  const years = yearBreakdown(all).slice().reverse();
+  if (has("kmYear")) {
+    const ky = years.filter((y) => y.km > 0);
+    upsertChart("#c-kmYear", {
+      type: "bar",
+      data: { labels: ky.map((y) => y.current ? `${y.year} so far` : y.year), datasets: [{ label: "Km", data: ky.map((y) => y.km), ...bars(C.tyre) }] },
+      options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: yTicks((v) => n0.format(v)) } }
+    }, ky.length ? "" : "No odometer readings yet.");
+  }
+  if ($("#c-calendar")) drawCalendar(odoList, range, C);
+  const vcol = (i) => [C.accent, C.expense, C.service, C.rego, C.tyre][i % 5];
+  const perV = state.vehicles.map((v, i) => {
+    const es = state.entries.filter((e) => e.vehicleId === v.id);
+    const inP = es.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
+    return { v, es, color: vcol(i), spend: inP.reduce((s, e) => s + (+e.cost || 0), 0), km: kmOf(es, range.start, range.end) };
+  });
+  if (has("bothSpend")) {
+    const vs = perV.filter((x) => x.spend > 0);
+    upsertChart("#c-bothSpend", pie("bothSpend", vs.map((x) => x.v.name), vs.map((x) => r2(x.spend)), vs.map((x) => x.color), (v) => money.format(v)), vs.length ? "" : "Nothing spent in this period.");
+  }
+  if (has("bothKm")) {
+    const vs = perV.filter((x) => x.km > 0);
+    upsertChart("#c-bothKm", pie("bothKm", vs.map((x) => x.v.name), vs.map((x) => x.km), vs.map((x) => x.color), (v) => `${n0.format(v)} km`), vs.length ? "" : "No odometer readings in this period.");
+  }
+  if (has("bothEcon")) {
+    const sets = perV.map((x) => {
+      const pts = fuelEconomy(x.es);
+      const data = buckets.map((b) => {
+        const p = pts.filter((q) => String(q.date) >= b.start && String(q.date) <= b.end);
+        const d = p.reduce((s, q) => s + q.distance, 0), l = p.reduce((s, q) => s + q.litres, 0);
+        return d > 0 ? +(l / d * 100).toFixed(2) : null;
+      });
+      const out = [{ label: x.v.name, data, ...line(x.color, data.length), spanGaps: true }];
+      if (prevOn("bothEcon")) {
+        const pd = pbuckets.map((b) => {
+          const p = pts.filter((q) => String(q.date) >= b.s && String(q.date) <= b.e);
+          const d = p.reduce((s, q) => s + q.distance, 0), l = p.reduce((s, q) => s + q.litres, 0);
+          return d > 0 ? +(l / d * 100).toFixed(2) : null;
+        });
+        out.push(prevLine(pd, { label: `${x.v.name} (previous)`, borderColor: x.color, backgroundColor: x.color, borderWidth: 1.5 }));
+      }
+      return out;
+    }).flat().filter((s) => s.data.some((v) => v != null));
+    upsertChart("#c-bothEcon", {
+      type: "line",
+      data: { labels, datasets: sets },
+      options: { ...base, plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${n1.format(ctx.parsed.y)} L/100km` } } } }
+    }, sets.length ? "" : "No full-tank fill-ups in this period.");
+  }
+  const sumTip = (rows) => ({ legend: { display: false }, tooltip: { callbacks: {
+    label: (ctx) => `Spent ${money.format(ctx.parsed.y)}`,
+    afterLabel: (ctx) => {
+      const r = rows[ctx.dataIndex];
+      return r ? [r.km ? `${n0.format(r.km)} km` : "", r.l100 ? `${n1.format(r.l100)} L/100km` : "", r.costPerKm && r.fills ? `${fmtC(r.costPerKm)} per km` : ""].filter(Boolean) : "";
+    }
+  } } });
+  if (has("quarter")) {
+    const qs = quarterBreakdown(all, (/* @__PURE__ */ new Date()).getFullYear());
+    upsertChart("#c-quarter", {
+      type: "bar",
+      data: { labels: qs.map((q) => q.current ? `Q${q.q} so far` : `Q${q.q}`), datasets: [{ label: "Spent", data: qs.map((q) => q.future ? 0 : r2(q.total)), ...bars(C.accent) }] },
+      options: { ...base, plugins: sumTip(qs), scales: { ...base.scales, y: yTicks((v) => money0.format(v)) } }
+    }, qs.some((q) => q.total > 0) ? "" : "Nothing logged this year.");
+  }
+  if (has("year")) upsertChart("#c-year", {
+    type: "bar",
+    data: { labels: years.map((y) => y.current ? `${y.year} so far` : y.year), datasets: [{ label: "Spent", data: years.map((y) => r2(y.total)), ...bars(C.accent) }] },
+    options: { ...base, plugins: sumTip(years), scales: { ...base.scales, y: yTicks((v) => money0.format(v)) } }
+  }, years.length ? "" : "Nothing logged yet.");
+}
+function drawCalendar(odoList, range, C) {
+  const box = $("#c-calendar");
+  const iso2 = (d2) => d2.toLocaleDateString("en-CA");
+  const day = (s) => /* @__PURE__ */ new Date(s + "T00:00:00");
+  const endD = day(range.end);
+  let startD = day(range.start);
+  const cap = new Date(endD);
+  cap.setDate(cap.getDate() - 370);
+  if (startD < cap) startD = cap;
+  const byDate = /* @__PURE__ */ new Map();
+  for (const e of odoList) byDate.set(String(e.date), Math.max(byDate.get(String(e.date)) || 0, +e.odo));
+  const pts = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  const km = /* @__PURE__ */ new Map();
+  for (let i = 1; i < pts.length; i++) {
+    const [d1, o1] = pts[i - 1], [d2, o2] = pts[i];
+    const n = Math.round((day(d2) - day(d1)) / 864e5);
+    if (n <= 0 || o2 <= o1 || n > 60) continue;
+    const per = (o2 - o1) / n, x = day(d1);
+    for (let k = 0; k < n; k++) {
+      x.setDate(x.getDate() + 1);
+      km.set(iso2(x), per);
+    }
+  }
+  const vals = [...km.values()].filter((v) => v > 0).sort((a, b) => a - b);
+  const q = (p) => vals[Math.floor((vals.length - 1) * p)] || 0;
+  const cuts = [q(0.25), q(0.5), q(0.75)];
+  const lvl = (v) => !v ? 0 : v <= cuts[0] ? 1 : v <= cuts[1] ? 2 : v <= cuts[2] ? 3 : 4;
+  const d = new Date(startD);
+  d.setDate(d.getDate() - (d.getDay() + 6) % 7);
+  const cells = [];
+  let weeks = 0;
+  while (d <= endD) {
+    for (let r = 0; r < 7; r++) {
+      const s = iso2(d), inR = d >= startD && d <= endD, v = km.get(s) || 0;
+      cells.push(inR ? `<i class="l${lvl(v)}" title="${fmtDate(s)}${v ? ` \xB7 about ${n0.format(v)} km` : ""}"></i>` : '<i class="out"></i>');
+      d.setDate(d.getDate() + 1);
+    }
+    weeks++;
+  }
+  box.style.setProperty("--weeks", weeks);
+  box.innerHTML = vals.length ? `<div class="cal-scroll"><div class="cal-grid">${cells.join("")}</div></div>
+       <div class="cal-key">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>` : '<p class="empty" style="margin:0">No odometer readings in this period.</p>';
+  const sc = box.querySelector(".cal-scroll");
+  if (sc) sc.scrollLeft = sc.scrollWidth;
 }
 function garageHTML() {
   const vs = state.vehicles.map((v) => {
@@ -2504,6 +3967,7 @@ function garageHTML() {
     </section>` : ""}
     ${state.isAdmin ? peopleHTML() : ""}
     ${placesHTML()}
+    ${chartSettingsHTML()}
     <section class="card stack"><h2 style="margin:0">Appearance</h2>
       <div class="seg theme" data-ind-key="theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <p class="muted small" style="margin:0">Auto follows your phone's light or dark setting.</p>
@@ -2593,11 +4057,38 @@ function memberForm() {
 var sheet = $("#sheet");
 var sheetForm = $("#sheet-form");
 var sheetSubmit = null;
+var lockY = 0;
+function lockPage() {
+  if (document.documentElement.classList.contains("sheet-open")) return;
+  lockY = window.scrollY;
+  document.body.style.top = `-${lockY}px`;
+  document.documentElement.classList.add("sheet-open");
+}
+function unlockPage() {
+  if (!document.documentElement.classList.contains("sheet-open")) return;
+  document.documentElement.classList.remove("sheet-open");
+  document.body.style.top = "";
+  window.scrollTo(0, lockY);
+}
 function openSheet(html, onSubmit) {
   sheetForm.innerHTML = html;
   sheetSubmit = onSubmit;
+  lockPage();
   sheet.showModal();
+  sheet.scrollTop = 0;
 }
+var touchY = 0;
+sheet.addEventListener("touchstart", (ev) => {
+  touchY = ev.touches[0].clientY;
+}, { passive: true });
+sheet.addEventListener("touchmove", (ev) => {
+  if (ev.touches.length > 1) return;
+  const dy = ev.touches[0].clientY - touchY;
+  const atTop = sheet.scrollTop <= 0, atEnd = sheet.scrollTop + sheet.clientHeight >= sheet.scrollHeight - 1;
+  const inner = ev.target.closest("textarea, .pills, .quick");
+  if (inner && inner.scrollHeight > inner.clientHeight) return;
+  if (sheet.scrollHeight <= sheet.clientHeight + 1 || atTop && dy > 0 || atEnd && dy < 0) ev.preventDefault();
+}, { passive: false });
 sheetForm.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   if (ev.submitter?.value === "cancel") return closeSheet();
@@ -2617,6 +4108,7 @@ sheet.addEventListener("click", (ev) => {
   if (ev.target === sheet) closeSheet();
 });
 sheet.addEventListener("close", () => {
+  unlockPage();
   if (state.view === "garage") render();
 });
 function armed(btn, label) {
@@ -2712,6 +4204,8 @@ function vehicleForm(v) {
       <label>Fuel<select name="fuel">${["Unleaded 91", "Unleaded 95", "Unleaded 98", "E10", "Diesel", "LPG", "Electric", "Hybrid"].map((f) => `<option ${v.fuel === f ? "selected" : ""}>${f}</option>`).join("")}</select></label>
     </div>
     <label>Tank size (L, optional)<input name="tank" inputmode="decimal" value="${esc(v.tank)}"></label>
+    <div class="field-label">Shape on the Car tab</div>
+    ${shapeTiles(bodyOf(v))}
     <div class="field-label" style="margin:.3rem 0 -.3rem">Reminders <span class="muted" style="font-weight:500">(leave blank to use your history)</span></div>
     <div class="grid2">
       <label>Service every (km)<input name="serviceKm" inputmode="numeric" placeholder="${esc(rem.service.intervalKm)}" value="${esc(v.serviceKm)}"></label>
@@ -2750,6 +4244,7 @@ function vehicleForm(v) {
         rego: f.rego.value.trim().toUpperCase(),
         fuel: f.fuel.value,
         tank: numOrNull(f.tank.value),
+        body: (f.querySelector("[name=body]:checked") || {}).value || bodyOf(v),
         serviceKm: numOrNull(f.serviceKm.value),
         serviceMonths: numOrNull(f.serviceMonths.value),
         rotationKm: numOrNull(f.rotationKm.value),
@@ -2790,6 +4285,9 @@ function placeField(kind, label, value) {
   return `<label>${label}<input name="place" value="${esc(value)}" placeholder="${picks.length ? "Type to search, or tap a recent one" : "optional"}" autocomplete="off" data-group="${placeGroupOf(kind)}"></label>
     <div class="quick" id="place-picks" aria-label="Recent ${label.toLowerCase()}s">${picks.map((p) => `<button type="button" class="qpick ${p.toLowerCase() === cur ? "on" : ""}" data-v="${esc(p)}">${esc(p)}</button>`).join("")}</div>`;
 }
+var allParts = (v = currentVehicle()) => [...PARTS, ...(v && v.customParts || []).map((c) => ({ ...c, custom: true }))];
+var newCustomParts = [];
+var servicePartsFor = () => ["oil"];
 var PART_ORDER = ["service", "tyres", "rego", "expense"];
 var visitPartsOf = (entry) => entry.visitId ? state.entries.filter((x) => x.visitId === entry.visitId).sort((a, b) => PART_ORDER.indexOf(kindOf(a)) - PART_ORDER.indexOf(kindOf(b))) : [entry];
 function saveVisit(parts, removeIds, receipt, receiptOwnerIndex) {
@@ -2817,17 +4315,23 @@ function lastRotationPattern() {
   const r = vehicleEntries().filter((e) => e.rotation).sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
   return r ? r.rotation : "front-back";
 }
-function entryForm(entry) {
+function entryForm(entry, preset = null) {
   const isEdit = !!entry;
+  newCustomParts.length = 0;
   const existing = isEdit ? visitPartsOf(entry) : [];
   const byKind = Object.fromEntries(existing.map((x) => [kindOf(x), x]));
   const first = existing[0] || {};
   const e = isEdit ? { ...first } : { date: today(), fullTank: true };
   const kinds = new Set(existing.map(kindOf));
+  if (!isEdit && preset?.kind) kinds.add(preset.kind);
   const receiptOwner = existing.find((x) => x.hasReceipt) || null;
   e.hasReceipt = !!receiptOwner;
   let receipt;
   const vals = {};
+  if (preset?.parts) {
+    vals.parts = preset.parts;
+    vals.svc_category = "Repairs";
+  }
   let justAdded = null;
   const all = vehicleEntries();
   const v = (name, fallback) => vals[name] !== void 0 ? vals[name] : fallback ?? "";
@@ -2837,32 +4341,62 @@ function entryForm(entry) {
     const multi = ordered().length > 1;
     const head = multi ? `<div class="part-head"><span class="part-ic" style="--k:var(--${k === "tyres" ? "tyre" : k})">${ICONS[k]}</span>${KINDS.find((o) => o.k === k).label}</div>` : "";
     const optional = multi && ordered()[0] !== k;
-    const costField = (name) => `<label>Cost $<input name="${name}" inputmode="decimal" ${optional ? 'placeholder="optional"' : "required"} value="${esc(v(name, ex.cost))}"></label>`;
+    const costField = (name, opt = optional) => `<label>Cost $<input name="${name}" inputmode="decimal" ${opt ? 'placeholder="optional"' : "required"} value="${esc(v(name, ex.cost))}"></label>`;
     if (k === "service") {
       const cur2 = v("svc_category", ex.category || SERVICE_CATS[0]);
-      return `${head}<div class="grid2">
-          <label>Category<select name="svc_category">${SERVICE_CATS.map((c) => `<option ${cur2 === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
-          ${costField("svc_cost")}
-        </div>`;
+      const picked = vals.parts || (ex.id ? partsOf(ex) : cur2 === "Scheduled service" ? servicePartsFor() : []);
+      const types = SERVICE_CATS.includes(cur2) ? SERVICE_CATS : [...SERVICE_CATS, cur2];
+      return `${head}<div class="svc-type" role="radiogroup" aria-label="Type">${types.map((c) => `<label class="svc-opt">
+            <input type="radio" name="svc_category" value="${esc(c)}" ${cur2 === c ? "checked" : ""}>
+            <span class="svc-ic">${c === "Repairs" ? '<svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>' : '<svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4M8.5 14.5l2 2 4-4"/></svg>'}</span>
+            <span class="svc-n">${esc(c)}</span><span class="svc-d">${c === "Scheduled service" ? "Regular service from the logbook" : c === "Repairs" ? "Something fixed or replaced" : "Older entry type"}</span>
+          </label>`).join("")}</div>
+        <div class="grid2">${costField("svc_cost")}</div>
+        <button type="button" class="parts-toggle ${vals.partsOpen || ex.id && picked.some((k2) => k2 !== "oil") ? "open" : ""}" id="parts-toggle" aria-expanded="false">
+          <span>What was replaced or serviced</span><span class="pt-sum" id="parts-sum"></span><span class="pt-chev" aria-hidden="true"></span></button>
+        <div class="reveal parts-reveal ${vals.partsOpen || ex.id && picked.some((k2) => k2 !== "oil") ? "open" : ""}" id="parts-box"><div class="reveal-in">
+        <div class="pills small parts-pick" id="parts-pick">${allParts().filter((x) => x.k !== "tyres").map((x) => `<label class="pill"><input type="checkbox" name="pp" value="${esc(x.k)}" ${picked.includes(x.k) ? "checked" : ""}><span>${esc(x.label)}</span></label>`).join("")}
+          <button type="button" class="pill-add" id="part-add">+ Add a part</button></div>
+        <div class="part-new" id="part-new" hidden><input id="part-new-name" placeholder="e.g. Water pump, Starter motor" autocapitalize="sentences" enterkeyhint="done"><button type="button" class="btn small primary" id="part-new-ok">Add</button></div>
+        </div></div>
+        <p class="hint" id="svc-hint">${cur2 === "Scheduled service" ? "General service is ticked. Tap anything else that was replaced." : ""}</p>`;
     }
     if (k === "tyres") {
-      const jobs = vals.tyre_jobs || tyreJobsOf(ex).length && tyreJobsOf(ex) || ["new"];
+      const jobs = vals.tyre_jobs || tyreJobsOf(ex).length && tyreJobsOf(ex) || [];
       const pos = vals.tyre_pos || (ex.id ? newPositionsOf(ex) : []);
       const rot = v("tyre_rot", ex.rotation || lastRotationPattern());
-      const posBtn = (p) => `<button type="button" class="tp tp-${p} ${pos.includes(p) ? "on" : ""}" data-pos="${p}" aria-pressed="${pos.includes(p)}"><span>${POS_LABEL[p]}</span></button>`;
-      return `${head}<div class="field-label">What was done <span class="muted" style="font-weight:500">(pick all that apply)</span></div>
-        <div class="pills" id="tyre-jobs">${TYRE_JOBS.map(([key, label]) => `<label class="pill"><input type="checkbox" name="tj" value="${key}" ${jobs.includes(key) ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
-        <div class="reveal ${jobs.includes("rotation") ? "open" : ""}" id="tyre-rot-box"><div class="reveal-in">
-          <div class="field-label">Rotation pattern</div>
-          <div class="pills small">${Object.entries(ROT_LABEL).map(([key, label]) => `<label class="pill"><input type="radio" name="tyre_rot" value="${key}" ${rot === key ? "checked" : ""}><span>${label}</span></label>`).join("")}</div>
-        </div></div>
-        <div class="reveal ${jobs.includes("new") ? "open" : ""}" id="tyre-new-box"><div class="reveal-in">
-          <div class="field-label">Where are the new tyres now?</div>
-          <div class="tyre-pick">${posBtn("FL")}${posBtn("FR")}<span class="tp-car">${CAR_TOP}</span>${posBtn("RL")}${posBtn("RR")}</div>
+      const fixPos = vals.tyre_rpos || ex.repairPositions || [];
+      const posBtn = (p, list) => `<button type="button" class="tp tp-${p} ${list.includes(p) ? "on" : ""}" data-pos="${p}" aria-pressed="${list.includes(p)}"><span>${POS_LABEL[p]}</span></button>`;
+      const picker = (cls, list) => {
+        const P = { FL: [26, 38], FR: [94, 38], RL: [26, 132], RR: [94, 132] };
+        const t = (p) => `<g class="tp tp2 ${list.includes(p) ? "on" : ""}" data-pos="${p}" role="button" tabindex="0" aria-label="${POS_LABEL[p]}" aria-pressed="${list.includes(p)}" style="--o:${p.endsWith("L") ? -1 : 1}">
+            <rect class="tp-hit" x="${P[p][0] - 24}" y="${P[p][1] - 30}" width="48" height="60" rx="10"/>
+            <g class="tp-oldg"><rect class="tp-old" x="${P[p][0] - 8}" y="${P[p][1] - 18}" width="16" height="36" rx="5"/></g>
+            <g class="tp-newg"><rect class="tp-t" x="${P[p][0] - 8}" y="${P[p][1] - 18}" width="16" height="36" rx="5"/><path class="tp-tread" d="M${P[p][0] - 5} ${P[p][1] - 10}h10M${P[p][0] - 5} ${P[p][1] - 3}h10M${P[p][0] - 5} ${P[p][1] + 4}h10M${P[p][0] - 5} ${P[p][1] + 11}h10"/></g></g>`;
+        return `<div class="tyre-pick2 ${cls}"><svg viewBox="0 0 120 170" class="rot-svg"><rect class="rot-body" x="34" y="10" width="52" height="150" rx="22"/><path class="tp-nose" d="M52 22h16"/>${["FL", "FR", "RL", "RR"].map(t).join("")}</svg>
+          <span class="tp-names">${list.length ? list.map((p) => POS_LABEL[p]).join(", ") : "Tap the tyres that were fitted"}</span></div>`;
+      };
+      return `${head}<div class="field-label">What was done <span class="muted" style="font-weight:500">(tap all that apply)</span></div>
+        <div class="tyre-jobs" id="tyre-jobs">${TYRE_GROUPS.map(([g, js]) => `<div class="tj-group"><span class="tj-g">${g}</span><span class="tj-row">${js.map(([key, label, desc]) => `<label class="tj" title="${desc}"><input type="checkbox" name="tj" value="${key}" ${jobs.includes(key) ? "checked" : ""}><span class="tj-n">${label}</span></label>`).join("")}</span>
+          ${g === "Moved" ? `<div class="reveal tj-rot ${jobs.includes("rotation") ? "open" : ""}" id="tyre-rot-box"><div class="reveal-in">
+            ${rotPicker(rot)}
+          </div></div>` : ""}${g === "Fitted" ? `        <div class="reveal tj-rot ${jobs.some((j) => FITS.includes(j)) ? "open" : ""}" id="tyre-new-box"><div class="reveal-in">
+          <div class="field-label" id="tyre-fit-label">Where are the new tyres now?</div>
+          ${picker("fit-pick", pos)}
           <div class="quick tp-quick"><button type="button" class="qpick" data-set="FL,FR">Front pair</button><button type="button" class="qpick" data-set="RL,RR">Rear pair</button><button type="button" class="qpick" data-set="FL,FR,RL,RR">All 4</button></div>
           <p class="hint" id="tyre-pos-hint">If they were rotated too, tap where the new ones ended up.</p>
         </div></div>
-        <div class="grid2">${costField("tyre_cost")}</div>`;
+` : ""}${g === "Other" ? `<div class="reveal tj-rot ${jobs.includes("check") ? "open" : ""}" id="tyre-psi-box"><div class="reveal-in">
+          <div class="grid2">
+            <label>Front PSI<input name="psi_f" inputmode="decimal" placeholder="e.g. 36" value="${esc(v("psi_f", ex.pressures?.front))}"></label>
+            <label>Rear PSI<input name="psi_r" inputmode="decimal" placeholder="e.g. 38" value="${esc(v("psi_r", ex.pressures?.rear))}"></label>
+          </div>
+        </div></div>` : ""}${g === "Repair" ? `        <div class="reveal tj-rot ${jobs.some((j) => FIXES.includes(j)) ? "open" : ""}" id="tyre-fix-box"><div class="reveal-in">
+          <div class="field-label">Which tyre was repaired? <span class="muted" style="font-weight:500">(optional)</span></div>
+          ${picker("fix-pick", fixPos)}
+        </div></div>
+` : ""}</div>`).join("")}</div>
+        <div class="grid2">${costField("tyre_cost", true)}</div>`;
     }
     if (k === "rego") {
       const cur2 = v("rego_category", ex.category || "Registration");
@@ -2926,10 +4460,14 @@ function entryForm(entry) {
   const keep = () => {
     if ($("#tyre-jobs", sheetForm)) {
       vals.tyre_jobs = [...sheetForm.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
-      vals.tyre_pos = [...sheetForm.querySelectorAll(".tp.on")].map((x) => x.dataset.pos);
+    }
+    if (sheetForm.querySelector("[name=pp]")) {
+      vals.parts = [...sheetForm.querySelectorAll("[name=pp]:checked")].map((x) => x.value);
+      vals.tyre_pos = [...sheetForm.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos);
+      vals.tyre_rpos = [...sheetForm.querySelectorAll(".fix-pick .tp.on")].map((x) => x.dataset.pos);
     }
     sheetForm.querySelectorAll("input[name], select[name], textarea[name]").forEach((el) => {
-      if (el.type === "file" || el.name === "tj") return;
+      if (el.type === "file" || el.name === "tj" || el.name === "pp") return;
       if (el.type === "checkbox") vals[el.name] = el.checked;
       else if (el.type === "radio") {
         if (el.checked) vals[el.name] = el.value;
@@ -3005,25 +4543,97 @@ function entryForm(entry) {
       drawPicks();
     });
     f.place.addEventListener("input", drawPicks);
+    const rp = $("#rot-pick");
+    if (rp) {
+      const keys = Object.keys(ROT_LABEL);
+      const go = (d) => {
+        const cur = keys.indexOf(f.tyre_rot.value), n = keys[(cur + d + keys.length) % keys.length];
+        $("#rot-pick").outerHTML = rotPicker(n);
+        $("#rot-pick .rot-mid").classList.add(d > 0 ? "slide-l" : "slide-r");
+        wireRot();
+      };
+      const wireRot = () => {
+        const el = $("#rot-pick");
+        el.querySelectorAll(".rot-nav").forEach((b) => b.addEventListener("click", () => go(+b.dataset.d)));
+        let x0 = null;
+        el.addEventListener("touchstart", (ev) => {
+          x0 = ev.touches[0].clientX;
+        }, { passive: true });
+        el.addEventListener("touchend", (ev) => {
+          if (x0 == null) return;
+          const dx = ev.changedTouches[0].clientX - x0;
+          x0 = null;
+          if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+        });
+      };
+      wireRot();
+    }
     if ($("#tyre-jobs")) {
       const syncJobs = () => {
         const on = new Set([...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value));
-        $("#tyre-new-box").classList.toggle("open", on.has("new"));
+        const fit = on.has("new") || on.has("spare");
+        $("#tyre-new-box").classList.toggle("open", fit);
+        $("#tyre-fix-box")?.classList.toggle("open", FIXES.some((j) => on.has(j)));
         $("#tyre-rot-box").classList.toggle("open", on.has("rotation"));
-        $("#tyre-pos-hint").textContent = on.has("rotation") ? "Rotated as well? Tap where the new ones ended up after the rotation." : "Tap each corner that got a new tyre.";
+        $("#tyre-psi-box")?.classList.toggle("open", on.has("check"));
+        $("#tyre-fit-label").textContent = on.has("new") ? "Where are the new tyres now?" : "Where did the spare or used tyre go?";
+        $("#tyre-pos-hint").textContent = on.has("rotation") ? "Rotated as well? Tap where they ended up after the rotation." : "Tap each corner that got a tyre.";
       };
       f.querySelectorAll("[name=tj]").forEach((x) => x.addEventListener("change", syncJobs));
-      const setPos = (list) => f.querySelectorAll(".tp").forEach((b) => {
-        const on = list.includes(b.dataset.pos);
-        b.classList.toggle("on", on);
-        b.setAttribute("aria-pressed", on);
+      const swapAnim = (b, on, delay = 0) => {
+        b.classList.remove("swap-on", "swap-off");
+        void b.getBoundingClientRect();
+        b.style.setProperty("--d", delay + "ms");
+        b.classList.add(on ? "swap-on" : "swap-off");
+      };
+      const setPos = (list) => {
+        let i = 0;
+        f.querySelectorAll(".fit-pick .tp").forEach((b) => {
+          const on = list.includes(b.dataset.pos);
+          if (on !== b.classList.contains("on")) swapAnim(b, on, 90 * i++);
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-pressed", on);
+        });
+        names();
+      };
+      const names = () => f.querySelectorAll(".tyre-pick2").forEach((box) => {
+        const n = box.querySelector(".tp-names");
+        const on = [...box.querySelectorAll(".tp.on")].map((x) => POS_LABEL[x.dataset.pos]);
+        if (n) n.textContent = on.length ? on.join(", ") : "Tap the tyres that were fitted";
       });
-      f.querySelectorAll(".tp").forEach((b) => b.addEventListener("click", () => {
-        const on = !b.classList.contains("on");
-        b.classList.toggle("on", on);
-        b.setAttribute("aria-pressed", on);
+      f.querySelectorAll(".tp").forEach((b) => {
+        const flip = () => {
+          const on = !b.classList.contains("on");
+          swapAnim(b, on);
+          b.classList.toggle("on", on);
+          b.setAttribute("aria-pressed", on);
+          names();
+        };
+        b.addEventListener("click", flip);
+        b.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            flip();
+          }
+        });
+      });
+      const picked = () => [...f.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos);
+      const syncQuick = () => {
+        const on = picked();
+        f.querySelectorAll(".tp-quick .qpick").forEach((b) => {
+          const all2 = b.dataset.set.split(",").every((p) => on.includes(p));
+          b.classList.toggle("on", all2);
+          b.setAttribute("aria-pressed", all2);
+        });
+      };
+      f.querySelectorAll(".tp-quick .qpick").forEach((b) => b.addEventListener("click", () => {
+        const set = b.dataset.set.split(","), on = picked();
+        const has = set.every((p) => on.includes(p));
+        setPos(has ? on.filter((p) => !set.includes(p)) : [.../* @__PURE__ */ new Set([...on, ...set])]);
+        syncQuick();
       }));
-      f.querySelectorAll(".tp-quick .qpick").forEach((b) => b.addEventListener("click", () => setPos(b.dataset.set.split(","))));
+      f.querySelectorAll(".fit-pick .tp").forEach((b) => b.addEventListener("click", syncQuick));
+      syncQuick();
       syncJobs();
     }
     const totalEl = $("#visit-total");
@@ -3035,6 +4645,77 @@ function entryForm(entry) {
       ["svc_cost", "tyre_cost", "rego_cost", "exp_cost"].forEach((n) => f[n]?.addEventListener("input", sum));
       sum();
     }
+    const ptog = $("#parts-toggle");
+    if (ptog) {
+      const sum = () => {
+        const on = [...f.querySelectorAll("[name=pp]:checked")].map((x) => x.closest(".pill").textContent.trim());
+        $("#parts-sum").textContent = on.length ? on.join(", ") : "None";
+        ptog.setAttribute("aria-expanded", ptog.classList.contains("open"));
+      };
+      ptog.addEventListener("click", () => {
+        const open = !ptog.classList.contains("open");
+        ptog.classList.toggle("open", open);
+        $("#parts-box").classList.toggle("open", open);
+        vals.partsOpen = open;
+        sum();
+      });
+      f.addEventListener("change", (ev) => {
+        if (ev.target.name === "pp" || ev.target.name === "svc_category") sum();
+      });
+      $("#parts-pick").addEventListener("click", () => setTimeout(sum, 0));
+      sum();
+    }
+    const addBtn = $("#part-add");
+    if (addBtn) {
+      const box = $("#part-new"), name = $("#part-new-name");
+      addBtn.addEventListener("click", () => {
+        box.hidden = false;
+        name.focus();
+      });
+      const add = () => {
+        const label = name.value.trim().replace(/\s+/g, " ");
+        if (!label) {
+          box.hidden = true;
+          return;
+        }
+        const existing2 = [...allParts(), ...newCustomParts].find((x) => x.label.toLowerCase() === label.toLowerCase());
+        const key = existing2 ? existing2.k : "c_" + label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) + "-" + Date.now().toString(36).slice(-4);
+        if (!existing2) newCustomParts.push({ k: key, label: label.charAt(0).toUpperCase() + label.slice(1) });
+        let input = f.querySelector(`[name=pp][value="${CSS.escape(key)}"]`);
+        if (!input) {
+          addBtn.insertAdjacentHTML("beforebegin", `<label class="pill"><input type="checkbox" name="pp" value="${esc(key)}"><span>${esc(newCustomParts.find((x) => x.k === key)?.label || label)}</span></label>`);
+          input = f.querySelector(`[name=pp][value="${CSS.escape(key)}"]`);
+        }
+        input.checked = true;
+        const pill = input.closest(".pill");
+        pill.classList.remove("flash");
+        void pill.offsetWidth;
+        pill.classList.add("flash");
+        name.value = "";
+        box.hidden = true;
+      };
+      $("#part-new-ok").addEventListener("click", add);
+      name.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          add();
+        }
+      });
+    }
+    f.querySelectorAll("[name=svc_category]").forEach((r) => r.addEventListener("change", () => {
+      const svc = r.value === "Scheduled service";
+      const items = servicePartsFor();
+      f.querySelectorAll("[name=pp]").forEach((c) => {
+        if (!items.includes(c.value) || c.checked === svc) return;
+        c.checked = svc;
+        const pill = c.closest(".pill");
+        pill.classList.remove("flash");
+        void pill.offsetWidth;
+        pill.classList.add("flash");
+      });
+      const h = $("#svc-hint");
+      if (h) h.textContent = svc ? "General service is ticked. Tap anything else that was replaced." : "";
+    }));
     const scan = $("#scan-input");
     if (scan) scan.addEventListener("change", async () => {
       const file = scan.files[0];
@@ -3142,8 +4823,8 @@ function entryForm(entry) {
         toast("Pick what was done to the tyres");
         return false;
       }
-      if (jobs.includes("new") && !f.querySelector(".tp.on")) {
-        toast("Tap where the new tyres went");
+      if (jobs.some((j) => FITS.includes(j)) && !f.querySelector(".fit-pick .tp.on")) {
+        toast("Tap where the tyres went");
         $(".tyre-pick")?.scrollIntoView({ block: "center", behavior: "smooth" });
         return false;
       }
@@ -3159,17 +4840,20 @@ function entryForm(entry) {
     const parts = ks.map((k) => {
       const data = { ...common, visitId };
       if (k === "fuel") Object.assign(data, { type: "fuel", cost: numOrNull(f.cost.value), litres: numOrNull(f.litres.value), fullTank: f.fullTank.checked, missed: f.missed.checked });
-      if (k === "service") Object.assign(data, { type: "service", category: f.svc_category.value, cost: numOrNull(f.svc_cost.value) });
+      if (k === "service") Object.assign(data, { type: "service", category: f.svc_category.value, cost: numOrNull(f.svc_cost.value), parts: [...f.querySelectorAll("[name=pp]:checked")].map((x) => x.value) });
       if (k === "tyres") {
         const jobs = [...f.querySelectorAll("[name=tj]:checked")].map((x) => x.value);
-        const pos = jobs.includes("new") ? [...f.querySelectorAll(".tp.on")].map((x) => x.dataset.pos) : [];
+        const pos = jobs.some((j) => FITS.includes(j)) ? [...f.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos) : [];
+        const fixed = jobs.some((j) => FIXES.includes(j)) ? [...f.querySelectorAll(".fix-pick .tp.on")].map((x) => x.dataset.pos) : [];
         Object.assign(data, {
           type: "service",
           category: JOB_CATEGORY[jobs[0]] || "Tyres",
           tyreJobs: jobs,
           newPositions: pos,
+          repairPositions: fixed,
+          pressures: jobs.includes("check") && (numOrNull(f.psi_f.value) || numOrNull(f.psi_r.value)) ? { front: numOrNull(f.psi_f.value), rear: numOrNull(f.psi_r.value) } : null,
           tyreCount: pos.length || null,
-          rotation: jobs.includes("rotation") ? (f.querySelector("[name=tyre_rot]:checked") || {}).value || "front-back" : null,
+          rotation: jobs.includes("rotation") ? f.tyre_rot && f.tyre_rot.value || "front-back" : null,
           cost: numOrNull(f.tyre_cost.value)
         });
       }
@@ -3187,6 +4871,10 @@ function entryForm(entry) {
     }
     closeSheet();
     saveVisit(parts, removeIds, receipt, owner).catch((err) => toast("Sync problem: " + err.message));
+    const veh = state.vehicles.find((x) => x.id === common.vehicleId);
+    const usedNew = newCustomParts.filter((c) => parts.some((p) => (p.data.parts || []).includes(c.k)));
+    if (veh && usedNew.length) updateDoc(userDoc("vehicles", veh.id), { customParts: [...veh.customParts || [], ...usedNew] }).catch((err) => toast("Sync problem: " + err.message));
+    newCustomParts.length = 0;
     toast(isEdit ? "Entry updated" : "Saved");
   });
   draw();
@@ -3326,7 +5014,29 @@ $("#main").addEventListener("click", async (ev) => {
     state.placeSel = /* @__PURE__ */ new Set();
     render();
   } else if (act === "place-merge") mergePlacesForm();
-  else if (act === "theme") {
+  else if (act === "chart-prev") {
+    const set = chartsPrev(), k = el.dataset.k;
+    if (el.checked) set.add(k);
+    else set.delete(k);
+    store.set("carlog.chartsPrev", JSON.stringify([...set]));
+    state.animCharts = true;
+    drawCharts();
+  } else if (act === "chart-toggle") {
+    const off = chartsOff(), k = el.dataset.k;
+    if (off.has(k)) off.delete(k);
+    else off.add(k);
+    store.set("carlog.chartsOff", JSON.stringify([...off]));
+    const on = !off.has(k);
+    el.setAttribute("aria-checked", on);
+    el.querySelector(".sw").classList.toggle("on", on);
+  } else if (act === "charts-all") {
+    const on = el.dataset.on === "1";
+    store.set("carlog.chartsOff", JSON.stringify(on ? [] : CHART_LIST.map((c) => c[1])));
+    document.querySelectorAll(".cs-row").forEach((r) => {
+      r.setAttribute("aria-checked", on);
+      r.querySelector(".sw").classList.toggle("on", on);
+    });
+  } else if (act === "theme") {
     store.set("carlog.theme", el.dataset.theme);
     applyTheme(el.dataset.theme);
     render();
@@ -3337,6 +5047,9 @@ $("#main").addEventListener("click", async (ev) => {
       toast(`${m?.name || "Login"} removed`);
     }
   } else if (act === "edit-vehicle") vehicleForm(state.vehicles.find((v) => v.id === el.dataset.id));
+  else if (act === "pick-shape") shapeForm(currentVehicle());
+  else if (act === "pick-part") pickPart(el.dataset.part === state.carPart ? null : el.dataset.part);
+  else if (act === "log-part") entryForm(null, el.dataset.part === "tyres" ? { kind: "tyres" } : { kind: "service", parts: [el.dataset.part] });
   else if (act === "mark-paid") markPaidForm(state.vehicles.find((v) => v.id === el.dataset.id), el.dataset.kind);
   else if (act === "edit-entry") entryForm(state.entries.find((x) => x.id === el.dataset.id));
   else if (act === "go-log") {
