@@ -1238,6 +1238,12 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .crop-frame img { position: absolute; left: 0; top: 0; max-width: none; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 .crop-zoom { display: flex; align-items: center; gap: 10px; color: var(--muted); font-weight: 700; }
 .crop-zoom input { flex: 1; accent-color: var(--accent); }
+/* Calmer stat text */
+.stat { padding: 7px 8px; }
+.stat .v { font-size: clamp(1.1rem, 5.2vw, 1.3rem); line-height: 1.1; }
+.stat .k { font-size: clamp(.72rem, 3.3vw, .82rem); }
+.stat .d { font-size: .78rem; }
+@media (min-width: 1024px) { .stat .v { font-size: 1.4rem; } }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2433,7 +2439,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "62";
+var APP_VERSION = "63";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
