@@ -1370,7 +1370,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "39";
+var APP_VERSION = "40";
 var SERVICE_CATS = ["Scheduled service", "Repairs", "Brakes", "Battery", "Oil change", "Wiper blades", "Other service"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Puncture repair"];
 var TYRE_JOB_LABEL = { new: "New tyres", rotation: "Rotation", alignment: "Alignment & balance", puncture: "Puncture repair" };
@@ -1714,6 +1714,7 @@ function placeIndicators() {
       const bar = box.classList.contains("tabs") && matchMedia("(max-width: 1023px)").matches;
       const r = bar ? { x: on.offsetLeft + on.offsetWidth / 2 - 14, y: 0, w: 28, h: 3 } : { x: on.offsetLeft, y: on.offsetTop, w: on.offsetWidth, h: on.offsetHeight };
       const old = indMem.get(key);
+      if (old && ind.style.width && old.x === r.x && old.y === r.y && old.w === r.w && old.h === r.h) return;
       const put = (q) => {
         ind.style.transform = `translate(${q.x}px, ${q.y}px)`;
         ind.style.width = q.w + "px";
@@ -1820,8 +1821,20 @@ function patchChildren(oldP, newP, depth = 0) {
   });
 }
 function renderChrome() {
-  $("#vehicle-tabs").innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
-  $("#vehicle-tabs .vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  const vt = $("#vehicle-tabs");
+  const key = state.vehicles.map((v) => v.id + ":" + v.name).join("|");
+  if (vt.dataset.key !== key) {
+    vt.dataset.key = key;
+    vt.innerHTML = state.vehicles.length ? state.vehicles.map((v) => `<button type="button" class="vtab ${v.id === state.vehicleId ? "on" : ""}" data-id="${v.id}" role="tab" aria-selected="${v.id === state.vehicleId}">${esc(v.name)}</button>`).join("") : '<span class="vtabs-empty">My Car Log</span>';
+  }
+  let moved = false;
+  vt.querySelectorAll(".vtab").forEach((b) => {
+    const on = b.dataset.id === state.vehicleId;
+    if (b.classList.contains("on") !== on) moved = true;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on);
+  });
+  if (moved) vt.querySelector(".vtab.on")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   $("#fab").hidden = !state.vehicles.length || state.view === "garage";
   document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === state.view));
   document.documentElement.classList.toggle("brand-top", state.view === "home" && !!state.vehicles.length && !state.loadError);
