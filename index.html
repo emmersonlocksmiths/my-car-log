@@ -1157,6 +1157,21 @@ html.sheet-open body { position: fixed; left: 0; right: 0; width: 100%; }
 .sheet-head { position: sticky; top: 0; z-index: 6; margin: -18px -16px 0; padding: 14px 16px 10px; background: var(--bg); border-bottom: 1px solid transparent; transition: border-color .2s; }
 .sheet.scrolled .sheet-head { border-bottom-color: var(--line); }
 .sheet-head .link[value=cancel] { padding: 8px 4px 8px 12px; font-size: 1rem; font-weight: 600; }
+.stat.txt .v { font-size: 1rem; line-height: 1.25; overflow-wrap: anywhere; }
+
+/* Dashboard: the period filter follows you down through the stats, then stops before the service tiles */
+.dash-top { display: grid; gap: 16px; min-width: 0; align-content: start; }
+.hero-banner + .dash-grid .dash-top > .chips.period { margin-top: -34px; z-index: 4; }
+@media (min-width: 1024px) {
+  .dash-top { gap: 20px; }
+  .hero-banner + .dash-grid .dash-top > .chips.period { margin-top: -54px; margin-left: 16px; }
+}
+/* Narrow tiles: predictions go two across so nothing gets cut off */
+.rem-body { container-type: inline-size; }
+@container (max-width: 330px) {
+  .pred { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .pred-c:last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2352,7 +2367,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "51";
+var APP_VERSION = "53";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3431,6 +3446,46 @@ function remindersHTML(v, list) {
   }
   return `<div class="rem-tiles">${rows.map((x) => `<section class="card rem-tile">${x}</section>`).join("")}</div>`;
 }
+var DASH_STATS = [
+  ["fuelWeek", "Fuel spend per week", true],
+  ["fuelMonth", "Fuel spend per month"],
+  ["fuelPerKm", "Fuel cost per km", true],
+  ["ppl", "Fuel price per litre", true],
+  ["econ", "Fuel economy"],
+  ["lastTank", "Last tank economy"],
+  ["bestWorst", "Best and worst tank"],
+  ["litres", "Litres used"],
+  ["fills", "Fill-ups"],
+  ["avgFill", "Average fill-up"],
+  ["kmTank", "Km per tank"],
+  ["cheapest", "Cheapest fill-up"],
+  ["servo", "Favourite servo"],
+  ["sinceFill", "Since last fill-up"],
+  ["costKm", "Running cost per km", true],
+  ["costDay", "Cost per day", true],
+  ["costMonth", "Cost per month"],
+  ["svcSpend", "Service and repairs spend"],
+  ["km", "Km driven"],
+  ["kmDay", "Km per day"],
+  ["kmWeek", "Km per week", true],
+  ["odo", "Odometer", true]
+];
+var dashKey = () => `carlog.dashStats.${state.user?.uid || "me"}`;
+var dashStatsOn = () => {
+  try {
+    const x = JSON.parse(store.get(dashKey()) || "null");
+    if (Array.isArray(x)) return new Set(x);
+  } catch {
+  }
+  return new Set(DASH_STATS.filter((d) => d[2]).map((d) => d[0]));
+};
+function dashSettingsHTML() {
+  const on = dashStatsOn();
+  return `<section class="card stack chart-settings"><div class="cs-head"><h2 style="margin:0">Dashboard stats</h2>
+      <span class="cs-btns"><button type="button" class="btn small" data-act="dash-reset">Default</button></span></div>
+      <div class="cs-list">${DASH_STATS.map(([k, name]) => `<button type="button" class="cs-row" data-act="dash-toggle" data-k="${k}" role="switch" aria-checked="${on.has(k)}">
+        <span>${name}</span><span class="sw ${on.has(k) ? "on" : ""}"></span></button>`).join("")}</div></section>`;
+}
 function homeHTML() {
   const list = vehicleEntries();
   const v = currentVehicle();
@@ -3453,8 +3508,9 @@ function homeHTML() {
   const odo = list.filter((e) => +e.odo > 0).sort((x, y) => +y.odo - +x.odo)[0] || null;
   return `
     <div class="hero-banner"><img src="icons/banner.jpg" alt="My Car Log"></div>
-    <div class="chips period" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
-    <div class="dash-grid"><div class="dash-main">
+    <div class="dash-grid"><div class="dash-top">
+    <div class="chips period sticky-period" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>
+    <div class="dash-main">
     <section class="card hero">
       <div class="hero-top">
         <div class="hero-text">
@@ -3469,13 +3525,58 @@ function homeHTML() {
       </div>` : '<p class="muted small" style="margin:.5rem 0 0">Nothing spent in this period.</p>'}
     </section>
     <section class="stats">
-      ${tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek))}
-      ${tile(fmtC(a.fuelPerKm), "Fuel cost per km", b && delta(a.fuelPerKm, b.fuelPerKm))}
-      ${tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl))}
-      ${tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm))}
-      ${tile(a.costPerDay == null ? "\u2013" : money.format(a.costPerDay), "Cost per day", b && delta(a.costPerDay, b.costPerDay))}
-      ${tile(a.kmPerWeek == null ? "\u2013" : fmtKm(Math.round(a.kmPerWeek)), "Km per week", b && delta(a.kmPerWeek, b.kmPerWeek, null))}
       ${(() => {
+    const inR = (s0, e0) => (e) => String(e.date) >= s0 && String(e.date) <= e0;
+    const fillsIn = (s0, e0) => list.filter((e) => e.type === "fuel" && inR(s0, e0)(e));
+    const fp = fillsIn(p.start, p.end), fb = b ? fillsIn(p.prevStart, p.prevEnd) : [];
+    const litres = (fs) => fs.reduce((x, e) => x + (+e.litres || 0), 0);
+    const econ = fuelEconomy(list).filter((q) => inR(p.start, p.end)(q));
+    const priced = fp.filter((e) => +e.litres > 0 && +e.cost > 0).map((e) => ({ e, ppl: +e.cost / +e.litres }));
+    const cheap = priced.sort((x, y) => x.ppl - y.ppl)[0];
+    const servos = {};
+    fp.forEach((e) => {
+      const n = String(e.place || "").trim();
+      if (n) servos[n] = (servos[n] || 0) + 1;
+    });
+    const fav = Object.entries(servos).sort((x, y) => y[1] - x[1])[0];
+    const lastFill = list.filter((e) => e.type === "fuel").sort((x, y) => String(y.date).localeCompare(String(x.date)))[0];
+    const est = estimateOdo(list);
+    const kmTank = reminders(list, v).fuel.kmPerTank;
+    const perMonth = (x, st) => x != null && st.days ? x / st.days * 30.44 : null;
+    const L = (x) => x == null ? "\u2013" : `${n1.format(x)} L/100`;
+    const T = {
+      fuelWeek: () => tile(a.fuelPerWeek == null ? "\u2013" : money0.format(a.fuelPerWeek), "Fuel spend per week", b && delta(a.fuelPerWeek, b.fuelPerWeek)),
+      fuelMonth: () => tile(a.totals.fuel ? money0.format(perMonth(a.totals.fuel, a)) : "\u2013", "Fuel spend per month", b && delta(perMonth(a.totals.fuel, a), perMonth(b.totals.fuel, b))),
+      fuelPerKm: () => tile(fmtC(a.fuelPerKm), "Fuel cost per km", b && delta(a.fuelPerKm, b.fuelPerKm)),
+      ppl: () => tile(a.ppl == null ? "\u2013" : `${n1.format(a.ppl * 100)}c`, "Fuel price per litre", b && delta(a.ppl, b.ppl)),
+      econ: () => tile(L(a.l100), "Fuel economy", b && delta(a.l100, b.l100)),
+      lastTank: () => tile(econ.length ? L(econ[econ.length - 1].l100) : "\u2013", "Last tank economy", "", econ.length ? fmtDate(econ[econ.length - 1].date) : ""),
+      bestWorst: () => {
+        const xs = econ.map((q) => q.l100);
+        return tile(xs.length ? `${n1.format(Math.min(...xs))} / ${n1.format(Math.max(...xs))}` : "\u2013", "Best / worst tank", "", xs.length ? "L/100km" : "");
+      },
+      litres: () => tile(fp.length ? `${n0.format(litres(fp))} L` : "\u2013", "Litres used", b && delta(litres(fp), litres(fb), null)),
+      fills: () => tile(n0.format(fp.length), "Fill-ups", b && delta(fp.length, fb.length, null)),
+      avgFill: () => tile(a.avgFill == null ? "\u2013" : money0.format(a.avgFill), "Average fill-up", b && delta(a.avgFill, b.avgFill)),
+      kmTank: () => tile(kmTank ? `${n0.format(kmTank)} km` : "\u2013", "Km per tank"),
+      cheapest: () => tile(cheap ? `${n1.format(cheap.ppl * 100)}c` : "\u2013", "Cheapest fill-up", "", cheap ? esc(cheap.e.place || fmtDate(cheap.e.date)) : ""),
+      servo: () => tile(fav ? esc(fav[0]) : "\u2013", "Favourite servo", "", fav ? `${fav[1]} fill-up${fav[1] === 1 ? "" : "s"}` : "", "txt"),
+      sinceFill: () => {
+        const d = lastFill ? Math.max(0, Math.round((Date.now() - /* @__PURE__ */ new Date(lastFill.date + "T00:00:00")) / 864e5)) : null;
+        return tile(d == null ? "\u2013" : d === 0 ? "Today" : ago(d), "Since last fill-up", "", lastFill && +lastFill.odo && est.odo ? `~${n0.format(Math.max(0, est.odo - +lastFill.odo))} km` : "");
+      },
+      costKm: () => tile(a.fills ? fmtC(a.costPerKm) : "\u2013", "Running cost per km", b && delta(a.costPerKm, b.costPerKm)),
+      costDay: () => tile(a.costPerDay == null ? "\u2013" : money.format(a.costPerDay), "Cost per day", b && delta(a.costPerDay, b.costPerDay)),
+      costMonth: () => tile(a.total ? money0.format(perMonth(a.total, a)) : "\u2013", "Cost per month", b && delta(perMonth(a.total, a), perMonth(b.total, b))),
+      svcSpend: () => tile(money0.format(a.totals.service), "Service and repairs", b && delta(a.totals.service, b.totals.service)),
+      km: () => tile(a.km == null ? "\u2013" : `${n0.format(a.km)} km`, "Km driven", b && delta(a.km, b.km, null)),
+      kmDay: () => tile(a.km && a.days ? `${n0.format(a.km / a.days)} km` : "\u2013", "Km per day", b && delta(a.km / a.days, b.km / b.days, null)),
+      kmWeek: () => tile(a.kmPerWeek == null ? "\u2013" : fmtKm(Math.round(a.kmPerWeek)), "Km per week", b && delta(a.kmPerWeek, b.kmPerWeek, null))
+    };
+    const on = dashStatsOn();
+    return DASH_STATS.filter(([k]) => on.has(k) && T[k]).map(([k]) => T[k]()).join("");
+  })()}
+      ${!dashStatsOn().has("odo") ? "" : (() => {
     const est = estimateOdo(vehicleEntries());
     if (!odo) return tile("\u2013", "Odometer", "", "", "wide");
     const predicted = est.odo != null && est.days > 0 && est.kmPerDay;
@@ -3488,7 +3589,7 @@ function homeHTML() {
     );
   })()}
     </section>
-    </div><div class="dash-side">${comingUp}</div></div>
+    </div></div><div class="dash-side">${comingUp}</div></div>
 `;
 }
 function logHTML() {
@@ -4272,6 +4373,7 @@ function garageHTML() {
     </section>` : ""}
     ${state.isAdmin ? peopleHTML() : ""}
     ${placesHTML()}
+    ${dashSettingsHTML()}
     ${chartSettingsHTML()}
     <section class="card stack"><h2 style="margin:0">Appearance</h2>
       <div class="seg theme" data-ind-key="theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
@@ -5339,6 +5441,24 @@ $("#main").addEventListener("click", async (ev) => {
     store.set("carlog.chartsPrev", JSON.stringify([...set]));
     state.animCharts = true;
     drawCharts();
+  } else if (act === "dash-toggle") {
+    const on = dashStatsOn(), k = el.dataset.k;
+    if (on.has(k)) on.delete(k);
+    else on.add(k);
+    store.set(dashKey(), JSON.stringify([...on]));
+    el.setAttribute("aria-checked", on.has(k));
+    el.querySelector(".sw").classList.toggle("on", on.has(k));
+  } else if (act === "dash-reset") {
+    try {
+      localStorage.removeItem(dashKey());
+    } catch {
+    }
+    const on = dashStatsOn();
+    document.querySelectorAll("[data-act=dash-toggle]").forEach((r) => {
+      const x = on.has(r.dataset.k);
+      r.setAttribute("aria-checked", x);
+      r.querySelector(".sw").classList.toggle("on", x);
+    });
   } else if (act === "chart-toggle") {
     const off = chartsOff(), k = el.dataset.k;
     if (off.has(k)) off.delete(k);
