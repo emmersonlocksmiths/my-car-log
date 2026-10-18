@@ -2378,7 +2378,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "57";
+var APP_VERSION = "58";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -4347,7 +4347,8 @@ document.addEventListener("keydown", (ev) => {
     h.click();
   }
 });
-var GARAGE_OPEN_DEFAULT = ["Vehicles"];
+var GARAGE_FOLDS = ["Dashboard stats", "Charts", "Places"];
+var GARAGE_OPEN_DEFAULT = [];
 function collapseGarage(root) {
   let saved = null;
   try {
@@ -4359,6 +4360,7 @@ function collapseGarage(root) {
     const h2 = sec.querySelector("h2");
     if (!h2 || sec.classList.contains("gs")) return;
     const key = h2.textContent.trim();
+    if (!GARAGE_FOLDS.includes(key)) return;
     const head = h2.closest(".cs-head") || h2;
     const body = document.createElement("div");
     body.className = "reveal gs-body";
@@ -4398,24 +4400,24 @@ function garageHTML() {
       ${vs || '<p class="muted">No vehicles yet.</p>'}
       <button class="btn primary wide" style="margin-top:12px" data-act="add-vehicle">Add vehicle</button>
     </section>
-    <section class="card stack"><h2 style="margin:0">Your data</h2>
-      <p class="muted small" style="margin:0">Download a spreadsheet of the selected vehicle's entries. Handy as a backup or for your accountant.</p>
-      <button class="btn" data-act="export" ${state.vehicles.length ? "" : "disabled"}>Export CSV</button>
-      <p class="muted small" style="margin:0">Bring your history across from the My Car app (Settings \u2192 Export in My Car, then pick the .xlsx or .csv file here). Importing the same file twice won't double up.</p>
-      <label class="btn" style="display:block;text-align:center;color:var(--text);font-size:1rem">Import from My Car<input type="file" id="import-file" accept=".xlsx,.xls,.csv" hidden></label>
-    </section>
-    ${window.CARLOG_TEST ? `<section class="card stack"><h2 style="margin:0">Test version</h2>
-      <p class="muted small" style="margin:0">Everything you enter here is saved in this browser only. Nothing goes to Firebase.</p>
-      <div class="row"><button class="btn grow" data-act="test-reset">Reload history</button><button class="btn danger grow" data-act="test-clear">Start empty</button></div>
-    </section>` : ""}
-    ${state.isAdmin ? peopleHTML() : ""}
-    ${placesHTML()}
-    ${dashSettingsHTML()}
-    ${chartSettingsHTML()}
     <section class="card stack"><h2 style="margin:0">Appearance</h2>
       <div class="seg theme" data-ind-key="theme">${[["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, l]) => `<button type="button" data-act="theme" data-theme="${k}" class="${(store.get("carlog.theme") || "auto") === k ? "on" : ""}">${l}</button>`).join("")}</div>
       <p class="muted small" style="margin:0">Auto follows your phone's light or dark setting.</p>
     </section>
+    ${dashSettingsHTML()}
+    ${chartSettingsHTML()}
+    ${placesHTML()}
+    <section class="card stack"><h2 style="margin:0">Your data</h2>
+      <p class="muted small" style="margin:0">Download a spreadsheet of the selected vehicle's entries. Handy as a backup or for your accountant.</p>
+      <button class="btn" data-act="export" ${state.vehicles.length ? "" : "disabled"}>Export CSV</button>
+      <p class="muted small" style="margin:0">Bring your history across from the My Car app (Settings \u2192 Export in My Car, then pick the .xlsx or .csv file here). Importing the same file twice won't double up.</p>
+      <label class="btn" style="display:block;text-align:center;color:var(--text);font-size:1rem">Import<input type="file" id="import-file" accept=".xlsx,.xls,.csv" hidden></label>
+    </section>
+    ${state.isAdmin ? peopleHTML() : ""}
+    ${window.CARLOG_TEST ? `<section class="card stack"><h2 style="margin:0">Test version</h2>
+      <p class="muted small" style="margin:0">Everything you enter here is saved in this browser only. Nothing goes to Firebase.</p>
+      <div class="row"><button class="btn grow" data-act="test-reset">Reload history</button><button class="btn danger grow" data-act="test-clear">Start empty</button></div>
+    </section>` : ""}
     <section class="card stack"><h2 style="margin:0">Account</h2>
       <p class="muted small" style="margin:0">Signed in as ${esc(state.user.email || "you")}${state.isAdmin ? " \xB7 owner" : ""}</p>
       <button class="btn" data-act="sign-out">Sign out</button>
