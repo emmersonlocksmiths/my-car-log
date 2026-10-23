@@ -1262,6 +1262,25 @@ main { overflow-anchor: none; }
 .chart-empty.show { opacity: 1; pointer-events: auto; }
 .charts-grid { overflow-anchor: none; }
 @media (prefers-reduced-motion: reduce) { .chart-box, .chart-empty { transition: none; } }
+
+/* Notes for next service (on the Next service tile) */
+.svc-notes { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--service) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--service) 25%, var(--line)); display: grid; gap: 8px; }
+.sn-head { font-weight: 700; font-size: .9rem; display: flex; align-items: center; gap: 6px; }
+.sn-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--service); color: #fff; font-size: .74rem; }
+.sn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sn-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 8px 6px 8px 10px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: .92rem; transition: opacity .2s ease, transform .2s ease; }
+.sn-list li.going { opacity: 0; transform: translateX(12px); }
+.sn-t { overflow-wrap: anywhere; }
+.sn-d { color: var(--text-2); font-size: .76rem; white-space: nowrap; }
+.sn-del { appearance: none; border: 0; background: none; color: var(--text-2); font-size: 1.3rem; line-height: 1; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; }
+.sn-del:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+.sn-add { display: flex; gap: 8px; }
+.sn-add input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.sn-add .btn { flex: none; }
+/* In the service form: tick off what got fixed */
+.sn-form { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--service) 8%, var(--surface)); border: 1px solid color-mix(in srgb, var(--service) 25%, var(--line)); }
+.sn-tick { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; padding: 4px 0; }
+.sn-tick input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--service); flex: none; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2457,7 +2476,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "67";
+var APP_VERSION = "68";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2735,6 +2754,23 @@ function keepChartsAnchor(root, a) {
   };
   step();
 }
+function addServiceNote(vid) {
+  const inp = $("#sn-input"), text = (inp?.value || "").trim().replace(/\s+/g, " ");
+  const veh = state.vehicles.find((x) => x.id === vid);
+  if (!text || !veh) {
+    inp?.focus();
+    return;
+  }
+  const note = { id: Math.random().toString(36).slice(2, 10), text, date: today() };
+  inp.value = "";
+  updateDoc(userDoc("vehicles", veh.id), { serviceNotes: [...veh.serviceNotes || [], note] }).catch((err) => toast("Sync problem: " + err.message));
+}
+document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Enter" && ev.target.id === "sn-input") {
+    ev.preventDefault();
+    ev.target.closest(".svc-notes")?.querySelector("[data-act=svc-note-add]")?.click();
+  }
+});
 var ANCHORS = [
   [".hero", () => "hero"],
   [".stat-group", (el) => "g:" + el.textContent],
@@ -3425,6 +3461,14 @@ function remindersHTML(v, list) {
   const src = (it, what) => ({ set: `Your setting: every ${n0.format(it.intervalKm)} km`, learned: `Every ~${n0.format(it.intervalKm)} km, from your history`, default: `Every ${n0.format(it.intervalKm)} km (typical)` })[it.source] + (it.months ? ` or ${it.months} months` : "") + ` \xB7 <button type="button" class="link small" data-act="edit-vehicle" data-id="${v.id}">Change</button>`;
   const rows = [];
   const s = r.service;
+  const notes = Array.isArray(v.serviceNotes) ? v.serviceNotes : [];
+  const notesHTML = `<div class="svc-notes">
+      <div class="sn-head">Notes for next service${notes.length ? ` <span class="sn-count">${notes.length}</span>` : ""}</div>
+      ${notes.length ? `<ul class="sn-list">${notes.map((n) => `<li><span class="sn-t">${esc(n.text)}</span><span class="sn-d">${shortD(n.date)}</span>
+        <button type="button" class="sn-del" data-act="svc-note-del" data-vid="${v.id}" data-nid="${esc(n.id)}" aria-label="Remove note">\xD7</button></li>`).join("")}</ul>` : ""}
+      <div class="sn-add"><input id="sn-input" placeholder="Something you noticed\u2026" autocomplete="off" enterkeyhint="done" maxlength="200">
+        <button type="button" class="btn small" data-act="svc-note-add" data-vid="${v.id}">Add</button></div>
+    </div>`;
   if (s.last) {
     rows.push(row(
       "service",
@@ -3437,8 +3481,8 @@ function remindersHTML(v, list) {
       ]),
       `Last service ${fmtDate(s.last.date)}${s.last.place ? " \xB7 " + esc(s.last.place) : ""} \xB7 <span class="num">${n0.format(s.kmSince)}</span> km ago`,
       src(s)
-    ));
-  } else rows.push(row("service", "Next service", statusChip("unknown"), "No service logged yet", "Add one with + \u2192 Service to start tracking."));
+    ).replace(/<\/div>\s*<\/div>\s*$/, `${notesHTML}</div></div>`));
+  } else rows.push(row("service", "Next service", statusChip("unknown"), "No service logged yet", "Add one with + \u2192 Service to start tracking.").replace(/<\/div>\s*<\/div>\s*$/, `${notesHTML}</div></div>`));
   const fu = r.fuel;
   if (fu.last && fu.kmPerTank) {
     rows.push(row(
@@ -4965,7 +5009,13 @@ function entryForm(entry, preset = null) {
           <div class="pills small">${LIGHT_POS.map((p) => `<label class="pill"><input type="checkbox" name="lp" value="${p}" ${(vals.lightPos || ex.lightPos || []).includes(p) ? "checked" : ""}><span>${POS_LABEL[p]}</span></label>`).join("")}</div></div>
         <div class="part-new" id="part-new" hidden><input id="part-new-name" placeholder="e.g. Water pump, Starter motor" autocapitalize="sentences" enterkeyhint="done"><button type="button" class="btn small primary" id="part-new-ok">Add</button></div>
         </div></div>
-        <p class="hint" id="svc-hint">${cur2 === "Scheduled service" ? "General service is ticked. Tap anything else that was replaced." : ""}</p>`;
+        <p class="hint" id="svc-hint">${cur2 === "Scheduled service" ? "General service is ticked. Tap anything else that was replaced." : ""}</p>
+        ${(() => {
+        const veh = state.vehicles.find((x) => x.id === (e.vehicleId || state.vehicleId));
+        const ns = !ex.id && veh && Array.isArray(veh.serviceNotes) ? veh.serviceNotes : [];
+        return ns.length ? `<div class="sn-form"><div class="field-label">Your notes for this service <span class="muted" style="font-weight:500">(tick what got fixed)</span></div>
+            ${ns.map((n) => `<label class="sn-tick"><input type="checkbox" name="sn" value="${esc(n.id)}" ${(vals.sn || []).includes(n.id) ? "checked" : ""}><span>${esc(n.text)}</span></label>`).join("")}</div>` : "";
+      })()}`;
     }
     if (k === "tyres") {
       const jobs = vals.tyre_jobs || tyreJobsOf(ex).length && tyreJobsOf(ex) || [];
@@ -5070,6 +5120,7 @@ function entryForm(entry, preset = null) {
     if (sheetForm.querySelector("[name=pp]")) {
       vals.parts = [...sheetForm.querySelectorAll("[name=pp]:checked")].map((x) => x.value);
       vals.lightPos = [...sheetForm.querySelectorAll("[name=lp]:checked")].map((x) => x.value);
+      vals.sn = [...sheetForm.querySelectorAll("[name=sn]:checked")].map((x) => x.value);
       vals.tyre_pos = [...sheetForm.querySelectorAll(".fit-pick .tp.on")].map((x) => x.dataset.pos);
       vals.tyre_rpos = [...sheetForm.querySelectorAll(".fix-pick .tp.on")].map((x) => x.dataset.pos);
     }
@@ -5444,6 +5495,13 @@ function entryForm(entry, preset = null) {
       place: f.place.value.trim(),
       notes: f.notes.value.trim()
     };
+    const fixedIds = ks.includes("service") ? [...f.querySelectorAll("[name=sn]:checked")].map((x) => x.value) : [];
+    const sveh = state.vehicles.find((x) => x.id === common.vehicleId);
+    if (fixedIds.length && sveh) {
+      const fixedTxt = (sveh.serviceNotes || []).filter((n) => fixedIds.includes(n.id)).map((n) => n.text);
+      if (fixedTxt.length) common.notes = [common.notes, `Fixed: ${fixedTxt.join("; ")}`].filter(Boolean).join("\n");
+      updateDoc(userDoc("vehicles", sveh.id), { serviceNotes: (sveh.serviceNotes || []).filter((n) => !fixedIds.includes(n.id)) }).catch((err) => toast("Sync problem: " + err.message));
+    }
     const visitId = ks.length > 1 ? first.visitId || doc(userCol("entries")).id : null;
     const parts = ks.map((k) => {
       const data = { ...common, visitId };
@@ -5633,6 +5691,13 @@ $("#main").addEventListener("click", async (ev) => {
     store.set("carlog.chartsPrev", JSON.stringify([...set]));
     state.animCharts = true;
     drawCharts();
+  } else if (act === "svc-note-add") addServiceNote(el.dataset.vid);
+  else if (act === "svc-note-del") {
+    const veh = state.vehicles.find((x) => x.id === el.dataset.vid);
+    if (!veh) return;
+    const li = el.closest("li");
+    li?.classList.add("going");
+    setTimeout(() => updateDoc(userDoc("vehicles", veh.id), { serviceNotes: (veh.serviceNotes || []).filter((n) => n.id !== el.dataset.nid) }).catch((err) => toast("Sync problem: " + err.message)), calm() ? 0 : 200);
   } else if (act === "garage-fold") {
     const sec = el.closest("section.gs"), body = sec.querySelector(":scope > .gs-body");
     const isOpen = !sec.classList.contains("open");
