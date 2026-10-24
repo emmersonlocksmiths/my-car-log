@@ -1307,6 +1307,17 @@ main { overflow-anchor: none; }
 .sn-head { justify-content: flex-start; }
 .sn-plus { margin-left: auto; appearance: none; border: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--service); color: #fff; font: 600 1.35rem/1 var(--font-body); display: grid; place-items: center; cursor: pointer; box-shadow: 0 3px 10px color-mix(in srgb, var(--service) 40%, transparent); transition: transform .15s ease; }
 .sn-plus:active { transform: scale(.92); }
+
+/* v72 charts: headline number above each chart */
+.chart-card h2 { margin-bottom: .2rem; }
+.chart-sum { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 8px; min-height: 1.9rem; margin: 0 0 10px; }
+.chart-sum b { font: 800 1.55rem/1.15 var(--font-display); letter-spacing: -.01em; color: var(--text); }
+.chart-sum .cs-lbl { font-weight: 600; font-size: .92rem; color: var(--text-2); }
+.chart-sum .cs-chg { flex-basis: 100%; font-size: .85rem; }
+.chart-sum .cs-vs { color: var(--muted); font-weight: 500; font-size: .8rem; }
+.chart-card .chart-box { height: 210px; }
+@media (min-width: 760px) { .chart-card .chart-box { height: 250px; } }
+[data-chart="cat"] .chart-box { height: 290px; }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -1359,7 +1370,7 @@ main { overflow-anchor: none; }
   <dialog id="sheet" class="sheet"><form method="dialog" id="sheet-form"></form></dialog>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="module">
-// firebase-config.js
+// ../../../../../home/claude/carlog-src/firebase-config.js
 var firebase_config_default = {
   apiKey: "AIzaSyCnaGPJ7Eodr1YmQN8qi-RpExzWcVohAkQ",
   authDomain: "car-tracker-f0a0c.firebaseapp.com",
@@ -1369,7 +1380,7 @@ var firebase_config_default = {
   appId: "1:359652625238:web:dfef650506a6d99a0c24f7"
 };
 
-// calc.js
+// ../../../../../home/claude/carlog-src/calc.js
 var num = (v) => v === null || v === void 0 || v === "" || isNaN(+v) ? null : +v;
 function byOdoThenDate(a, b) {
   const ao = num(a.odo), bo = num(b.odo);
@@ -1419,9 +1430,6 @@ function byCategory(entries) {
     m.set(cat, (m.get(cat) || 0) + (num(e.cost) || 0));
   }
   return [...m.entries()].map(([category, total]) => ({ category, total })).sort((a, b) => b.total - a.total);
-}
-function pricePerLitre(entries) {
-  return entries.filter((e) => e.type === "fuel" && num(e.litres) > 0 && num(e.cost) > 0).sort((a, b) => String(a.date).localeCompare(String(b.date))).map((e) => ({ date: e.date, ppl: +e.cost / +e.litres }));
 }
 function maxOdoBefore(entries, date, excludeId) {
   let m = null;
@@ -1948,7 +1956,7 @@ function lightsState(entries, vehicle = {}, now = /* @__PURE__ */ new Date()) {
   return out;
 }
 
-// import.js
+// ../../../../../home/claude/carlog-src/import.js
 var RULES = [
   [/^\s*(\d[\d,]*\s*(km)?\s*)?service\b/i, "service", "Scheduled service"],
   [/air ?con/i, "service", "Repairs"],
@@ -2048,7 +2056,7 @@ function parseMyCar(rows) {
   return { vehicles: [...vehicles], entries, skipped };
 }
 
-// car3d.js
+// ../../../../../home/claude/carlog-src/car3d.js
 var GREY = 7042690;
 var SHAPES = {
   // Real models, drawn from their published dimensions (wheels at ±wheelbase/2)
@@ -2470,7 +2478,7 @@ function createCarScene(container, { body = "car", onSelect } = {}) {
   };
 }
 
-// app.js
+// ../../../../../home/claude/carlog-src/app.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
@@ -2502,7 +2510,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "71";
+var APP_VERSION = "72";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3170,9 +3178,6 @@ function render() {
       b.setAttribute("aria-selected", on);
     });
     const w = chartWords();
-    main.querySelectorAll(".prev-tog").forEach((t) => {
-      t.hidden = state.period === "all";
-    });
     main.querySelectorAll("[data-tt]").forEach((h) => {
       const c = CHART_LIST.find((x) => x[1] === h.dataset.tt);
       if (c) fadeText(h, c[3](w));
@@ -3842,58 +3847,33 @@ function chartRange() {
 }
 var periodChips = (cls = "") => `<div class="chips period ${cls}" data-ind-key="period" role="tablist" aria-label="Period">${PERIODS.map(([k, l]) => `<button class="chip ${state.period === k ? "on" : ""}" data-act="period" data-p="${k}" role="tab" aria-selected="${state.period === k}">${l}</button>`).join("")}</div>`;
 var CHART_LIST = [
-  ["Spending", "month", "Spending by month", ({ u }) => `Spending by ${u}`],
-  ["Spending", "cat", "Where the money goes", ({ P }) => `Where the money goes \xB7 ${P}`, "half"],
-  ["Spending", "cumul", "Running total", ({ P }) => `Running total \xB7 ${P}`],
-  ["Spending", "vsLast", "This period vs last period", ({ vs }) => vs],
-  ["Spending", "costKm", "Running cost per km", ({ u }) => `Running cost per km by ${u} (c/km)`],
-  ["Spending", "svc", "Service and repairs", ({ P }) => `Service and repairs \xB7 ${P}`, "half"],
-  ["Spending", "biggest", "Biggest expenses", ({ P }) => `Biggest expenses \xB7 ${P}`],
-  ["Fuel", "econ", "Fuel economy", () => "Fuel economy per tank (L/100km)"],
-  ["Fuel", "ppl", "Fuel price paid", () => "Fuel price per fill-up (c/L)"],
-  ["Fuel", "fuelSpend", "Fuel spend by month", ({ u }) => `Fuel spend by ${u}`],
-  ["Fuel", "litres", "Litres by month", ({ u }) => `Litres by ${u}`],
-  ["Fuel", "fillCost", "Cost of each fill-up", () => "Cost of each fill-up"],
-  ["Fuel", "kmFill", "Km between fill-ups", () => "Km between fill-ups"],
-  ["Fuel", "station", "Price by service station", ({ P }) => `Average price by servo (c/L) \xB7 ${P}`],
-  ["Fuel", "stationUse", "Where you fill up", ({ P }) => `Where you fill up \xB7 ${P}`],
-  ["Fuel", "weekday", "Day you fill up", ({ P }) => `Day you fill up \xB7 ${P}`, "half"],
-  ["Driving", "km", "Km driven by month", ({ u }) => `Km driven by ${u}`],
-  ["Driving", "odo", "Odometer", () => "Odometer (km)"],
-  ["Driving", "kmDay", "Average km per day", ({ u }) => `Average km per day, by ${u}`],
-  ["Driving", "kmYear", "Km by year", () => "Km by year \xB7 All time"],
-  ["Driving", "calendar", "Driving calendar", ({ P, period }) => `Driving calendar \xB7 ${period === "all" ? "Last 12 months" : P}`],
-  ["All vehicles", "bothSpend", "Spending by vehicle", ({ P }) => `Spending by vehicle \xB7 ${P}`, "half", true],
-  ["All vehicles", "bothKm", "Km driven by vehicle", ({ P }) => `Km driven by vehicle \xB7 ${P}`, "half", true],
-  ["All vehicles", "bothEcon", "Fuel economy by vehicle", ({ u }) => `Fuel economy by vehicle, by ${u} (L/100km)`, null, true],
-  ["Summary", "quarter", "This year by quarter", () => `Spending by quarter \xB7 ${(/* @__PURE__ */ new Date()).getFullYear()}`],
-  ["Summary", "year", "Year by year", () => "Spending by year \xB7 All time"]
+  ["Cost", "spend", "Monthly spending", () => "Monthly spending"],
+  ["Cost", "cat", "Where the money goes", () => "Where the money goes"],
+  ["Cost", "costKm", "Running cost per km", () => "Running cost per km"],
+  ["Cost", "biggest", "Biggest expenses", () => "Biggest expenses"],
+  ["Cost", "year", "Spending by year", () => "Spending by year"],
+  ["Fuel", "econ", "Fuel economy", () => "Fuel economy"],
+  ["Fuel", "ppl", "Fuel price", () => "Fuel price"],
+  ["Fuel", "fuelSpend", "Monthly fuel spend", () => "Monthly fuel spend"],
+  ["Fuel", "station", "Price by servo", () => "Price by servo"],
+  ["Odometer", "kmDay", "Km per day", () => "Km per day"],
+  ["Odometer", "odo", "Odometer", () => "Odometer"],
+  ["Odometer", "kmYear", "Km by year", () => "Km by year"]
 ];
 function chartWords() {
-  const period = state.period, y = (/* @__PURE__ */ new Date()).getFullYear();
-  const P = { month: "Last 30 days", "3m": "Last 3 months", "6m": "Last 6 months", year: "Last 12 months", all: "All time" }[period] || "Last 3 months";
-  const vs = { month: "Last 30 days vs the 30 before", "3m": "Last 3 months vs the 3 before", "6m": "Last 6 months vs the 6 before", year: "Last 12 months vs the 12 before", all: `${y} vs ${y - 1}` }[period] || "This period vs last period";
-  return { u: chartUnit(), P, vs, period };
+  return { period: state.period };
 }
-var PREV_OK = /* @__PURE__ */ new Set(["month", "cumul", "costKm", "econ", "ppl", "fuelSpend", "litres", "fillCost", "kmFill", "station", "km", "kmDay", "bothEcon"]);
-var chartsPrev = () => {
-  try {
-    return new Set(JSON.parse(store.get("carlog.chartsPrev") || "[]"));
-  } catch {
-    return /* @__PURE__ */ new Set();
-  }
-};
+var CHARTS_OFF_KEY = "carlog.chartsOff2";
 var chartsOff = () => {
   try {
-    return new Set(JSON.parse(store.get("carlog.chartsOff") || "[]"));
+    return new Set(JSON.parse(store.get(CHARTS_OFF_KEY) || "[]"));
   } catch {
     return /* @__PURE__ */ new Set();
   }
 };
-var chartUnit = () => state.period === "month" || state.period === "3m" ? "week" : "month";
 var chartsShown = () => {
   const off = chartsOff();
-  return CHART_LIST.filter(([, k, , , , multi]) => !off.has(k) && (!multi || state.vehicles.length > 1));
+  return CHART_LIST.filter(([, k]) => !off.has(k));
 };
 function chartsHTML() {
   const { list } = chartRange();
@@ -3901,38 +3881,26 @@ function chartsHTML() {
   const shown = chartsShown();
   if (!shown.length) return `${periodChips("sticky-period")}<p class="card empty">All charts are switched off. Turn them back on in Garage \u2192 Charts.</p>`;
   const w = chartWords();
-  const prevSet = chartsPrev();
-  const tick = (k) => PREV_OK.has(k) ? `<label class="prev-tog" ${state.period === "all" ? "hidden" : ""}><input type="checkbox" data-act="chart-prev" data-k="${k}" ${prevSet.has(k) ? "checked" : ""}><span>Previous period</span></label>` : "";
-  const card = ([, k, , title, size]) => `<section class="card chart-card ${size === "half" ? "half" : ""}" data-chart="${k}">
-      <div class="chart-head"><h2 data-tt="${k}">${title(w)}</h2>${tick(k)}</div>
-      ${k === "calendar" ? '<div class="cal-box" id="c-calendar"></div>' : `<div class="chart-box" id="box-${k}"><canvas id="c-${k}"></canvas><p class="chart-empty" hidden></p></div>`}
+  const card = ([, k, , title]) => `<section class="card chart-card" data-chart="${k}">
+      <h2 data-tt="${k}">${title(w)}</h2>
+      <div class="chart-sum" id="sum-${k}"></div>
+      <div class="chart-box" id="box-${k}"><canvas id="c-${k}"></canvas><p class="chart-empty" hidden></p></div>
     </section>`;
   let html = "";
-  for (const g of [...new Set(shown.map((c) => c[0]))]) {
-    const items = shown.filter((c) => c[0] === g), out = [];
-    while (items.length) {
-      const c = items.shift();
-      if (c[4] === "half") {
-        const j = items.findIndex((x) => x[4] === "half");
-        if (j > -1) out.push(card(c), card(items.splice(j, 1)[0]));
-        else out.push(card(c).replace("chart-card half", "chart-card half solo"));
-      } else out.push(card(c));
-    }
-    html += `<h3 class="chart-group">${g}</h3>${out.join("")}`;
-  }
+  for (const g of [...new Set(shown.map((c) => c[0]))]) html += `<h3 class="chart-group">${g}</h3>${shown.filter((c) => c[0] === g).map(card).join("")}`;
   return `${periodChips("sticky-period")}<div class="charts-grid">${html}</div>`;
 }
 function chartSettingsHTML() {
   const off = chartsOff();
   let g = null, html = "";
-  for (const [grp, k, name, , , multi] of CHART_LIST) {
+  for (const [grp, k, name] of CHART_LIST) {
     if (grp !== g) {
       g = grp;
       html += `<h3 class="cs-group">${grp}</h3>`;
     }
     const on = !off.has(k);
     html += `<button type="button" class="cs-row" data-act="chart-toggle" data-k="${k}" role="switch" aria-checked="${on}">
-      <span>${name}${multi && state.vehicles.length < 2 ? ' <span class="muted">(needs 2 vehicles)</span>' : ""}</span><span class="sw ${on ? "on" : ""}"></span></button>`;
+      <span>${name}</span><span class="sw ${on ? "on" : ""}"></span></button>`;
   }
   return `<section class="card stack chart-settings"><div class="cs-head"><h2 style="margin:0">Charts</h2>
       <span class="cs-btns"><button type="button" class="btn small" data-act="charts-all" data-on="1">All on</button><button type="button" class="btn small" data-act="charts-all" data-on="0">All off</button></span></div>
@@ -3983,55 +3951,102 @@ function drawCharts() {
     return;
   }
   if (!$(".charts-grid")) return;
-  const { list: all, listP: list, p: range, econ } = chartRange();
-  const C = { text: cssVar("--text-2"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), rego: cssVar("--rego"), expense: cssVar("--expense"), tyre: cssVar("--tyre"), accent: cssVar("--accent") };
+  const { list: all, listP: list, p: range } = chartRange();
+  const C = { text: cssVar("--text-2"), muted: cssVar("--muted"), grid: cssVar("--grid"), surface: cssVar("--surface"), fuel: cssVar("--fuel"), service: cssVar("--service"), tyre: cssVar("--tyre"), accent: cssVar("--accent") };
   Chart.defaults.color = C.text;
   Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
   const has = (k) => !!$("#c-" + k);
+  const r2 = (v) => +(+v).toFixed(2);
+  const fmtC1 = (v) => `${n1.format(v)}c`;
+  const DAY = 864e5;
+  const toD = (s) => /* @__PURE__ */ new Date(s + "T00:00:00");
+  const isoD = (d) => d.toLocaleDateString("en-CA");
+  const addD = (s, n) => {
+    const x = toD(s);
+    x.setDate(x.getDate() + n);
+    return isoD(x);
+  };
+  const between = (a, b) => Math.round((toD(b) - toD(a)) / DAY);
+  const shortDate = (d) => toD(d).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
+  const span = Math.max(1, between(range.start, range.end));
+  const xOf = (d) => between(range.start, d);
+  const hasPrev = state.period !== "all" && !!range.prevStart;
+  const VS = { month: "vs the 30 days before", "3m": "vs the 3 months before", "6m": "vs the 6 months before", year: "vs the 12 months before" }[state.period] || "";
+  const sum = (k, big, label, cur, prev) => {
+    const el = $("#sum-" + k);
+    if (!el) return;
+    const d = hasPrev && prev != null ? delta(cur, prev) : "";
+    el.innerHTML = big == null ? "" : `<b class="num">${big}</b><span class="cs-lbl">${label}</span>${d ? `<span class="cs-chg">${d} <span class="cs-vs">${VS}</span></span>` : ""}`;
+  };
+  const firstDate = all.map((e) => e.date).filter(Boolean).sort()[0] || range.start;
+  const W = 90;
+  const odoReads = (() => {
+    const m = /* @__PURE__ */ new Map();
+    for (const e of all) if (+e.odo > 0 && e.date) m.set(String(e.date), Math.max(m.get(String(e.date)) || 0, +e.odo));
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  })();
+  const firstOdo = odoReads[0]?.[0], lastOdo = odoReads[odoReads.length - 1]?.[0];
+  const odoAt = (d) => {
+    if (!odoReads.length || d < firstOdo || d > lastOdo) return null;
+    let i = 0;
+    while (i < odoReads.length - 1 && odoReads[i + 1][0] < d) i++;
+    const [d1, o1] = odoReads[i], nx = odoReads[i + 1];
+    if (d1 === d || !nx) return o1;
+    const n = between(d1, nx[0]);
+    return n > 0 ? o1 + (nx[1] - o1) * between(d1, d) / n : o1;
+  };
+  const spentIn = (s, e, fuelOnly) => all.reduce((t, x) => t + (String(x.date) > s && String(x.date) <= e && (!fuelOnly || x.type === "fuel") ? +x.cost || 0 : 0), 0);
+  const monthRate = (s, e, fuelOnly) => {
+    const from = s < addD(firstDate, -1) ? addD(firstDate, -1) : s;
+    const days = between(from, e);
+    return days >= 28 ? spentIn(from, e, fuelOnly) / days * 30.44 : null;
+  };
+  const kmSpan = (s, e, minDays = 28) => {
+    if (!odoReads.length) return null;
+    const a = s < firstOdo ? firstOdo : s, b = e > lastOdo ? lastOdo : e;
+    const days = between(a, b);
+    if (days < minDays) return null;
+    const km = odoAt(b) - odoAt(a);
+    return km > 0 ? { km, days, a, b } : null;
+  };
+  const step = Math.max(1, Math.ceil(span / 26));
+  const steps = [];
+  for (let d = range.end; d >= range.start; d = addD(d, -step)) steps.unshift(d);
   const base = {
     responsive: true,
     maintainAspectRatio: false,
     animation: state.animCharts && !calm() ? { duration: 750, easing: "easeOutQuart" } : false,
     interaction: { mode: "index", intersect: false },
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, border: { color: C.grid }, ticks: { maxRotation: 0, autoSkipPadding: 12 } },
-      y: { grid: { color: C.grid }, border: { display: false } }
-    }
+    plugins: { legend: { display: false } }
   };
-  const legendTop = { display: true, position: "top", align: "start", labels: {
-    boxWidth: 10,
-    boxHeight: 10,
-    useBorderRadius: true,
-    borderRadius: 3,
-    generateLabels: (ch) => Chart.defaults.plugins.legend.labels.generateLabels(ch).map((l) => ({ ...l, lineDash: [], pointStyle: ch.data.datasets[l.datasetIndex]?.borderDash?.length ? "line" : void 0, fillStyle: ch.data.datasets[l.datasetIndex]?.borderDash?.length ? ch.data.datasets[l.datasetIndex].borderColor : l.fillStyle }))
-  } };
-  const yTicks = (fmt) => ({ ...base.scales.y, ticks: { callback: fmt } });
-  const tip = (fmt) => ({ ...base.plugins, tooltip: { callbacks: { label: (ctx) => fmt(ctx.parsed.y, ctx) } } });
-  const shortDate = (d) => (/* @__PURE__ */ new Date(d + "T00:00:00")).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
-  const line = (color, n = 0) => ({ borderColor: color, backgroundColor: color, borderWidth: 2, pointRadius: n > 40 ? 0 : 3, pointHitRadius: 8, pointHoverRadius: 5, tension: 0.25 });
-  const area = (color, n = 0) => ({ ...line(color, n), fill: "origin", backgroundColor: mixHex(color, C.surface, 0.8) });
-  const bars = (color) => ({ backgroundColor: color, borderRadius: 4, barPercentage: 0.75 });
-  const fmtC1 = (v) => `${n1.format(v)}c`;
-  const pie = (k, labels2, values, colors, fmt) => {
-    const wide = ($("#box-" + k)?.clientWidth || 0) >= 420;
-    const total = values.reduce((s, v) => s + v, 0);
-    return {
-      type: "doughnut",
-      data: { labels: labels2, datasets: [{ data: values, backgroundColor: colors, borderColor: C.surface, borderWidth: 2, hoverOffset: 6 }] },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: "58%",
-        animation: base.animation,
-        // Slices keep the same order and colour every period; ones with nothing this period just shrink away
-        plugins: {
-          legend: { display: true, position: wide ? "right" : "bottom", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3, padding: 10, filter: (item, data) => (data.datasets[0].data[item.index] || 0) > 0 } },
-          tooltip: { filter: (ctx) => ctx.parsed > 0, callbacks: { label: (ctx) => `${ctx.label}: ${fmt(ctx.parsed)} \xB7 ${total ? Math.round(ctx.parsed / total * 100) : 0}%` } }
+  const yAx = (fmt, zero) => ({ grid: { color: C.grid }, border: { display: false }, beginAtZero: !!zero, ticks: { callback: fmt, maxTicksLimit: 6 } });
+  const xTime = () => ({
+    type: "linear",
+    min: 0,
+    max: span,
+    grid: { display: false },
+    border: { color: C.grid },
+    ticks: { maxRotation: 0, autoSkipPadding: 16, maxTicksLimit: 6, callback: (v) => shortDate(addD(range.start, Math.round(v))) }
+  });
+  const avgLine = (y, color) => ({ label: "Average", isAvg: true, data: y == null ? [] : [{ x: 0, y }, { x: span, y }], borderColor: mixHex(color, C.surface, 0.35), borderWidth: 1.5, borderDash: [6, 5], pointRadius: 0, pointHoverRadius: 0, pointHitRadius: 0, fill: false });
+  const trendLine = (pts, color, label) => ({ label, data: pts, borderColor: color, backgroundColor: mixHex(color, C.surface, 0.85), fill: "origin", borderWidth: 2.5, tension: 0.35, cubicInterpolationMode: "monotone", pointRadius: 0, pointHoverRadius: 5, pointHitRadius: 10, spanGaps: true });
+  const dots = (pts, color, label) => ({ label, data: pts, showLine: false, borderColor: "transparent", backgroundColor: mixHex(color, C.surface, 0.55), pointRadius: 3, pointHoverRadius: 5, pointHitRadius: 8 });
+  const timeCfg = (datasets, fmt, avg2, zero, title, axisFmt) => ({
+    type: "line",
+    data: { datasets },
+    options: {
+      ...base,
+      scales: { x: xTime(), y: yAx((v) => (axisFmt || fmt)(v), zero) },
+      plugins: { legend: { display: false }, tooltip: {
+        filter: (ctx) => !ctx.dataset.isAvg,
+        callbacks: {
+          title: (it) => it[0] ? title ? title(it[0]) : fmtDate(addD(range.start, Math.round(it[0].parsed.x))) : "",
+          label: (ctx) => `${ctx.dataset.label}: ${fmt(ctx.parsed.y)}`,
+          footer: () => avg2 != null ? `Period average: ${fmt(avg2)}` : ""
         }
-      }
-    };
-  };
+      } }
+    }
+  });
   const PAL = ["#0b98b8", "#e8871e", "#7b5ce0", "#2f9e5a", "#d64545", "#e0b31b", "#3b6fd8", "#d0457a", "#8a5a2b", "#5d6b7c", "#16b0a0", "#a3a83a"];
   const CAT_COL = {
     Fuel: "#0b98b8",
@@ -4067,9 +4082,9 @@ function drawCharts() {
     const b = $("#box-" + k);
     if (b) b.style.height = Math.max(150, rows * 34 + 30) + "px";
   };
-  const hbar = (labels2, values, colors, fmt) => ({
+  const hbar = (labels, values, colors, fmt) => ({
     type: "bar",
-    data: { labels: labels2, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, borderSkipped: "start", barPercentage: 0.7 }] },
     options: {
       ...base,
       indexAxis: "y",
@@ -4078,210 +4093,76 @@ function drawCharts() {
       scales: { x: { grid: { color: C.grid }, border: { display: false }, ticks: { callback: (v) => fmt(v) } }, y: { grid: { display: false }, border: { color: C.grid } } }
     }
   });
-  const weekly = chartUnit() === "week";
-  const buckets = [];
-  const sd = /* @__PURE__ */ new Date(range.start + "T00:00:00"), ed = /* @__PURE__ */ new Date(range.end + "T00:00:00");
-  const isoD = (d) => d.toLocaleDateString("en-CA");
-  if (weekly) {
-    const d = new Date(sd);
-    d.setDate(d.getDate() - (d.getDay() + 6) % 7);
-    while (d <= ed) {
-      const e = new Date(d);
-      e.setDate(e.getDate() + 6);
-      buckets.push({ start: isoD(d), end: isoD(e), label: d.toLocaleDateString("en-AU", { day: "numeric", month: "short" }) });
-      d.setDate(d.getDate() + 7);
-    }
-  } else {
-    const d = new Date(sd.getFullYear(), sd.getMonth(), 1), long = (ed - sd) / 864e5 > 300;
-    while (d <= ed) {
-      buckets.push({ start: isoD(d), end: isoD(new Date(d.getFullYear(), d.getMonth() + 1, 0)), label: d.toLocaleDateString("en-AU", long ? { month: "short", year: "2-digit" } : { month: "short" }) });
-      d.setMonth(d.getMonth() + 1);
-    }
-  }
-  const labels = buckets.map((b) => b.label);
-  for (const b of buckets) {
-    const s = b.start < range.start ? range.start : b.start, e = b.end > range.end ? range.end : b.end;
-    b.s = s;
-    b.e = e;
-    b.days = Math.max(1, Math.round((/* @__PURE__ */ new Date(e + "T00:00:00") - /* @__PURE__ */ new Date(s + "T00:00:00")) / 864e5) + 1);
-    b.fuel = 0;
-    b.service = 0;
-    b.rego = 0;
-    b.expense = 0;
-    b.litres = 0;
-  }
-  const bucketOf = (d) => buckets.find((x) => String(d) >= x.start && String(d) <= x.end);
-  for (const e of list) {
-    const b = bucketOf(e.date), g = groupOf(e);
-    if (!b) continue;
-    if (b[g] !== void 0) b[g] += +e.cost || 0;
-    if (e.type === "fuel") b.litres += +e.litres || 0;
-  }
-  const kmOf = (entries, s, e) => periodStats(entries, s, e).km || 0;
-  const kms = buckets.map((b) => kmOf(all, b.s, b.e));
-  const totalOf = (b) => b.fuel + b.service + b.rego + b.expense;
-  const prevSet = chartsPrev();
-  const prevOn = (k) => state.period !== "all" && !!range.prevStart && prevSet.has(k);
-  const PREVC = "#f0a04b";
-  const shiftD = (d, n) => {
-    const x = /* @__PURE__ */ new Date(d + "T00:00:00");
-    x.setDate(x.getDate() + n);
-    return isoD(x);
-  };
-  const dayIdx = (d, from) => Math.round((/* @__PURE__ */ new Date(d + "T00:00:00") - /* @__PURE__ */ new Date(from + "T00:00:00")) / 864e5);
-  const off = range.prevStart ? dayIdx(range.start, range.prevStart) : 0;
-  const pbuckets = range.prevStart ? buckets.map((b) => {
-    const s = shiftD(b.s, -off), e0 = shiftD(b.e, -off), e = e0 > range.prevEnd ? range.prevEnd : e0;
-    const x = { s, e, days: b.days, fuel: 0, service: 0, rego: 0, expense: 0, litres: 0 };
-    for (const en of all) {
-      if (String(en.date) < s || String(en.date) > e) continue;
-      const g = groupOf(en);
-      if (x[g] !== void 0) x[g] += +en.cost || 0;
-      if (en.type === "fuel") x.litres += +en.litres || 0;
-    }
-    return x;
-  }) : [];
-  const pkms = pbuckets.map((b) => b.e >= b.s ? kmOf(all, b.s, b.e) : 0);
-  const inPrev = (d) => !!range.prevStart && String(d) >= range.prevStart && String(d) <= range.prevEnd;
-  const prevLine = (data, extra = {}) => ({ label: "Previous period", pointStyle: "line", data, borderColor: PREVC, backgroundColor: PREVC, borderWidth: 2, borderDash: [6, 4], pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 8, tension: 0.25, fill: false, spanGaps: true, ...extra });
-  const prevBars = (data, extra = {}) => ({ label: "Previous period", data, backgroundColor: PREVC, borderRadius: 4, barPercentage: 0.75, ...extra });
-  const withPrev = (k, cfg, ds) => {
-    if (!prevOn(k)) return cfg;
-    if (cfg.data.datasets.length === 1) cfg.data.datasets[0].label = "This period";
-    cfg.data.datasets.push(...[].concat(ds));
-    const pl = cfg.options.plugins || {};
-    const cb = pl.tooltip && pl.tooltip.callbacks || {};
-    const lab = cb.label;
-    cfg.options.plugins = { ...pl, legend: legendTop, tooltip: { ...pl.tooltip || {}, callbacks: { ...cb, ...lab && !cfg.labelled ? { label: (ctx) => `${ctx.dataset.label}: ${lab(ctx)}` } : {} } } };
-    return cfg;
-  };
-  const span = Math.max(1, dayIdx(range.end, range.start));
-  const timeChart = (k, type, cur, prev, color, fmtY, extra, tickY) => {
-    const show = prevOn(k);
-    const mk = (pts, from) => pts.map((p) => ({ x: dayIdx(p.d, from), y: p.y, p }));
-    const plotW = Math.max(200, ($("#box-" + k)?.clientWidth || 600) - 70);
-    const barW = Math.max(2, Math.min(12, Math.floor(plotW / Math.max(1, (cur.length + (show ? prev.length : 0)) * 1.8))));
-    const ds = [{ label: show ? "This period" : "Value", data: mk(cur, range.start), ...type === "bar" ? { ...bars(color), barThickness: barW } : line(color, cur.length) }];
-    if (show) ds.push(type === "bar" ? prevBars(mk(prev, range.prevStart), { barThickness: barW }) : prevLine(mk(prev, range.prevStart), { pointRadius: prev.length > 40 ? 0 : 2 }));
-    return {
-      type,
-      data: { datasets: ds },
+  const yearBars = (rows, val, color, fmt) => {
+    const full = rows.filter((r) => !r.current && val(r) > 0 && !(String(r.year) === firstDate.slice(0, 4) && firstDate.slice(5) > "01-31"));
+    const avg2 = full.length ? full.reduce((s, r) => s + val(r), 0) / full.length : null;
+    const ds = [{ type: "bar", label: "Total", data: rows.map((r) => r2(val(r))), backgroundColor: rows.map((r) => r.current ? mixHex(color, C.surface, 0.5) : color), borderRadius: 4, barPercentage: 0.7, order: 2 }];
+    if (avg2 != null) ds.push({ type: "line", label: "Average", isAvg: true, data: rows.map(() => r2(avg2)), borderColor: mixHex(color, C.text, 0.35), borderWidth: 1.5, borderDash: [6, 5], pointRadius: 0, pointHoverRadius: 0, fill: false, order: 1 });
+    return { avg: avg2, cfg: {
+      type: "bar",
+      data: { labels: rows.map((r) => r.current ? `${r.year} so far` : r.year), datasets: ds },
       options: {
         ...base,
-        interaction: { mode: "nearest", axis: "x", intersect: false },
-        plugins: { legend: show ? legendTop : { display: false }, tooltip: { callbacks: {
-          title: (it) => it[0] ? fmtDate(it[0].raw.p.d) : "",
-          label: (ctx) => `${show ? ctx.dataset.label + ": " : ""}${fmtY(ctx.parsed.y)}`,
-          afterLabel: (ctx) => extra ? extra(ctx.raw.p) : ""
-        } } },
-        scales: {
-          x: {
-            type: "linear",
-            min: 0,
-            max: span,
-            offset: type === "bar",
-            grid: { display: false },
-            border: { color: C.grid },
-            ticks: { maxRotation: 0, autoSkipPadding: 16, maxTicksLimit: 7, callback: (v) => shortDate(shiftD(range.start, Math.round(v))) }
-          },
-          y: tickY ? yTicks(tickY) : base.scales.y
-        }
+        scales: { x: { grid: { display: false }, border: { color: C.grid } }, y: yAx((v) => fmt(v), true) },
+        plugins: { legend: { display: false }, tooltip: { filter: (ctx) => !ctx.dataset.isAvg, callbacks: { label: (ctx) => fmt(ctx.parsed.y), footer: () => avg2 != null ? `Average year: ${fmt(avg2)}` : "" } } }
       }
-    };
+    } };
   };
-  const r2 = (v) => +v.toFixed(2);
-  const spentAny = list.some((e) => +e.cost > 0);
-  const fillsP = list.filter((e) => e.type === "fuel").sort((a, b) => String(a.date).localeCompare(String(b.date)) || (+a.odo || 0) - (+b.odo || 0));
   const NONE = "Nothing logged in this period.";
-  if (has("month")) upsertChart("#c-month", withPrev("month", {
-    type: "line",
-    data: { labels, datasets: [["Fuel", "fuel", C.fuel], ["Service", "service", C.service], ["Rego & insurance", "rego", C.rego], ["Other", "expense", C.expense]].map(([label, key, color], i) => ({ label, data: buckets.map((b) => r2(b[key])), borderColor: color, backgroundColor: mixHex(color, C.surface, 0.55), fill: i ? "-1" : "origin", borderWidth: 2, cubicInterpolationMode: "monotone", pointRadius: buckets.length > 40 ? 0 : 2.5, pointHoverRadius: 5, pointHitRadius: 8, pointBackgroundColor: color })) },
-    options: {
-      ...base,
-      plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}`, footer: (items) => `This period: ${money.format(items.filter((i) => i.dataset.stack !== "prev").reduce((s, i) => s + i.parsed.y, 0))}` } } },
-      scales: { x: base.scales.x, y: { ...yTicks((v) => money0.format(v)), stacked: true, beginAtZero: true } }
-    },
-    labelled: true
-  }, prevLine(pbuckets.map((b) => r2(totalOf(b))), { stack: "prev", label: "Previous period total" })), spentAny ? "" : "Nothing spent in this period.");
+  const years = yearBreakdown(all).slice().reverse();
+  const rateOver = (s, e, fuelOnly) => monthRate(addD(s, -1), e, fuelOnly);
+  if (has("spend")) {
+    const pts = steps.map((d) => ({ x: xOf(d), y: (() => {
+      const v = monthRate(addD(d, -W), d);
+      return v == null ? null : r2(v);
+    })() }));
+    const avg2 = rateOver(range.start, range.end), prev = hasPrev ? rateOver(range.prevStart, range.prevEnd) : null;
+    sum("spend", avg2 == null ? null : money0.format(avg2), "a month on average", avg2, prev);
+    upsertChart(
+      "#c-spend",
+      timeCfg([trendLine(pts, C.accent, "3-month average"), avgLine(avg2, C.accent)], (v) => money0.format(v), avg2, true),
+      pts.some((p) => p.y != null) ? "" : "Needs about a month of entries."
+    );
+  }
   if (has("cat")) {
     const order = byCategory(all).filter((c) => c.total > 0).map((c) => c.category);
     const now = Object.fromEntries(byCategory(list).map((c) => [c.category, c.total]));
     const cm = colourMap(order, CAT_COL);
-    upsertChart("#c-cat", pie("cat", order, order.map((c) => r2(now[c] || 0)), order.map((c) => cm[c]), (v) => money.format(v)), order.some((c) => now[c] > 0) ? "" : "Nothing spent in this period.");
-  }
-  if (has("cumul")) {
-    let run = 0;
-    const cum = buckets.map((b) => r2(run += totalOf(b)));
-    let prun = 0;
-    const pcum = pbuckets.map((b) => r2(prun += totalOf(b)));
-    upsertChart("#c-cumul", withPrev("cumul", {
-      type: "line",
-      data: { labels, datasets: [{ label: "Spent", data: cum, ...area(C.accent, cum.length) }] },
-      options: { ...base, plugins: tip((v) => money.format(v)), scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } } }
-    }, prevLine(pcum)), spentAny ? "" : "Nothing spent in this period.");
-  }
-  if (has("vsLast")) {
-    const spentIn = (s0, e0) => all.reduce((t, e) => t + (String(e.date) >= s0 && String(e.date) <= e0 ? +e.cost || 0 : 0), 0);
-    const shift = (d, n) => {
-      const x = /* @__PURE__ */ new Date(d + "T00:00:00");
-      x.setDate(x.getDate() + n);
-      return isoD(x);
-    };
-    let lab, cur, prev, names;
-    if (state.period === "all") {
-      const y = (/* @__PURE__ */ new Date()).getFullYear(), m = (/* @__PURE__ */ new Date()).getMonth();
-      lab = Array.from({ length: 12 }, (_, i) => new Date(y, i, 1).toLocaleDateString("en-AU", { month: "short" }));
-      const run = (yr, upto) => {
-        let t = 0;
-        return lab.map((_, i) => i > upto ? null : r2(t += spentIn(`${yr}-${String(i + 1).padStart(2, "0")}-01`, `${yr}-${String(i + 1).padStart(2, "0")}-31`)));
-      };
-      cur = run(y, m);
-      prev = run(y - 1, 11);
-      names = [String(y), String(y - 1)];
-    } else {
-      const off2 = Math.round((/* @__PURE__ */ new Date(range.start + "T00:00:00") - /* @__PURE__ */ new Date(range.prevStart + "T00:00:00")) / 864e5);
-      lab = labels;
-      let a = 0, b = 0;
-      cur = buckets.map((bk) => r2(a += spentIn(bk.s, bk.e)));
-      prev = buckets.map((bk) => {
-        const pe = shift(bk.e, -off2);
-        return r2(b += spentIn(shift(bk.s, -off2), pe > range.prevEnd ? range.prevEnd : pe));
-      });
-      names = ["This period", "Period before"];
-    }
-    upsertChart(
-      "#c-vsLast",
-      { type: "line", data: { labels: lab, datasets: [
-        { label: names[0], data: cur, ...line(C.accent, lab.length) },
-        { label: names[1], data: prev, ...line(C.tyre, lab.length), borderDash: [6, 4], pointRadius: 0 }
-      ] }, options: {
-        ...base,
-        plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${money.format(ctx.parsed.y)}` } } },
-        scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } }
-      } },
-      cur.some((v) => v > 0) || prev.some((v) => v > 0) ? "" : "Nothing spent in either period."
-    );
+    const total = order.reduce((s, c) => s + (now[c] || 0), 0);
+    const prevTotal = hasPrev ? spentIn(addD(range.prevStart, -1), range.prevEnd) : null;
+    sum("cat", money0.format(total), "spent", total, prevTotal);
+    const wide = ($("#box-cat")?.clientWidth || 0) >= 420;
+    upsertChart("#c-cat", {
+      type: "doughnut",
+      data: { labels: order, datasets: [{ data: order.map((c) => r2(now[c] || 0)), backgroundColor: order.map((c) => cm[c]), borderColor: C.surface, borderWidth: 2, hoverOffset: 6 }] },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: "58%",
+        animation: base.animation,
+        plugins: {
+          legend: { display: true, position: wide ? "right" : "bottom", labels: { boxWidth: 10, boxHeight: 10, useBorderRadius: true, borderRadius: 3, padding: 10, filter: (item, data) => (data.datasets[0].data[item.index] || 0) > 0 } },
+          tooltip: { filter: (ctx) => ctx.parsed > 0, callbacks: { label: (ctx) => `${ctx.label}: ${money.format(ctx.parsed)} \xB7 ${total ? Math.round(ctx.parsed / total * 100) : 0}%` } }
+        }
+      }
+    }, total > 0 ? "" : "Nothing spent in this period.");
   }
   if (has("costKm")) {
-    const ck = buckets.map((b, i) => kms[i] > 0 ? +(totalOf(b) / kms[i] * 100).toFixed(1) : null);
-    const pck = pbuckets.map((b, i) => pkms[i] > 0 ? +(totalOf(b) / pkms[i] * 100).toFixed(1) : null);
-    upsertChart("#c-costKm", withPrev("costKm", {
-      type: "line",
-      data: { labels, datasets: [{ label: "c/km", data: ck, ...line(C.accent, ck.length), spanGaps: true }] },
-      options: { ...base, plugins: tip(fmtC1), scales: { ...base.scales, y: yTicks((v) => `${v}c`) } }
-    }, prevLine(pck)), ck.some((v) => v != null) ? "" : "Needs odometer readings in this period.");
-  }
-  if (has("svc")) {
-    const sv = { "Scheduled service": 0, Repairs: 0, Tyres: 0 };
-    for (const e of list) {
-      if (e.type !== "service") continue;
-      const c = e.category || "";
-      const k = TYRE_CATS.includes(c) ? "Tyres" : c === "Scheduled service" || /service|oil/i.test(c) && c !== "Other service" ? "Scheduled service" : "Repairs";
-      sv[k] += +e.cost || 0;
-    }
-    const keys = Object.keys(sv);
-    const col = { "Scheduled service": CAT_COL["Scheduled service"], Repairs: CAT_COL.Repairs, Tyres: CAT_COL.Tyres };
-    upsertChart("#c-svc", pie("svc", keys, keys.map((k) => r2(sv[k])), keys.map((k) => col[k]), (v) => money.format(v)), keys.some((k) => sv[k] > 0) ? "" : "No services or repairs in this period.");
+    const ckAt = (s, e, m) => {
+      const k = kmSpan(s, e, m);
+      return k ? spentIn(addD(k.a, 0), k.b) / k.km * 100 : null;
+    };
+    const pts = steps.map((d) => {
+      const v = ckAt(addD(d, -W), d);
+      return { x: xOf(d), y: v == null ? null : +v.toFixed(1) };
+    });
+    const avg2 = ckAt(addD(range.start, -1), range.end, 7), prev = hasPrev ? ckAt(addD(range.prevStart, -1), range.prevEnd, 7) : null;
+    sum("costKm", avg2 == null ? null : fmtC1(avg2), "per km on average", avg2, prev);
+    upsertChart(
+      "#c-costKm",
+      timeCfg([trendLine(pts, C.accent, "3-month average"), avgLine(avg2, C.accent)], fmtC1, avg2, false),
+      pts.some((p) => p.y != null) ? "" : "Needs a month or more of odometer readings."
+    );
   }
   if (has("biggest")) {
     const groups = /* @__PURE__ */ new Map();
@@ -4292,16 +4173,16 @@ function drawCharts() {
       if (e.category && !g.cats.includes(e.category)) g.cats.push(e.category);
       groups.set(id, g);
     }
-    const top = [...groups.values()].sort((a, b) => b.cost - a.cost).slice(0, 8);
+    const top = [...groups.values()].sort((a, b) => b.cost - a.cost).slice(0, 6);
     const lab = (g) => {
       const s = g.cats.length > 1 ? `${g.cats[0]} + ${g.cats.length - 1} more` : g.cats[0] || "Expense";
       return s.length > 26 ? s.slice(0, 25) + "\u2026" : s;
     };
+    const other = [...groups.values()].reduce((s, g) => s + g.cost, 0);
+    sum("biggest", top.length ? money0.format(other) : null, "on everything but fuel");
     setHeight("biggest", top.length);
-    const cfg = hbar(top.map(lab), top.map((g) => r2(g.cost)), (() => {
-      const cm = colourMap(top.map((g) => g.cats[0] || "Other"), CAT_COL);
-      return top.map((g) => cm[g.cats[0] || "Other"]);
-    })(), (v) => money0.format(v));
+    const cm = colourMap(top.map((g) => g.cats[0] || "Other"), CAT_COL);
+    const cfg = hbar(top.map(lab), top.map((g) => r2(g.cost)), top.map((g) => cm[g.cats[0] || "Other"]), (v) => money0.format(v));
     cfg.options.plugins.tooltip.callbacks = {
       title: (it) => {
         const g = top[it[0].dataIndex];
@@ -4315,265 +4196,136 @@ function drawCharts() {
     };
     upsertChart("#c-biggest", cfg, top.length ? "" : "No expenses other than fuel in this period.");
   }
+  if (has("year")) {
+    const { avg: avg2, cfg } = yearBars(years, (y) => y.total || 0, C.accent, (v) => money0.format(v));
+    sum("year", avg2 == null ? null : money0.format(avg2), "in an average year");
+    upsertChart("#c-year", cfg, years.length ? "" : "Nothing logged yet.");
+  }
   if (has("econ")) {
-    const allEcon = fuelEconomy(all);
-    const pt = (q) => ({ d: q.date, y: +q.l100.toFixed(2), distance: q.distance, litres: q.litres });
+    const tanks = fuelEconomy(all).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    const roll = tanks.map((t, i) => {
+      const w = tanks.slice(Math.max(0, i - 2), i + 1);
+      const d = w.reduce((s, q) => s + q.distance, 0);
+      return d > 0 ? w.reduce((s, q) => s + q.litres, 0) / d * 100 : null;
+    });
+    const idx = tanks.map((t, i) => i).filter((i) => String(tanks[i].date) >= range.start && String(tanks[i].date) <= range.end);
+    const avgOf = (s, e) => {
+      const w = tanks.filter((q) => String(q.date) >= s && String(q.date) <= e);
+      const d = w.reduce((t, q) => t + q.distance, 0);
+      return d > 0 ? w.reduce((t, q) => t + q.litres, 0) / d * 100 : null;
+    };
+    const avg2 = avgOf(range.start, range.end), prev = hasPrev ? avgOf(range.prevStart, range.prevEnd) : null;
+    sum("econ", avg2 == null ? null : n1.format(avg2), "L/100km on average", avg2, prev);
+    const fmt = (v) => `${n1.format(v)} L/100km`;
+    const cfg = timeCfg([
+      trendLine(idx.map((i) => ({ x: xOf(tanks[i].date), y: roll[i] == null ? null : +roll[i].toFixed(2) })), C.fuel, "Last 3 tanks"),
+      dots(idx.map((i) => ({ x: xOf(tanks[i].date), y: +tanks[i].l100.toFixed(2) })), C.fuel, "This tank"),
+      avgLine(avg2, C.fuel)
+    ], fmt, avg2, false, (it) => fmtDate(tanks[idx[it.dataIndex]]?.date), (v) => n1.format(v));
+    cfg.data.datasets[0].fill = false;
+    upsertChart("#c-econ", cfg, idx.length ? "" : "No full-tank fill-ups in this period.");
+  }
+  const fills = all.filter((e) => e.type === "fuel" && +e.litres > 0 && +e.cost > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  if (has("ppl")) {
+    const roll = fills.map((f, i) => {
+      const w = fills.slice(Math.max(0, i - 2), i + 1);
+      return w.reduce((s, q) => s + +q.cost, 0) / w.reduce((s, q) => s + +q.litres, 0) * 100;
+    });
+    const idx = fills.map((f, i) => i).filter((i) => String(fills[i].date) >= range.start && String(fills[i].date) <= range.end);
+    const avgOf = (s, e) => {
+      const w = fills.filter((q) => String(q.date) >= s && String(q.date) <= e);
+      const l = w.reduce((t, q) => t + +q.litres, 0);
+      return l > 0 ? w.reduce((t, q) => t + +q.cost, 0) / l * 100 : null;
+    };
+    const avg2 = avgOf(range.start, range.end), prev = hasPrev ? avgOf(range.prevStart, range.prevEnd) : null;
+    sum("ppl", avg2 == null ? null : fmtC1(avg2), "a litre on average", avg2, prev);
+    const cfg = timeCfg([
+      trendLine(idx.map((i) => ({ x: xOf(fills[i].date), y: +roll[i].toFixed(1) })), C.fuel, "Last 3 fill-ups"),
+      dots(idx.map((i) => ({ x: xOf(fills[i].date), y: +(+fills[i].cost / +fills[i].litres * 100).toFixed(1) })), C.fuel, "This fill-up"),
+      avgLine(avg2, C.fuel)
+    ], fmtC1, avg2, false, (it) => {
+      const f = fills[idx[it.dataIndex]];
+      return f ? [fmtDate(f.date), f.place].filter(Boolean).join(" \xB7 ") : "";
+    });
+    cfg.data.datasets[0].fill = false;
+    upsertChart("#c-ppl", cfg, idx.length ? "" : "No fill-ups with litres in this period.");
+  }
+  if (has("fuelSpend")) {
+    const pts = steps.map((d) => {
+      const v = monthRate(addD(d, -W), d, true);
+      return { x: xOf(d), y: v == null ? null : r2(v) };
+    });
+    const avg2 = rateOver(range.start, range.end, true), prev = hasPrev ? rateOver(range.prevStart, range.prevEnd, true) : null;
+    sum("fuelSpend", avg2 == null ? null : money0.format(avg2), "a month on fuel", avg2, prev);
     upsertChart(
-      "#c-econ",
-      timeChart(
-        "econ",
-        "line",
-        econ.map(pt),
-        allEcon.filter((q) => inPrev(q.date)).map(pt),
-        C.fuel,
-        (v) => `${n1.format(v)} L/100km`,
-        (p) => `${n0.format(p.distance)} km on ${n1.format(p.litres)} L`
-      ),
-      econ.length > 1 ? "" : econ.length ? `One tank in this period: ${n1.format(econ[0].l100)} L/100km.` : "No full-tank fill-ups in this period."
+      "#c-fuelSpend",
+      timeCfg([trendLine(pts, C.fuel, "3-month average"), avgLine(avg2, C.fuel)], (v) => money0.format(v), avg2, true),
+      pts.some((p) => p.y != null) ? "" : "Needs about a month of fill-ups."
     );
   }
-  if (has("ppl")) {
-    const ppl = pricePerLitre(list);
-    const pt = (q) => ({ d: q.date, y: +(q.ppl * 100).toFixed(1) });
-    upsertChart("#c-ppl", timeChart("ppl", "line", ppl.map(pt), pricePerLitre(all).filter((q) => inPrev(q.date)).map(pt), C.fuel, (v) => `${n1.format(v)} c/L`), ppl.length ? "" : "No fill-ups with litres in this period.");
-  }
-  if (has("fuelSpend")) upsertChart("#c-fuelSpend", withPrev("fuelSpend", {
-    type: "line",
-    data: { labels, datasets: [{ label: "Fuel", data: buckets.map((b) => r2(b.fuel)), ...area(C.fuel, buckets.length) }] },
-    options: { ...base, plugins: tip((v) => money.format(v)), scales: { ...base.scales, y: { ...yTicks((v) => money0.format(v)), beginAtZero: true } } }
-  }, prevLine(pbuckets.map((b) => r2(b.fuel)))), fillsP.length ? "" : "No fill-ups in this period.");
-  if (has("litres")) upsertChart("#c-litres", withPrev("litres", {
-    type: "line",
-    data: { labels, datasets: [{ label: "Litres", data: buckets.map((b) => +b.litres.toFixed(1)), ...line(C.fuel, buckets.length) }] },
-    options: { ...base, plugins: tip((v) => `${n1.format(v)} L`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
-  }, prevLine(pbuckets.map((b) => +b.litres.toFixed(1)))), fillsP.some((e) => +e.litres > 0) ? "" : "No fill-ups with litres in this period.");
-  if (has("fillCost")) {
-    const f = fillsP.filter((e) => +e.cost > 0);
-    const pt = (e) => ({ d: e.date, y: r2(+e.cost), litres: +e.litres || 0, place: e.place });
-    const pf = all.filter((e) => e.type === "fuel" && +e.cost > 0 && inPrev(e.date));
-    upsertChart("#c-fillCost", timeChart(
-      "fillCost",
-      "bar",
-      f.map(pt),
-      pf.map(pt),
-      C.fuel,
-      (v) => money.format(v),
-      (p) => [p.litres ? `${n1.format(p.litres)} L` : "", p.place].filter(Boolean).join(" \xB7 "),
-      (v) => money0.format(v)
-    ), f.length ? "" : "No fill-ups in this period.");
-  }
-  if (has("kmFill")) {
-    const byOdo = all.filter((e) => e.type === "fuel" && +e.odo > 0).sort((a, b) => +a.odo - +b.odo);
-    const gaps = [], pgaps = [];
-    byOdo.forEach((e, i) => {
-      if (!i || +e.odo <= +byOdo[i - 1].odo) return;
-      const g = { d: e.date, y: +e.odo - +byOdo[i - 1].odo };
-      if (String(e.date) >= range.start && String(e.date) <= range.end) gaps.push(g);
-      else if (inPrev(e.date)) pgaps.push(g);
-    });
-    upsertChart("#c-kmFill", timeChart("kmFill", "bar", gaps, pgaps, C.tyre, (v) => `${n0.format(v)} km`, null, (v) => n0.format(v)), gaps.length ? "" : "Needs two fill-ups with odometer readings.");
-  }
-  const places = /* @__PURE__ */ new Map();
-  for (const e of fillsP) {
-    const name = String(e.place || "").trim();
-    if (!name) continue;
-    const p = places.get(name) || { name, count: 0, cost: 0, litres: 0 };
-    p.count++;
-    if (+e.litres > 0 && +e.cost > 0) {
+  if (has("station")) {
+    const places = /* @__PURE__ */ new Map();
+    for (const e of fills) {
+      if (String(e.date) < range.start || String(e.date) > range.end) continue;
+      const name = String(e.place || "").trim();
+      if (!name) continue;
+      const p = places.get(name) || { name, count: 0, cost: 0, litres: 0 };
+      p.count++;
       p.cost += +e.cost;
       p.litres += +e.litres;
+      places.set(name, p);
     }
-    places.set(name, p);
-  }
-  const allPlaces = {};
-  all.filter((e) => e.type === "fuel").forEach((e) => {
-    const n = String(e.place || "").trim();
-    if (n) allPlaces[n] = (allPlaces[n] || 0) + 1;
-  });
-  const placeOrder = Object.entries(allPlaces).sort((a, b) => b[1] - a[1]).map(([n]) => n);
-  const placeCol = colourMap(placeOrder);
-  if (has("station")) {
-    const st = [...places.values()].filter((p) => p.litres > 0).map((p) => ({ ...p, ppl: p.cost / p.litres * 100 })).sort((a, b) => a.ppl - b.ppl).slice(0, 10);
+    const order = Object.entries(all.filter((e) => e.type === "fuel").reduce((m, e) => {
+      const n = String(e.place || "").trim();
+      if (n) m[n] = (m[n] || 0) + 1;
+      return m;
+    }, {})).sort((a, b) => b[1] - a[1]).map(([n]) => n);
+    const col = colourMap(order);
+    const st = [...places.values()].map((p) => ({ ...p, ppl: p.cost / p.litres * 100 })).sort((a, b) => a.ppl - b.ppl).slice(0, 8);
+    sum("station", st.length ? fmtC1(st[0].ppl) : null, st.length ? `at ${esc(st[0].name)}, your cheapest` : "");
     setHeight("station", st.length);
-    const cfg = hbar(st.map((p) => p.name.length > 24 ? p.name.slice(0, 23) + "\u2026" : p.name), st.map((p) => +p.ppl.toFixed(1)), st.map((p) => placeCol[p.name]), (v) => `${n1.format(v)}c`);
-    cfg.options.scales.x.beginAtZero = false;
-    if (prevOn("station")) {
-      const pp = /* @__PURE__ */ new Map();
-      for (const e of all) if (e.type === "fuel" && inPrev(e.date) && +e.litres > 0 && +e.cost > 0) {
-        const n = String(e.place || "").trim(), x = pp.get(n) || { c: 0, l: 0 };
-        x.c += +e.cost;
-        x.l += +e.litres;
-        pp.set(n, x);
-      }
-      cfg.data.datasets.push(prevBars(st.map((p) => {
-        const x = pp.get(p.name);
-        return x ? +(x.c / x.l * 100).toFixed(1) : null;
-      }), { barPercentage: 0.7, borderSkipped: "start" }));
-      cfg.data.datasets[0].label = "This period";
-      cfg.options.plugins.legend = legendTop;
-      cfg.options.plugins.tooltip.callbacks.label = (ctx) => `${ctx.dataset.label}: ${n1.format(ctx.parsed.x)}c`;
-      setHeight("station", st.length * 1.6);
-    }
-    {
-      const vals = cfg.data.datasets.flatMap((d) => d.data).filter((v) => v != null);
-      if (vals.length) cfg.options.scales.x.min = Math.floor(Math.min(...vals) * 0.96 / 5) * 5;
-    }
+    const cfg = hbar(st.map((p) => p.name.length > 24 ? p.name.slice(0, 23) + "\u2026" : p.name), st.map((p) => +p.ppl.toFixed(1)), st.map((p) => col[p.name]), fmtC1);
+    if (st.length) cfg.options.scales.x.min = Math.floor(st[0].ppl * 0.96 / 5) * 5;
     cfg.options.plugins.tooltip.callbacks.afterLabel = (ctx) => {
       const p = st[ctx.dataIndex];
       return p ? `${p.count} fill-up${p.count === 1 ? "" : "s"}` : "";
     };
     upsertChart("#c-station", cfg, st.length ? "" : "No fill-ups with a service station in this period.");
   }
-  if (has("stationUse")) {
-    const top = placeOrder.slice(0, 6), cnt = (n) => places.get(n)?.count || 0;
-    const rest = [...places.values()].filter((p) => !top.includes(p.name)).reduce((s, p) => s + p.count, 0);
-    const lbl = [...top, ...placeOrder.length > 6 ? ["Other"] : []], vals = [...top.map(cnt), ...placeOrder.length > 6 ? [rest] : []];
-    upsertChart("#c-stationUse", pie("stationUse", lbl, vals, lbl.map((n) => placeCol[n] || "#9aa5b1"), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), vals.some((x) => x > 0) ? "" : "No fill-ups with a service station in this period.");
-  }
-  if (has("weekday")) {
-    const names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], cnt = [0, 0, 0, 0, 0, 0, 0];
-    for (const e of fillsP) cnt[((/* @__PURE__ */ new Date(e.date + "T00:00:00")).getDay() + 6) % 7]++;
-    const idx = names.map((_, i) => i);
-    const pal = ["#0b98b8", "#e8871e", "#7b5ce0", "#2f9e5a", "#d64545", "#e0b31b", "#3b6fd8"];
-    upsertChart("#c-weekday", pie("weekday", idx.map((i) => names[i]), idx.map((i) => cnt[i]), idx.map((i) => pal[i]), (v) => `${v} fill-up${v === 1 ? "" : "s"}`), cnt.some((x) => x > 0) ? "" : "No fill-ups in this period.");
-  }
-  const anyKm = kms.some((k) => k > 0);
-  if (has("km")) upsertChart("#c-km", withPrev("km", {
-    type: "line",
-    data: { labels, datasets: [{ label: "Km", data: kms, ...area(C.tyre, kms.length) }] },
-    options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
-  }, prevLine(pkms)), anyKm ? "" : "No odometer readings in this period.");
-  const odoList = all.filter((e) => +e.odo > 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  if (has("odo")) {
-    const odoP = odoList.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
-    upsertChart("#c-odo", {
-      type: "line",
-      data: { labels: odoP.map((e) => shortDate(e.date)), datasets: [{ label: "Odometer", data: odoP.map((e) => +e.odo), ...line(C.accent, odoP.length), tension: 0.1, fill: false }] },
-      options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: yTicks((v) => n0.format(v)) } }
-    }, odoP.length ? "" : "No odometer readings in this period.");
-  }
   if (has("kmDay")) {
-    const kd = buckets.map((b, i) => kms[i] > 0 ? Math.round(kms[i] / b.days) : 0);
-    const pkd = pbuckets.map((b, i) => pkms[i] > 0 ? Math.round(pkms[i] / b.days) : 0);
-    upsertChart("#c-kmDay", withPrev("kmDay", {
-      type: "line",
-      data: { labels, datasets: [{ label: "Km per day", data: kd, ...line(C.tyre, kd.length) }] },
-      options: { ...base, plugins: tip((v) => `${n0.format(v)} km a day`), scales: { ...base.scales, y: { ...yTicks((v) => n0.format(v)), beginAtZero: true } } }
-    }, prevLine(pkd)), anyKm ? "" : "No odometer readings in this period.");
+    const kdAt = (s, e, m) => {
+      const k = kmSpan(s, e, m);
+      return k ? k.km / k.days : null;
+    };
+    const pts = steps.map((d) => {
+      const v = kdAt(addD(d, -W), d);
+      return { x: xOf(d), y: v == null ? null : Math.round(v) };
+    });
+    const avg2 = kdAt(addD(range.start, -1), range.end, 7), prev = hasPrev ? kdAt(addD(range.prevStart, -1), range.prevEnd, 7) : null;
+    sum("kmDay", avg2 == null ? null : n0.format(Math.round(avg2)), `km a day \xB7 about ${n0.format(Math.round((avg2 || 0) * 30.44 / 10) * 10)} a month`, avg2, prev);
+    upsertChart(
+      "#c-kmDay",
+      timeCfg([trendLine(pts, C.tyre, "3-month average"), avgLine(avg2, C.tyre)], (v) => `${n0.format(v)} km`, avg2, true),
+      pts.some((p) => p.y != null) ? "" : "Needs a month or more of odometer readings."
+    );
   }
-  const years = yearBreakdown(all).slice().reverse();
+  if (has("odo")) {
+    const est = estimateOdo(all);
+    const inP = odoReads.filter(([d]) => d >= range.start && d <= range.end);
+    sum("odo", est.odo == null ? null : n0.format(Math.round(est.odo)), est.odo == null ? "" : "km today (estimated)");
+    const pts = inP.map(([d, o]) => ({ x: xOf(d), y: o }));
+    const ds = [{ ...trendLine(pts, C.accent, "Odometer"), fill: false, tension: 0.1, pointRadius: pts.length > 30 ? 0 : 2.5, pointBackgroundColor: C.accent }];
+    if (est.odo != null && lastOdo && lastOdo < range.end && pts.length) ds.push({ label: "Estimated", data: [{ x: xOf(lastOdo), y: odoAt(lastOdo) }, { x: span, y: Math.round(est.odo) }], borderColor: C.accent, borderDash: [5, 5], borderWidth: 2, pointRadius: [0, 3], pointBackgroundColor: C.accent, fill: false });
+    const cfg = timeCfg(ds, (v) => `${n0.format(v)} km`, null, false);
+    cfg.options.interaction = { mode: "nearest", axis: "x", intersect: false };
+    upsertChart("#c-odo", cfg, pts.length ? "" : "No odometer readings in this period.");
+  }
   if (has("kmYear")) {
     const ky = years.filter((y) => y.km > 0);
-    upsertChart("#c-kmYear", {
-      type: "bar",
-      data: { labels: ky.map((y) => y.current ? `${y.year} so far` : y.year), datasets: [{ label: "Km", data: ky.map((y) => y.km), ...bars(C.tyre) }] },
-      options: { ...base, plugins: tip((v) => `${n0.format(v)} km`), scales: { ...base.scales, y: yTicks((v) => n0.format(v)) } }
-    }, ky.length ? "" : "No odometer readings yet.");
+    const { avg: avg2, cfg } = yearBars(ky, (y) => y.km || 0, C.tyre, (v) => `${n0.format(v)} km`);
+    sum("kmYear", avg2 == null ? null : n0.format(Math.round(avg2)), "km in an average year");
+    upsertChart("#c-kmYear", cfg, ky.length ? "" : "No odometer readings yet.");
   }
-  if ($("#c-calendar")) drawCalendar(odoList, range, C);
-  const vcol = (i) => [C.accent, C.expense, C.service, C.rego, C.tyre][i % 5];
-  const perV = state.vehicles.map((v, i) => {
-    const es = state.entries.filter((e) => e.vehicleId === v.id);
-    const inP = es.filter((e) => String(e.date) >= range.start && String(e.date) <= range.end);
-    return { v, es, color: vcol(i), spend: inP.reduce((s, e) => s + (+e.cost || 0), 0), km: kmOf(es, range.start, range.end) };
-  });
-  if (has("bothSpend")) {
-    upsertChart("#c-bothSpend", pie("bothSpend", perV.map((x) => x.v.name), perV.map((x) => r2(x.spend)), perV.map((x) => x.color), (v) => money.format(v)), perV.some((x) => x.spend > 0) ? "" : "Nothing spent in this period.");
-  }
-  if (has("bothKm")) {
-    upsertChart("#c-bothKm", pie("bothKm", perV.map((x) => x.v.name), perV.map((x) => x.km), perV.map((x) => x.color), (v) => `${n0.format(v)} km`), perV.some((x) => x.km > 0) ? "" : "No odometer readings in this period.");
-  }
-  if (has("bothEcon")) {
-    const sets = perV.map((x) => {
-      const pts = fuelEconomy(x.es);
-      const data = buckets.map((b) => {
-        const p = pts.filter((q) => String(q.date) >= b.start && String(q.date) <= b.end);
-        const d = p.reduce((s, q) => s + q.distance, 0), l = p.reduce((s, q) => s + q.litres, 0);
-        return d > 0 ? +(l / d * 100).toFixed(2) : null;
-      });
-      const out = [{ label: x.v.name, data, ...line(x.color, data.length), spanGaps: true }];
-      if (prevOn("bothEcon")) {
-        const pd = pbuckets.map((b) => {
-          const p = pts.filter((q) => String(q.date) >= b.s && String(q.date) <= b.e);
-          const d = p.reduce((s, q) => s + q.distance, 0), l = p.reduce((s, q) => s + q.litres, 0);
-          return d > 0 ? +(l / d * 100).toFixed(2) : null;
-        });
-        out.push(prevLine(pd, { label: `${x.v.name} (previous)`, borderColor: x.color, backgroundColor: x.color, borderWidth: 1.5 }));
-      }
-      return out;
-    }).flat().filter((s) => s.data.some((v) => v != null));
-    upsertChart("#c-bothEcon", {
-      type: "line",
-      data: { labels, datasets: sets },
-      options: { ...base, plugins: { legend: legendTop, tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${n1.format(ctx.parsed.y)} L/100km` } } } }
-    }, sets.length ? "" : "No full-tank fill-ups in this period.");
-  }
-  const sumTip = (rows) => ({ legend: { display: false }, tooltip: { callbacks: {
-    label: (ctx) => `Spent ${money.format(ctx.parsed.y)}`,
-    afterLabel: (ctx) => {
-      const r = rows[ctx.dataIndex];
-      return r ? [r.km ? `${n0.format(r.km)} km` : "", r.l100 ? `${n1.format(r.l100)} L/100km` : "", r.costPerKm && r.fills ? `${fmtC(r.costPerKm)} per km` : ""].filter(Boolean) : "";
-    }
-  } } });
-  if (has("quarter")) {
-    const qs = quarterBreakdown(all, (/* @__PURE__ */ new Date()).getFullYear());
-    upsertChart("#c-quarter", {
-      type: "bar",
-      data: { labels: qs.map((q) => q.current ? `Q${q.q} so far` : `Q${q.q}`), datasets: [{ label: "Spent", data: qs.map((q) => q.future ? 0 : r2(q.total)), ...bars(C.accent) }] },
-      options: { ...base, plugins: sumTip(qs), scales: { ...base.scales, y: yTicks((v) => money0.format(v)) } }
-    }, qs.some((q) => q.total > 0) ? "" : "Nothing logged this year.");
-  }
-  if (has("year")) upsertChart("#c-year", {
-    type: "bar",
-    data: { labels: years.map((y) => y.current ? `${y.year} so far` : y.year), datasets: [{ label: "Spent", data: years.map((y) => r2(y.total)), ...bars(C.accent) }] },
-    options: { ...base, plugins: sumTip(years), scales: { ...base.scales, y: yTicks((v) => money0.format(v)) } }
-  }, years.length ? "" : "Nothing logged yet.");
-}
-function drawCalendar(odoList, range, C) {
-  const box = $("#c-calendar");
-  const iso2 = (d2) => d2.toLocaleDateString("en-CA");
-  const day = (s) => /* @__PURE__ */ new Date(s + "T00:00:00");
-  const endD = day(range.end);
-  let startD = day(range.start);
-  const cap = new Date(endD);
-  cap.setDate(cap.getDate() - 370);
-  if (startD < cap) startD = cap;
-  const byDate = /* @__PURE__ */ new Map();
-  for (const e of odoList) byDate.set(String(e.date), Math.max(byDate.get(String(e.date)) || 0, +e.odo));
-  const pts = [...byDate.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  const km = /* @__PURE__ */ new Map();
-  for (let i = 1; i < pts.length; i++) {
-    const [d1, o1] = pts[i - 1], [d2, o2] = pts[i];
-    const n = Math.round((day(d2) - day(d1)) / 864e5);
-    if (n <= 0 || o2 <= o1 || n > 60) continue;
-    const per = (o2 - o1) / n, x = day(d1);
-    for (let k = 0; k < n; k++) {
-      x.setDate(x.getDate() + 1);
-      km.set(iso2(x), per);
-    }
-  }
-  const vals = [...km.values()].filter((v) => v > 0).sort((a, b) => a - b);
-  const q = (p) => vals[Math.floor((vals.length - 1) * p)] || 0;
-  const cuts = [q(0.25), q(0.5), q(0.75)];
-  const lvl = (v) => !v ? 0 : v <= cuts[0] ? 1 : v <= cuts[1] ? 2 : v <= cuts[2] ? 3 : 4;
-  const d = new Date(startD);
-  d.setDate(d.getDate() - (d.getDay() + 6) % 7);
-  const cells = [];
-  let weeks = 0;
-  while (d <= endD) {
-    for (let r = 0; r < 7; r++) {
-      const s = iso2(d), inR = d >= startD && d <= endD, v = km.get(s) || 0;
-      cells.push(inR ? `<i class="l${lvl(v)}" title="${fmtDate(s)}${v ? ` \xB7 about ${n0.format(v)} km` : ""}"></i>` : '<i class="out"></i>');
-      d.setDate(d.getDate() + 1);
-    }
-    weeks++;
-  }
-  box.style.setProperty("--weeks", weeks);
-  box.innerHTML = vals.length ? `<div class="cal-scroll"><div class="cal-grid">${cells.join("")}</div></div>
-       <div class="cal-key">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>` : '<p class="empty" style="margin:0">No odometer readings in this period.</p>';
-  const sc = box.querySelector(".cal-scroll");
-  if (sc) sc.scrollLeft = sc.scrollWidth;
-  if (state.animCharts && !calm() && box.animate) box.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 380, easing: "ease-out" });
 }
 document.addEventListener("keydown", (ev) => {
   const h = ev.target.closest?.("[data-act=garage-fold]");
@@ -5734,14 +5486,7 @@ $("#main").addEventListener("click", async (ev) => {
     state.placeSel = /* @__PURE__ */ new Set();
     render();
   } else if (act === "place-merge") mergePlacesForm();
-  else if (act === "chart-prev") {
-    const set = chartsPrev(), k = el.dataset.k;
-    if (el.checked) set.add(k);
-    else set.delete(k);
-    store.set("carlog.chartsPrev", JSON.stringify([...set]));
-    state.animCharts = true;
-    drawCharts();
-  } else if (act === "svc-note-new") serviceNoteForm(el.dataset.vid);
+  else if (act === "svc-note-new") serviceNoteForm(el.dataset.vid);
   else if (act === "svc-note-del") {
     const veh = state.vehicles.find((x) => x.id === el.dataset.vid);
     if (!veh) return;
@@ -5779,13 +5524,13 @@ $("#main").addEventListener("click", async (ev) => {
     const off = chartsOff(), k = el.dataset.k;
     if (off.has(k)) off.delete(k);
     else off.add(k);
-    store.set("carlog.chartsOff", JSON.stringify([...off]));
+    store.set(CHARTS_OFF_KEY, JSON.stringify([...off]));
     const on = !off.has(k);
     el.setAttribute("aria-checked", on);
     el.querySelector(".sw").classList.toggle("on", on);
   } else if (act === "charts-all") {
     const on = el.dataset.on === "1";
-    store.set("carlog.chartsOff", JSON.stringify(on ? [] : CHART_LIST.map((c) => c[1])));
+    store.set(CHARTS_OFF_KEY, JSON.stringify(on ? [] : CHART_LIST.map((c) => c[1])));
     document.querySelectorAll(".cs-row").forEach((r) => {
       r.setAttribute("aria-checked", on);
       r.querySelector(".sw").classList.toggle("on", on);
