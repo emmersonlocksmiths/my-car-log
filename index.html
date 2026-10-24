@@ -2499,7 +2499,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "69";
+var APP_VERSION = "70";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3522,7 +3522,8 @@ function remindersHTML(v, list) {
       "Next fill-up",
       "",
       predHTML([
-        fu.due && [shortD(fu.due), inDays(fu.days)],
+        // Days to go big, the date small underneath
+        fu.due && [fu.days === 0 ? "Today" : fu.days > 0 ? `${fu.days} day${fu.days === 1 ? "" : "s"}` : `${-fu.days} day${fu.days === -1 ? "" : "s"} late`, shortD(fu.due), fu.days < 0 ? "bad" : ""],
         fu.kmLeft != null && (fu.kmLeft >= 0 ? [`~${n0.format(roundKm(fu.kmLeft))}`, "km to go"] : [n0.format(-fu.kmLeft), "km past usual", "bad"]),
         estCost(fu.cost)
       ]),
