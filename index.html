@@ -1521,20 +1521,16 @@ function periodStats(entries, start, end) {
     }
   }
   const total = totals.fuel + totals.service + totals.rego + totals.expense;
-  let maxIn = null, maxBefore = null, minIn = null;
-  for (const e of entries) {
-    const o = num(e.odo);
-    if (o === null) continue;
-    if (inRange(e)) {
-      maxIn = maxIn === null ? o : Math.max(maxIn, o);
-      minIn = minIn === null ? o : Math.min(minIn, o);
-    } else if (String(e.date) < start) maxBefore = maxBefore === null ? o : Math.max(maxBefore, o);
-  }
   const firstFill = entries.filter((e) => e.type === "fuel" && num(e.odo) !== null).sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
-  let base = maxBefore ?? minIn;
-  if (!firstFill || String(firstFill.date) > end) base = null;
-  else if (String(firstFill.date) >= start) base = +firstFill.odo;
-  const km = maxIn !== null && base !== null && maxIn > base ? maxIn - base : null;
+  let km = null, kmDays = 0;
+  if (firstFill && String(firstFill.date) <= end) {
+    const from = String(firstFill.date) > start ? String(firstFill.date) : start;
+    const a = odoOn(entries, from === start ? iso(addDays(/* @__PURE__ */ new Date(start + "T00:00:00"), -1)) : from), b = odoOn(entries, end);
+    if (a !== null && b !== null && b > a) {
+      km = Math.round(b - a);
+      kmDays = daysBetween(from, end) - (from === start ? 0 : 1);
+    }
+  }
   const econ = fuelEconomy(entries).filter((p) => String(p.date) >= start && String(p.date) <= end);
   const days = daysBetween(start, end);
   return {
@@ -1551,7 +1547,8 @@ function periodStats(entries, start, end) {
     fuelPerWeek: days >= 7 ? totals.fuel / (days / 7) : null,
     fuelPerKm: km && totals.fuel ? totals.fuel / km : null,
     costPerDay: days > 0 ? total / days : null,
-    kmPerWeek: km && days >= 7 ? km / (days / 7) : null,
+    kmPerWeek: km && kmDays >= 7 ? km / (kmDays / 7) : null,
+    kmDays,
     avgFill: fills ? totals.fuel / fills : null
   };
 }
@@ -1605,6 +1602,20 @@ function learnedGap(list, min, max) {
   const odos = list.map((e) => num(e.odo)).filter((o) => o !== null).sort((a, b) => b - a);
   const gaps = odos.slice(0, -1).map((o, i) => o - odos[i + 1]).filter((g) => g >= min && g <= max);
   return gaps.length ? roundTo(gaps.reduce((a, b) => a + b, 0) / gaps.length, 500) : null;
+}
+function odoOn(entries, date) {
+  const reads = entries.filter((e) => num(e.odo) !== null && e.date).map((e) => [String(e.date), +e.odo]).sort((a, b) => a[0].localeCompare(b[0]) || a[1] - b[1]);
+  if (!reads.length || date < reads[0][0]) return null;
+  const last = reads[reads.length - 1];
+  if (date >= last[0]) {
+    if (date === last[0]) return Math.max(...reads.filter(([d]) => d === date).map(([, o]) => o));
+    return estimateOdo(entries, /* @__PURE__ */ new Date(date + "T00:00:00")).odo;
+  }
+  let i = 0;
+  while (i < reads.length - 1 && reads[i + 1][0] <= date) i++;
+  const [d1, o1] = reads[i], [d2, o2] = reads[i + 1];
+  const n = -daysUntil(d1, /* @__PURE__ */ new Date(d2 + "T00:00:00"));
+  return n > 0 ? o1 + (o2 - o1) * -daysUntil(d1, /* @__PURE__ */ new Date(date + "T00:00:00")) / n : o1;
 }
 function estimateOdo(entries, now = /* @__PURE__ */ new Date()) {
   const today2 = iso(now);
@@ -2520,7 +2531,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "73";
+var APP_VERSION = "74";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3801,7 +3812,7 @@ function homeHTML() {
       costMonth: () => tile(a.total ? money0.format(perMonth(a.total, a)) : "\u2013", "Cost per month", b && delta(perMonth(a.total, a), perMonth(b.total, b))),
       svcSpend: () => tile(money0.format(a.totals.service), "Service and repairs", b && delta(a.totals.service, b.totals.service)),
       km: () => tile(a.km == null ? "\u2013" : `${n0.format(a.km)} km`, "Km driven", b && delta(a.km, b.km, null)),
-      kmDay: () => tile(a.km && a.days ? `${n0.format(a.km / a.days)} km` : "\u2013", "Km per day", b && delta(a.km / a.days, b.km / b.days, null)),
+      kmDay: () => tile(a.km && a.kmDays ? `${n0.format(a.km / a.kmDays)} km` : "\u2013", "Km per day", b && b.kmDays && delta(a.km / a.kmDays, b.km / b.kmDays, null)),
       kmWeek: () => tile(a.kmPerWeek == null ? "\u2013" : `${n0.format(Math.round(a.kmPerWeek))} km`, "Km per week", b && delta(a.kmPerWeek, b.kmPerWeek, null))
     };
     T.odo = () => (() => {
@@ -4083,11 +4094,12 @@ function drawCharts() {
   };
   const kmSpan = (s, e, minDays = 28) => {
     if (!odoReads.length) return null;
-    const a = s < firstOdo ? firstOdo : s, b = e > lastOdo ? lastOdo : e;
-    const days = between(a, b);
+    const a = s < firstOdo ? firstOdo : s;
+    const days = between(a, e);
     if (days < minDays) return null;
-    const km = odoAt(b) - odoAt(a);
-    return km > 0 ? { km, days, a, b } : null;
+    const oa = odoOn(all, a), ob = odoOn(all, e);
+    const km = oa != null && ob != null ? ob - oa : 0;
+    return km > 0 ? { km, days, a, b: e } : null;
   };
   const step = Math.max(1, Math.ceil(span / 26));
   const steps = [];
