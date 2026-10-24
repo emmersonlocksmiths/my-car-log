@@ -1318,6 +1318,16 @@ main { overflow-anchor: none; }
 .chart-card .chart-box { height: 210px; }
 @media (min-width: 760px) { .chart-card .chart-box { height: 250px; } }
 [data-chart="cat"] .chart-box { height: 290px; }
+
+/* v73 charts: Cost / Fuel / Odometer tabs with the period buttons, following you down the page */
+.charts-bar { position: sticky; top: calc(var(--topbar-h, 60px) + 8px); z-index: 4; display: grid; gap: 6px; padding: 6px; border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent); box-shadow: 0 6px 20px rgba(0, 0, 0, .18); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.chart-tabs button { font-weight: 700; padding: .55rem .4rem; }
+.charts-bar .chips.period .chip { background: transparent; }
+.charts-grid { will-change: auto; }
+@media (min-width: 1024px) {
+  .charts-bar { grid-template-columns: minmax(300px, 380px) max-content; align-items: center; justify-self: start; gap: 12px; }
+}
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2510,7 +2520,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "72";
+var APP_VERSION = "73";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -3875,20 +3885,77 @@ var chartsShown = () => {
   const off = chartsOff();
   return CHART_LIST.filter(([, k]) => !off.has(k));
 };
+var CHART_GROUPS = ["Cost", "Fuel", "Odometer"];
+function chartTab(shown = chartsShown()) {
+  const groups = CHART_GROUPS.filter((g) => shown.some((c) => c[0] === g));
+  if (!state.chartTab) state.chartTab = store.get("carlog.chartTab") || "Cost";
+  return groups.includes(state.chartTab) ? state.chartTab : groups[0];
+}
+function chartCardsHTML(g, shown = chartsShown()) {
+  const w = chartWords();
+  return shown.filter((c) => c[0] === g).map(([, k, , title]) => `<section class="card chart-card" data-chart="${k}">
+      <h2 data-tt="${k}">${title(w)}</h2>
+      <div class="chart-sum" id="sum-${k}"></div>
+      <div class="chart-box" id="box-${k}"><canvas id="c-${k}"></canvas><p class="chart-empty" hidden></p></div>
+    </section>`).join("");
+}
 function chartsHTML() {
   const { list } = chartRange();
   if (!list.length) return '<p class="card empty">Log a few entries and your charts will appear here.</p>';
   const shown = chartsShown();
   if (!shown.length) return `${periodChips("sticky-period")}<p class="card empty">All charts are switched off. Turn them back on in Garage \u2192 Charts.</p>`;
-  const w = chartWords();
-  const card = ([, k, , title]) => `<section class="card chart-card" data-chart="${k}">
-      <h2 data-tt="${k}">${title(w)}</h2>
-      <div class="chart-sum" id="sum-${k}"></div>
-      <div class="chart-box" id="box-${k}"><canvas id="c-${k}"></canvas><p class="chart-empty" hidden></p></div>
-    </section>`;
-  let html = "";
-  for (const g of [...new Set(shown.map((c) => c[0]))]) html += `<h3 class="chart-group">${g}</h3>${shown.filter((c) => c[0] === g).map(card).join("")}`;
-  return `${periodChips("sticky-period")}<div class="charts-grid">${html}</div>`;
+  const g = chartTab(shown);
+  const groups = CHART_GROUPS.filter((x) => shown.some((c) => c[0] === x));
+  const tabs = `<div class="seg chart-tabs" data-ind-key="chartTab" role="tablist" aria-label="Chart type" style="grid-template-columns:repeat(${groups.length},1fr)">${groups.map((x) => `<button type="button" class="${x === g ? "on" : ""}" data-act="chart-tab" data-g="${x}" role="tab" aria-selected="${x === g}">${x}</button>`).join("")}</div>`;
+  return `<div class="charts-bar">${tabs}${periodChips()}</div><div class="charts-grid" data-g="${g}">${chartCardsHTML(g, shown)}</div>`;
+}
+var chartTabBusy = false;
+function switchChartTab(g) {
+  const from = chartTab();
+  state.chartTab = g;
+  store.set("carlog.chartTab", g);
+  document.querySelectorAll(".chart-tabs button").forEach((b) => {
+    const on = b.dataset.g === g;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on);
+  });
+  placeIndicators();
+  const grid = $(".charts-grid");
+  if (!grid) {
+    render();
+    return;
+  }
+  if (chartTabBusy) return;
+  if (g === from && grid.dataset.g === g) return;
+  const dir = CHART_GROUPS.indexOf(g) >= CHART_GROUPS.indexOf(from) ? 1 : -1;
+  const swap = () => {
+    const now = chartTab();
+    state.charts.forEach((c) => c.destroy());
+    state.charts = [];
+    grid.innerHTML = chartCardsHTML(now);
+    grid.dataset.g = now;
+    const bar = $(".charts-bar"), top = document.querySelector(".topbar")?.getBoundingClientRect().bottom || 0;
+    if (bar && window.scrollY > 0) {
+      const y = window.scrollY + grid.getBoundingClientRect().top - bar.offsetHeight - top - 16;
+      if (window.scrollY > y) window.scrollTo({ top: Math.max(0, y), behavior: "instant" });
+    }
+    state.animCharts = true;
+    drawCharts();
+  };
+  if (calm() || !grid.animate) {
+    swap();
+    return;
+  }
+  chartTabBusy = true;
+  grid.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-dir * 28}px)` }], { duration: 170, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" }).finished.then(() => {
+    swap();
+    grid.getAnimations().forEach((a) => a.cancel());
+    grid.animate([{ opacity: 0, transform: `translateX(${dir * 28}px)` }, { opacity: 1, transform: "none" }], { duration: 300, easing: "cubic-bezier(.2,.8,.2,1)" });
+  }).catch(() => {
+  }).finally(() => {
+    chartTabBusy = false;
+    if (grid.isConnected && grid.dataset.g !== chartTab()) switchChartTab(chartTab());
+  });
 }
 function chartSettingsHTML() {
   const off = chartsOff();
@@ -3976,7 +4043,20 @@ function drawCharts() {
     const el = $("#sum-" + k);
     if (!el) return;
     const d = hasPrev && prev != null ? delta(cur, prev) : "";
-    el.innerHTML = big == null ? "" : `<b class="num">${big}</b><span class="cs-lbl">${label}</span>${d ? `<span class="cs-chg">${d} <span class="cs-vs">${VS}</span></span>` : ""}`;
+    const html = big == null ? "" : `<b class="num">${big}</b><span class="cs-lbl">${label}</span>${d ? `<span class="cs-chg">${d} <span class="cs-vs">${VS}</span></span>` : ""}`;
+    if (el.innerHTML === html) return;
+    const oldBig = el.querySelector("b")?.textContent, oldLbl = el.querySelector(".cs-lbl")?.textContent, oldChg = el.querySelector(".cs-chg")?.textContent;
+    el.innerHTML = html;
+    if (calm() || !el.animate) return;
+    if (oldBig == null) {
+      el.animate([{ opacity: 0, transform: "translateY(4px)" }, { opacity: 1, transform: "none" }], { duration: 380, easing: "ease-out" });
+      return;
+    }
+    const b = el.querySelector("b");
+    if (b && oldBig !== b.textContent) tweenText(b, oldBig, b.textContent);
+    const lbl = el.querySelector(".cs-lbl"), chg = el.querySelector(".cs-chg");
+    if (lbl && oldLbl !== lbl.textContent) lbl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 320, easing: "ease-out" });
+    if (chg && oldChg !== chg.textContent) chg.animate([{ opacity: 0, transform: "translateY(-3px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: "ease-out" });
   };
   const firstDate = all.map((e) => e.date).filter(Boolean).sort()[0] || range.start;
   const W = 90;
@@ -5556,7 +5636,8 @@ $("#main").addEventListener("click", async (ev) => {
   else if (act === "go-log") {
     state.view = "log";
     render();
-  } else if (act === "period") {
+  } else if (act === "chart-tab") switchChartTab(el.dataset.g);
+  else if (act === "period") {
     state.period = el.dataset.p;
     store.set("carlog.period", state.period);
     render();
