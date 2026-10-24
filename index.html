@@ -1304,6 +1304,9 @@ main { overflow-anchor: none; }
 .gh-dots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; flex-wrap: nowrap; }
 .gh { width: 100%; height: auto; aspect-ratio: 1; max-width: 30px; font-size: clamp(.56rem, 2.4vw, .7rem); }
 .gh.gE10 { font-size: clamp(.48rem, 2vw, .6rem); }
+.sn-head { justify-content: flex-start; }
+.sn-plus { margin-left: auto; appearance: none; border: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--service); color: #fff; font: 600 1.35rem/1 var(--font-body); display: grid; place-items: center; cursor: pointer; box-shadow: 0 3px 10px color-mix(in srgb, var(--service) 40%, transparent); transition: transform .15s ease; }
+.sn-plus:active { transform: scale(.92); }
 </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   
@@ -2499,7 +2502,7 @@ var db = initializeFirestore(fbApp, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 var ADMIN_EMAIL = "nathan.emmerson@hotmail.com";
-var APP_VERSION = "70";
+var APP_VERSION = "71";
 var SERVICE_CATS = ["Scheduled service", "Repairs"];
 var TYRE_CATS = ["Tyres", "Tyre rotation", "Wheel alignment", "Wheel balance", "Puncture repair", "Tyre repair", "Tyre check"];
 var TYRE_JOB_LABEL = { new: "New tyres", spare: "Spare / used tyre fitted", rotation: "Rotation", alignment: "Alignment", balance: "Balance", puncture: "Puncture repair", valve: "Valve / TPMS", rim: "Rim repair", check: "Pressure check" };
@@ -2777,23 +2780,22 @@ function keepChartsAnchor(root, a) {
   };
   step();
 }
-function addServiceNote(vid) {
-  const inp = $("#sn-input"), text = (inp?.value || "").trim().replace(/\s+/g, " ");
+function serviceNoteForm(vid) {
   const veh = state.vehicles.find((x) => x.id === vid);
-  if (!text || !veh) {
-    inp?.focus();
-    return;
-  }
-  const note = { id: Math.random().toString(36).slice(2, 10), text, date: today() };
-  inp.value = "";
-  updateDoc(userDoc("vehicles", veh.id), { serviceNotes: [...veh.serviceNotes || [], note] }).catch((err) => toast("Sync problem: " + err.message));
+  if (!veh) return;
+  openSheet(
+    `${sheetHead("Note for next service")}
+    <label>What did you notice?<textarea name="sn_text" rows="3" maxlength="200" placeholder="e.g. Squeak from front left when braking" required></textarea></label>
+    <button class="btn primary" value="save">Add note</button>`,
+    async () => {
+      const text = sheetForm.sn_text.value.trim().replace(/\s+/g, " ");
+      if (!text) return false;
+      const note = { id: Math.random().toString(36).slice(2, 10), text, date: today() };
+      updateDoc(userDoc("vehicles", veh.id), { serviceNotes: [...veh.serviceNotes || [], note] }).catch((err) => toast("Sync problem: " + err.message));
+    }
+  );
+  setTimeout(() => sheetForm.sn_text?.focus(), 250);
 }
-document.addEventListener("keydown", (ev) => {
-  if (ev.key === "Enter" && ev.target.id === "sn-input") {
-    ev.preventDefault();
-    ev.target.closest(".svc-notes")?.querySelector("[data-act=svc-note-add]")?.click();
-  }
-});
 var ANCHORS = [
   [".hero", () => "hero"],
   [".stat-group", (el) => "g:" + el.textContent],
@@ -3495,11 +3497,10 @@ function remindersHTML(v, list) {
   const s = r.service;
   const notes = Array.isArray(v.serviceNotes) ? v.serviceNotes : [];
   const notesHTML = `<div class="svc-notes">
-      <div class="sn-head">Notes for next service${notes.length ? ` <span class="sn-count">${notes.length}</span>` : ""}</div>
+      <div class="sn-head">Notes for next service${notes.length ? ` <span class="sn-count">${notes.length}</span>` : ""}
+        <button type="button" class="sn-plus" data-act="svc-note-new" data-vid="${v.id}" aria-label="Add a note">+</button></div>
       ${notes.length ? `<ul class="sn-list">${notes.map((n) => `<li><span class="sn-t">${esc(n.text)}</span><span class="sn-d">${shortD(n.date)}</span>
         <button type="button" class="sn-del" data-act="svc-note-del" data-vid="${v.id}" data-nid="${esc(n.id)}" aria-label="Remove note">\xD7</button></li>`).join("")}</ul>` : ""}
-      <div class="sn-add"><input id="sn-input" placeholder="Something you noticed\u2026" autocomplete="off" enterkeyhint="done" maxlength="200">
-        <button type="button" class="btn small" data-act="svc-note-add" data-vid="${v.id}">Add</button></div>
     </div>`;
   if (s.last) {
     rows.push(row(
@@ -3507,7 +3508,7 @@ function remindersHTML(v, list) {
       "Next service",
       statusChip(s.status, s.status === "due"),
       predHTML([
-        s.due && [shortD(s.due), inDays(s.days)],
+        s.due && [s.days === 0 ? "Today" : s.days > 0 ? `${s.days} day${s.days === 1 ? "" : "s"}` : `${-s.days} day${s.days === -1 ? "" : "s"} late`, shortD(s.due), s.days < 0 ? "bad" : ""],
         s.kmLeft != null && (s.kmLeft >= 0 ? [n0.format(s.kmLeft), "km to go"] : [n0.format(-s.kmLeft), "km overdue", "bad"]),
         estCost(s.avgCost)
       ]),
@@ -5740,7 +5741,7 @@ $("#main").addEventListener("click", async (ev) => {
     store.set("carlog.chartsPrev", JSON.stringify([...set]));
     state.animCharts = true;
     drawCharts();
-  } else if (act === "svc-note-add") addServiceNote(el.dataset.vid);
+  } else if (act === "svc-note-new") serviceNoteForm(el.dataset.vid);
   else if (act === "svc-note-del") {
     const veh = state.vehicles.find((x) => x.id === el.dataset.vid);
     if (!veh) return;
